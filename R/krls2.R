@@ -23,7 +23,7 @@ krls <- function(# Data arguments
                     X = NULL,
                     y = NULL,
                     # Family
-                    method = "leastsquares",
+                    loss = "leastsquares",
                     # Kernel arguments
                     whichkernel = "gaussian", 
                     sigma = NULL,
@@ -73,7 +73,7 @@ krls <- function(# Data arguments
     stop("nrow(X) not equal to number of elements in y")
   }
   
-  #if (truncate & method == "leastsquares")
+  #if (truncate & loss == "leastsquares")
   #  stop("Truncation is not allowed with least squares for now")
   
   stopifnot(
@@ -86,8 +86,8 @@ krls <- function(# Data arguments
     if(vcov==FALSE){
       stop("derivative==TRUE requires vcov=TRUE")
     }
-    if(truncate==FALSE & method == "logistic") {
-      stop("derivative==TRUE requires truncate==TRUE if method == 'logistic'")
+    if(truncate==FALSE & loss == "logistic") {
+      stop("derivative==TRUE requires truncate==TRUE if loss == 'logistic'")
     }
   }
 
@@ -114,14 +114,14 @@ krls <- function(# Data arguments
   }
   X <- scale(X, center = TRUE, scale = X.init.sd)    
   
-  if (method == "leastsquares") {
+  if (loss == "leastsquares") {
     ## Scale y
     y.init <- y
     y.init.sd <- apply(y.init,2,sd)
     y.init.mean <- mean(y.init)
     y <- scale(y,center=y.init.mean,scale=y.init.sd)
     
-  } else if (method == "logistic") {
+  } else if (loss == "logistic") {
     if (!all(y %in% c(0,1))) {
       stop("y is not binary data")
     }
@@ -141,7 +141,7 @@ krls <- function(# Data arguments
   Utrunc <- NULL
   if(truncate) {
     full <- FALSE
-    if (method == "leastsquares") {
+    if (loss == "leastsquares") {
       full <- TRUE
     }
     truncDat <- Ktrunc(K = K, sigma=sigma, lastkeeper=lastkeeper, epsilon=epsilon,
@@ -152,7 +152,7 @@ krls <- function(# Data arguments
       eigobj <- truncDat$eigobj
     }
   } else {
-    if (method == "leastsquares") {
+    if (loss == "leastsquares") {
       eigobj <- eigen(K)
     }
     Utrunc <- NULL
@@ -176,7 +176,7 @@ krls <- function(# Data arguments
               lambda>0)  
   } else {
     
-    if (method == "leastsquares") {
+    if (loss == "leastsquares") {
       lambda<- lambdasearch(#L=L,U=U,
         y=y,K=K,Eigenobject=eigobj,truncate=truncate)#,eigtrunc=eigtrunc,noisy=noisy)
     } else {
@@ -212,7 +212,7 @@ krls <- function(# Data arguments
   ## Solve
   vcovmatc=NULL
   
-  if (method == "leastsquares") {
+  if (loss == "leastsquares") {
     if (truncate){
       out <- solve_for_c_ls_trunc(y=y, K=K,Utrunc =Utrunc, lambda=lambda)
       print(Utrunc%*%out$coeffs)
@@ -269,9 +269,9 @@ krls <- function(# Data arguments
                      dimnames=list(NULL, colnames(X)))
   varavgderivmat <- matrix(NA,1,d)
   
-  if(method == "leastsquares") {
+  if(loss == "leastsquares") {
     p1p0 <- rep(2, n)
-  } else if (method == "logistic") {
+  } else if (loss == "logistic") {
     p1p0 <- yfitted*(1-yfitted)
   }
   
@@ -316,7 +316,7 @@ krls <- function(# Data arguments
     #effectmat <- t((1/X.init.sd)*t(derivmat))
     # or, equivalently, and probably more efficiently
     ## todo: smart checker if Y was rescaled?
-    if (method == "leastsquares") {
+    if (loss == "leastsquares") {
       avgderivmat <- colMeans(derivmat)
       derivmat <- scale(y.init.sd*derivmat,center=FALSE,scale=X.init.sd)
       attr(derivmat,"scaled:scale")<- NULL
