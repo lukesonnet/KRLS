@@ -20,33 +20,33 @@ NULL
 
 #' @export
 krls <- function(# Data arguments
-  X = NULL,
-  y = NULL,
-  # Family
-  method = "leastsquares",
-  # Kernel arguments
-  whichkernel = "gaussian", 
-  sigma = NULL,
-  # Lambda arguments
-  lambdarange = NULL,
-  lambdafolds = 5,
-  lambda = NULL,
-  lambdastart = 0.5,
-  L = NULL,
-  U = NULL,
-  # Truncation arguments
-  truncate = FALSE,
-  lastkeeper = NULL,
-  epsilon = 0.01,
-  # Optimization arguments
-  con = list(maxit=500),
-  printout = TRUE,
-  returnopt = TRUE,
-  # Standard error arguments
-  vcov = TRUE,
-  derivative = TRUE,
-  cpp = TRUE,
-  clusters = NULL) {
+                    X = NULL,
+                    y = NULL,
+                    # Family
+                    loss = "leastsquares",
+                    # Kernel arguments
+                    whichkernel = "gaussian", 
+                    sigma = NULL,
+                    # Lambda arguments
+                    lambdarange = NULL,
+                    lambdafolds = 5,
+                    lambda = NULL,
+                    lambdastart = 0.5,
+                    L = NULL,
+                    U = NULL,
+                    # Truncation arguments
+                    truncate = FALSE,
+                    lastkeeper = NULL,
+                    epsilon = 0.01,
+                    # Optimization arguments
+                    con = list(maxit=500),
+                    printout = TRUE,
+                    returnopt = TRUE,
+                    # Standard error arguments
+                    vcov = TRUE,
+                    derivative = TRUE,
+                    cpp = TRUE,
+                    clusters = NULL) {
   
   ## Prepare the data
   X <- as.matrix(X)
@@ -74,7 +74,7 @@ krls <- function(# Data arguments
     stop("nrow(X) not equal to number of elements in y")
   }
   
-  #if (truncate & method == "leastsquares")
+  #if (truncate & loss == "leastsquares")
   #  stop("Truncation is not allowed with least squares for now")
   
   stopifnot(
@@ -87,11 +87,11 @@ krls <- function(# Data arguments
     if(vcov==FALSE){
       stop("derivative==TRUE requires vcov=TRUE")
     }
-    if(truncate==FALSE & method == "logistic") {
-      stop("derivative==TRUE requires truncate==TRUE if method == 'logistic'")
+    if(truncate==FALSE & loss == "logistic") {
+      stop("derivative==TRUE requires truncate==TRUE if loss == 'logistic'")
     }
   }
-  
+
   ## Default sigma to the number of features
   if(is.null(sigma)){
     sigma <- d
@@ -115,14 +115,14 @@ krls <- function(# Data arguments
   }
   X <- scale(X, center = TRUE, scale = X.init.sd)    
   
-  if (method == "leastsquares") {
+  if (loss == "leastsquares") {
     ## Scale y
     y.init <- y
     y.init.sd <- apply(y.init,2,sd)
     y.init.mean <- mean(y.init)
     y <- scale(y,center=y.init.mean,scale=y.init.sd)
     
-  } else if (method == "logistic") {
+  } else if (loss == "logistic") {
     if (!all(y %in% c(0,1))) {
       stop("y is not binary data")
     }
@@ -136,13 +136,13 @@ krls <- function(# Data arguments
   if(whichkernel=="poly3"){ K <- (tcrossprod(X)+1)^3 }
   if(whichkernel=="poly4"){ K <- (tcrossprod(X)+1)^4 }
   if(is.null(K)){ stop("No valid Kernel specified") }
-  
+
   
   
   Utrunc <- NULL
   if(truncate) {
     full <- FALSE
-    if (method == "leastsquares") {
+    if (loss == "leastsquares") {
       full <- TRUE
     }
     truncDat <- Ktrunc(K = K, sigma=sigma, lastkeeper=lastkeeper, epsilon=epsilon,
@@ -153,7 +153,7 @@ krls <- function(# Data arguments
       eigobj <- truncDat$eigobj
     }
   } else {
-    if (method == "leastsquares") {
+    if (loss == "leastsquares") {
       eigobj <- eigen(K)
     }
     Utrunc <- NULL
@@ -177,7 +177,7 @@ krls <- function(# Data arguments
               lambda>0)  
   } else {
     
-    if (method == "leastsquares") {
+    if (loss == "leastsquares") {
       lambda<- lambdasearch(#L=L,U=U,
         y=y,K=K,Eigenobject=eigobj,truncate=truncate)#,eigtrunc=eigtrunc,noisy=noisy)
     } else {
@@ -189,7 +189,7 @@ krls <- function(# Data arguments
                             #U = U,
                             lastkeeper=lastkeeper,
                             vcov = FALSE,
-                            control=list(trace = 6, abstol = 1e-7, REPORT = 1), method="BFGS")
+                            control=list(trace = T, abstol = 1e-5), method="BFGS")
         
         lambda <- exp(fit.lambda$par)
         print(lambda)
@@ -209,11 +209,11 @@ krls <- function(# Data arguments
       }
     }
   }
-  
+
   ## Solve
   vcovmatc=NULL
   
-  if (method == "leastsquares") {
+  if (loss == "leastsquares") {
     if (truncate){
       out <- solve_for_c_ls_trunc(y=y, K=K,Utrunc =Utrunc, lambda=lambda)
       print(Utrunc%*%out$coeffs)
@@ -234,10 +234,11 @@ krls <- function(# Data arguments
     if (vcov) {
       sigmasq <- as.vector((1/n) * crossprod(y-yfitted))
       
-      vcovmatc <- tcrossprod(mult_diag(eigobj$vectors,sigmasq*(eigobj$values+lambda)^-2),eigobj$vectors)        
+      vcovmatc <- tcrossprod(mult_diag(eigobj$vectors,sigmasq*(eigobj$values+lambda)^-2),eigobj$vectors)   
+      
     }
     beta0hat <- NULL
-  } else { # logistic
+  } else {
     out <- solveForC(y=y, K=K, Utrunc=Utrunc, D=eigvals, lambda=lambda, con=con, vcov=vcov, printout = printout, returnopt = returnopt)
     chat <- out$chat
     beta0hat <- out$beta0hat
@@ -263,7 +264,7 @@ krls <- function(# Data arguments
       for (j in 1:nclust) {
         score[j, ] = krlogit_gr_trunc2(par=c(chat,beta0hat), Utrunc[clusters[[j]], , drop = F], eigvals, y[clusters[[j]], drop = F], lambda, n/length(clusters[[j]]))
       }
-  
+      
       #score = krlogit_gr_trunc(par=c(chat,beta0hat), Utrunc, eigvals, y, lambda)
       meat <- (j/(j-1)) * crossprod(score)
       vcov.rob.cb0 = vcov.cb0 %*% meat %*% vcov.cb0
@@ -278,46 +279,46 @@ krls <- function(# Data arguments
   ## Getting pwmfx
   ###----------------------------------------
   if (derivative==TRUE){
-    derivmat <- matrix(NA, ncol=d, nrow=n,
-                       dimnames=list(NULL, colnames(X)))
-    varavgderivmat <- matrix(NA,1,d)
+  derivmat <- matrix(NA, ncol=d, nrow=n,
+                     dimnames=list(NULL, colnames(X)))
+  varavgderivmat <- matrix(NA,1,d)
+  
+  if(loss == "leastsquares") {
+    p1p0 <- rep(2, n)
+  } else if (loss == "logistic") {
+    p1p0 <- yfitted*(1-yfitted)
+  }
+  
+  #construct coefhat=c for no truncation and coefhat = Utrunc*c
+  #to take the truncation into the coefficients. 
+
+  if(cpp) {
+
+    derivout <- pwmfx(K, X, coefhat, vcovmatc, p1p0, sigma)
+    derivmat <- derivout[1:n, ]
+    varavgderivmat <- derivout[n+1, ]
+
+  } else {
+    rows <- cbind(rep(1:n, each = n), 1:n)
+    distances <- X[rows[,1],] - X[ rows[,2],] 
     
-    if(method == "leastsquares") {
-      p1p0 <- rep(2, n)
-    } else if (method == "logistic") {
-      p1p0 <- yfitted*(1-yfitted)
-    }
-    
-    #construct coefhat=c for no truncation and coefhat = Utrunc*c
-    #to take the truncation into the coefficients. 
-    
-    if(cpp) {
-      
-      derivout <- pwmfx(K, X, coefhat, vcovmatc, p1p0, sigma)
-      derivmat <- derivout[1:n, ]
-      varavgderivmat <- derivout[n+1, ]
-      
-    } else {
-      rows <- cbind(rep(1:n, each = n), 1:n)
-      distances <- X[rows[,1],] - X[ rows[,2],] 
-      
-      for(k in 1:d){
-        print(paste("Computing derivatives, variable", k))
-        if(d==1){
-          distk <-  matrix(distances,n,n,byrow=TRUE)
-        } else {
-          distk <-  matrix(distances[,k],n,n,byrow=TRUE) 
-        }
-        L <-  distk*Kfull  #Kfull rather than K here as truncation handled through coefs
-        derivmat[,k] <- p1p0*(-1/sigma)*(L%*%coefhat)
-        if(truncate==FALSE) {
-          varavgderivmat = NULL
-        } else {
-          varavgderivmat[1,k] <- 1/(sigma * n)^2 * sum(crossprod(p1p0^2, crossprod(L,vcovmatc%*%L)))
-        }
+    for(k in 1:d){
+      print(paste("Computing derivatives, variable", k))
+      if(d==1){
+        distk <-  matrix(distances,n,n,byrow=TRUE)
+      } else {
+        distk <-  matrix(distances[,k],n,n,byrow=TRUE) 
       }
-      
+      L <-  distk*Kfull  #Kfull rather than K here as truncation handled through coefs
+      derivmat[,k] <- p1p0*(-1/sigma)*(L%*%coefhat)
+      if(truncate==FALSE) {
+        varavgderivmat = NULL
+      } else {
+        varavgderivmat[1,k] <- 1/(sigma * n)^2 * sum(crossprod(p1p0^2, crossprod(L,vcovmatc%*%L)))
+      }
     }
+    
+  }
     #donebelow
     #avgderiv <- matrix(colMeans(derivmat),nrow=1)
     #colnames(avgderiv) <- colnames(X)
@@ -329,7 +330,7 @@ krls <- function(# Data arguments
     #effectmat <- t((1/X.init.sd)*t(derivmat))
     # or, equivalently, and probably more efficiently
     ## todo: smart checker if Y was rescaled?
-    if (method == "leastsquares") {
+    if (loss == "leastsquares") {
       avgderivmat <- colMeans(derivmat)
       derivmat <- scale(y.init.sd*derivmat,center=FALSE,scale=X.init.sd)
       attr(derivmat,"scaled:scale")<- NULL
@@ -343,8 +344,8 @@ krls <- function(# Data arguments
       avgderiv <- colMeans(derivmat)
       varavgderivmat <- (1/X.init.sd)^2*varavgderivmat
     }
-    
-    
+  
+
   } else {
     derivmat=NULL
     avgderiv=NULL
@@ -388,7 +389,7 @@ krls <- function(# Data arguments
             #vcov.cb0 = vcov.cb0,
             #opt = opt
   )
-  
+    
   class(z) <- "krlogit"  
   
   return(z)
@@ -410,7 +411,7 @@ krlogit.fn <- function(par, K, y, lambda = 0.5) {
   beta0 <- par[ncol(K)+1]
   
   Kc <- crossprod(K, coef)
-  
+
   r <- sum(y * log(1 + exp( -(beta0 +  Kc))) + (1 - y) * log(1 + exp(beta0 + Kc))) +
     lambda*crossprod(Kc, coef)
   return(r)
@@ -428,7 +429,7 @@ krlogit.fn.trunc <- function(par, K, Utrunc, y, lambda = 0.5) {
     lambda*tcrossprod(coef, Utrunc)%*%Kc
   return(r)
 }
-
+  
 ## The analytic gradient. Pretty sure this is correct, was previously confirmed
 ## with the numDeriv package
 #' @export
@@ -465,7 +466,7 @@ krlogit.gr.trunc <- function(par, K, Utrunc, y, lambda){
 #  cb <- crossprod(K, (exp(-K%*%chat - beta0)/(1 + exp(-K%*%chat - beta0))^2))
 #  bb <- sum(exp(-K%*%chat - beta0)/(1 + exp(-K%*%chat - beta0))^2)
 #  cc <- can't get this to match what optim returns, see krlogit_testingmath
-
+  
 
 # todo: Unless the folds are much smaller, lastkeeper will probably be the same
 # or only one or two smaller, should we pass lastkeeper and just use it?
@@ -501,7 +502,7 @@ lambda.fn <- function(par = NULL,
     }
     pars <- rep(0, ifelse(truncate, ncol(Utrunc), ncol(K)) + 1)
     parshat <- solveForC(par = pars, y=y[-fold], K=K, Utrunc=Utrunc, D=eigvals, lambda=lambda, vcov = FALSE)
-    
+
     K <- newKernel(X[-fold, ], newData = X[fold, ])
     ## Is this transformation right?
     if(truncate) {
@@ -513,7 +514,7 @@ lambda.fn <- function(par = NULL,
     mse <- mse + sum((y[fold] - yhat)^2)
   }
   rmspe <- sqrt(mse/length(y))
-  
+    
   return(rmspe)
 }
 
@@ -533,8 +534,8 @@ Ktrunc <- function(X=NULL, K=NULL, sigma=NULL, epsilon=NULL, lastkeeper=NULL, fu
     eigobj <- eigen(K)
     
     lastkeeper <- ifelse(is.null(lastkeeper),
-                         min(which(cumsum(eigobj$values)/nrow(K) > (1-epsilon))),
-                         lastkeeper)
+                        min(which(cumsum(eigobj$values)/nrow(K) > (1-epsilon))),
+                        lastkeeper)
     
     Ktilde <- mult_diag(eigobj$vectors[, 1:lastkeeper], eigobj$values)
     
@@ -551,7 +552,7 @@ Ktrunc <- function(X=NULL, K=NULL, sigma=NULL, epsilon=NULL, lastkeeper=NULL, fu
     #denoms <- c(10, 6, 3, 1) # we could also let people set this to speed up the algorithm
     #CJH: even at 10, with N=5000 it is too big. Let's try this: 
     if (nrow(K) <= 500) numvectorss=nrow(K) else numvectorss=c(50, 100, 200, 300,500,1000)
-    
+  
     enoughvar=FALSE
     j=1
     while (enoughvar==FALSE){
@@ -559,10 +560,10 @@ Ktrunc <- function(X=NULL, K=NULL, sigma=NULL, epsilon=NULL, lastkeeper=NULL, fu
       print(paste("trying",numvectors,"vectors"))
       eigobj <- NULL
       eigobj <- try({eigs_sym(K, numvectors, which="LM")}, silent = T)
-      
+    
       #for now, letting it throw an error in certain failure cases.
       totalvar=sum(eigobj$values)/nrow(K)
-      
+    
       #notice I'm assuming epsilon is the remaining bit, e.g. .01 not .99.
       #changed default to match.
       if (totalvar>=(1-epsilon)){
@@ -583,9 +584,9 @@ Ktrunc <- function(X=NULL, K=NULL, sigma=NULL, epsilon=NULL, lastkeeper=NULL, fu
   }
   
   return(
-    list(Utrunc=eigobj$vectors[, 1:lastkeeper],
-         eigvals=eigobj$values[1:lastkeeper])
-  )
+         list(Utrunc=eigobj$vectors[, 1:lastkeeper],
+              eigvals=eigobj$values[1:lastkeeper])
+        )
 }
 
 
@@ -658,7 +659,7 @@ predict.krlogit <- function(object, newdata, ...) {
     UseMethod("predict")
     return(invisible(NULL))
   }
-  
+
   newdata <- as.matrix(newdata)
   if (ncol(object$X) != ncol(newdata)) {
     stop("ncol(newdata) differs from ncol(X) from fitted krls object")
@@ -674,16 +675,16 @@ predict.krlogit <- function(object, newdata, ...) {
   return(list(fit = yfitted,
               #se.fit = se.fit, vcov.fit = vcov.fit, newdata = newdata, 
               newdataK = newdataK))
-  #if (se.fit) {
-  #  vcov.c.raw <- object$vcov.c * as.vector((1/var(object$y)))
-  #  vcov.fitted <- tcrossprod(newdataK %*% vcov.c.raw, newdataK)
-  #  vcov.fit <- (apply(object$y, 2, sd)^2) * vcov.fitted
-  #  se.fit <- matrix(sqrt(diag(vcov.fit)), ncol = 1)
-  #}
-  #else {
-  #  vcov.fit <- se.fit <- NULL
-  #}
-  #yfitted <- (yfitted * apply(object$y, 2, sd)) + mean(object$y)
+    #if (se.fit) {
+    #  vcov.c.raw <- object$vcov.c * as.vector((1/var(object$y)))
+    #  vcov.fitted <- tcrossprod(newdataK %*% vcov.c.raw, newdataK)
+    #  vcov.fit <- (apply(object$y, 2, sd)^2) * vcov.fitted
+    #  se.fit <- matrix(sqrt(diag(vcov.fit)), ncol = 1)
+    #}
+    #else {
+    #  vcov.fit <- se.fit <- NULL
+    #}
+    #yfitted <- (yfitted * apply(object$y, 2, sd)) + mean(object$y)
   
 }
 
@@ -711,7 +712,7 @@ newKernel <- function(X, newData, whichkernel = "gaussian") {
   Xmeans <- colMeans(X)
   Xsd <- apply(X, 2, sd)
   X <- scale(X, center = Xmeans, scale = Xsd)
-  
+
   # scale new data by means and sd of old data
   newData <- scale(newData, center = Xmeans, scale = Xsd)      
   
@@ -779,7 +780,7 @@ lambdasearch <-
     # get upper bound starting value
     if(is.null(U)){
       U <- n
-      
+
       while(sum(Eigenobject$values / (Eigenobject$values + U)) < 1){
         U <- U-1    
       }

@@ -64,8 +64,8 @@ arma::vec krlogit_gr_trunc2(const arma::vec& par,
   arma::vec ret(par.n_elem);
   
   // dividing by n means that each observation makes an equivalent contribution to the likelihood
-  ret.subvec(0, par.n_elem - 2) = -Utrunc.t() * resid + (2 * (lambda / D) % coef) / n;
-  ret(par.n_elem - 1) = -accu(resid);
+  ret.subvec(0, par.n_elem - 2) = Utrunc.t() * resid - (2 * (lambda / D) % coef) / n;
+  ret(par.n_elem - 1) = accu(resid);
   
   return ret;
 }
