@@ -45,7 +45,8 @@ krls <- function(# Data arguments
                     # Standard error arguments
                     vcov = TRUE,
                     derivative = TRUE,
-                    cpp = TRUE) {
+                    cpp = TRUE,
+                    clusters = NULL) {
   
   ## Prepare the data
   X <- as.matrix(X)
@@ -188,7 +189,7 @@ krls <- function(# Data arguments
                             #U = U,
                             lastkeeper=lastkeeper,
                             vcov = FALSE,
-                            control=list(trace = T, abstol = 1e-5), method="BFGS")
+                            control=list(trace = 6, abstol = 1e-7, REPORT = 1), method="BFGS")
         
         lambda <- exp(fit.lambda$par)
         print(lambda)
@@ -236,7 +237,7 @@ krls <- function(# Data arguments
       vcovmatc <- tcrossprod(mult_diag(eigobj$vectors,sigmasq*(eigobj$values+lambda)^-2),eigobj$vectors)        
     }
     beta0hat <- NULL
-  } else {
+  } else { # logistic
     out <- solveForC(y=y, K=K, Utrunc=Utrunc, D=eigvals, lambda=lambda, con=con, vcov=vcov, printout = printout, returnopt = returnopt)
     chat <- out$chat
     beta0hat <- out$beta0hat
@@ -257,6 +258,16 @@ krls <- function(# Data arguments
       vcov.cb0 = solve(hessian)
       vcovmatc = tcrossprod(UDinv%*%vcov.cb0[1:length(chat), 1:length(chat)], UDinv)
       ## todo: return var b0
+      j <- length(clusters)
+      score <- matrix(NA, j, length(c(chat, beta0hat)))
+      for (j in 1:j) {
+        score[j, ] = krlogit_gr_trunc2(par=c(chat,beta0hat), Utrunc[clusters[[j]], , drop = F], eigvals, y[clusters[[j]], drop = F], lambda, n)
+      }
+     #score = krlogit_gr_trunc(par=c(chat,beta0hat), Utrunc, eigvals, y, lambda)
+      vcov.rob.cb0 = (j/(j-1)) * tcrossprod(vcov.cb0, score) %*% score %*% vcov.cb0
+      vcovmatc.rob = tcrossprod(UDinv%*%vcov.rob.cb0[1:length(chat), 1:length(chat)], UDinv)
+      
+      #vcovrobmatc = 
     } else {vcov.cb0 = NULL}
     
   }
@@ -338,7 +349,13 @@ krls <- function(# Data arguments
     varavgderivmat=NULL
   }
 
-  #if (truncate) {score = krlogit_gr_trunc(par=c(chat,beta0hat), Utrunc, eigvals, y, lambda)} 
+  if (truncate) {
+    score <- matrix(NA, n, length(c(chat, beta0hat)))
+    for(i in 1:n) {
+      score[i, ] = krlogit_gr_trunc2(par=c(chat,beta0hat), Utrunc[i, , drop = F], eigvals, y[i, drop = F], lambda, n)
+    }
+    score2 = krlogit_gr_trunc(par=c(chat,beta0hat), Utrunc, eigvals, y, lambda)
+  } 
   #else {score = krlogit.gr(par=c(chat,beta0hat), K=K, y=y,lambda=lambda)}
   
   # return
@@ -357,9 +374,14 @@ krls <- function(# Data arguments
             kernel=whichkernel,
             derivmat = derivmat,
             avgderiv = avgderiv,
-            var.avgderiv = varavgderivmat#,
+            var.avgderiv = varavgderivmat,
             #lastkeeper = ncol(Ktilde)  
-            #score=score,
+            score=score,
+            score2=score2,
+            vcovmatc.rob = vcovmatc.rob,
+            vcovmatc = vcovmatc,
+            vcov.cb0 = vcov.cb0,
+            vcov.rob.cb0 = vcov.rob.cb0
             #vcov.cb0 = vcov.cb0,
             #opt = opt
             )

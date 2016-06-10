@@ -55,14 +55,28 @@ c(krls.out.old$var.avgderivatives)
 
 # What aboud speed?
 #install.packages("profvis")
+rm(list=ls())
 n=500
 betas=as.matrix(c(1,0, -2, 3))
 p=length(betas)
 
+
 X <- matrix(rnorm(n*p, mean = 2, sd = 3), ncol = p)
 y <- rbinom(n, 1, prob = 1/(1+exp(-X%*%betas + X[, 1]/sqrt(abs(X[, 2])) + sin(X[, 3]))))
-profvis::profvis({kout <- krls(X=X, y=y)})
-profvis::profvis({kout <- KRLS::krls(X=X, y=y)})
+pryr::mem_change(kout <- KRLS2::krls(X=X, y=y))
+pryr::mem_change(koutbig <- bigKRLS::bigKRLS(X=X, y=y))
+
+profvis::profvis({kout <- KRLS2::krls(X=X, y=y)})
+roxygen2::roxygenise("C:/Users/luke/Downloads/bigKRLS_1.0.tar/bigKRLS")
+Rcpp::compileAttributes("C:/Users/luke/Downloads/bigKRLS_1.0.tar/bigKRLS")
+devtools::document("C:/Users/luke/Downloads/bigKRLS_1.0.tar/bigKRLS")
+devtools::install("C:/Users/luke/Downloads/bigKRLS_1.0.tar/bigKRLS")
+profvis::profvis({koutbig <- bigKRLS::bigKRLS(X=X, y=y)})
+profvis::profvis({koutold <- KRLS::krls(X=X, y=y)})
+rbind(koutbig$avgderivatives, kout$avgderiv)
+
+
+
 ## Generally about half of the time or less (without truncation!)
 ## Still have to add a couple features, but looking at about half the time needed
 

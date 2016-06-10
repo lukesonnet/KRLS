@@ -36,6 +36,22 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// krlogit_gr_trunc2
+arma::vec krlogit_gr_trunc2(const arma::vec& par, const arma::mat& Utrunc, const arma::vec& D, const arma::vec& y, const double& lambda, const double& n);
+RcppExport SEXP KRLS2_krlogit_gr_trunc2(SEXP parSEXP, SEXP UtruncSEXP, SEXP DSEXP, SEXP ySEXP, SEXP lambdaSEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< const arma::vec& >::type par(parSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type Utrunc(UtruncSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type D(DSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const double& >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< const double& >::type n(nSEXP);
+    __result = Rcpp::wrap(krlogit_gr_trunc2(par, Utrunc, D, y, lambda, n));
+    return __result;
+END_RCPP
+}
 // euc_dist
 double euc_dist(const arma::rowvec& x1, const arma::rowvec& x2);
 RcppExport SEXP KRLS2_euc_dist(SEXP x1SEXP, SEXP x2SEXP) {

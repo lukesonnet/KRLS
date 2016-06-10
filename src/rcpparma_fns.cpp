@@ -48,6 +48,28 @@ arma::vec krlogit_gr_trunc(const arma::vec& par,
   return ret;
 }
 
+//' @export
+// [[Rcpp::export]]
+arma::vec krlogit_gr_trunc2(const arma::vec& par,
+                           const arma::mat& Utrunc,
+                           const arma::vec& D,
+                           const arma::vec& y,
+                           const double& lambda,
+                           const double& n) {
+  
+  arma::vec coef = par.subvec(0, par.n_elem - 2);
+  double beta0 = par(par.n_elem-1);
+  arma::vec resid = y - (1 / (1 + exp(-Utrunc * coef - beta0)));
+  
+  arma::vec ret(par.n_elem);
+  
+  // dividing by n means that each observation makes an equivalent contribution to the likelihood
+  ret.subvec(0, par.n_elem - 2) = -Utrunc.t() * resid + (2 * (lambda / D) % coef) / n;
+  ret(par.n_elem - 1) = -accu(resid);
+  
+  return ret;
+}
+
 // ----------
 // GAUSSIAN KERNELS
 // ----------
