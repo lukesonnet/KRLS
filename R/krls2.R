@@ -265,8 +265,9 @@ krls <- function(# Data arguments
         score[j, ] = krlogit_gr_trunc2(par=c(chat,beta0hat), Utrunc[clusters[[j]], , drop = F], eigvals, y[clusters[[j]], drop = F], lambda, n/length(clusters[[j]]))
       }
       
+      print(nclust)
       #score = krlogit_gr_trunc(par=c(chat,beta0hat), Utrunc, eigvals, y, lambda)
-      meat <- (j/(j-1)) * crossprod(score)
+      meat <- (nclust/(nclust-1)) * crossprod(score)
       vcov.rob.cb0 = vcov.cb0 %*% meat %*% vcov.cb0
       vcovmatc.rob = tcrossprod(UDinv%*%vcov.rob.cb0[1:length(chat), 1:length(chat)], UDinv)
       
