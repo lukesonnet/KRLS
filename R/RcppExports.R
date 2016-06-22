@@ -12,11 +12,6 @@ krlogit_gr_trunc <- function(par, Utrunc, D, y, lambda) {
 }
 
 #' @export
-krlogit_gr_trunc2 <- function(par, Utrunc, D, y, lambda, n) {
-    .Call('KRLS2_krlogit_gr_trunc2', PACKAGE = 'KRLS2', par, Utrunc, D, y, lambda, n)
-}
-
-#' @export
 euc_dist <- function(x1, x2) {
     .Call('KRLS2_euc_dist', PACKAGE = 'KRLS2', x1, x2)
 }
@@ -39,6 +34,11 @@ new_gauss_kern <- function(newx, oldx, b) {
 #' @export
 mult_diag <- function(x, d) {
     .Call('KRLS2_mult_diag', PACKAGE = 'KRLS2', x, d)
+}
+
+#' @export
+krlogit_gr_trunc2 <- function(par, Utrunc, D, y, lambda, n) {
+    .Call('KRLS2_krlogit_gr_trunc2', PACKAGE = 'KRLS2', par, Utrunc, D, y, lambda, n)
 }
 
 #' @export

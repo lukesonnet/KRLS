@@ -48,27 +48,6 @@ arma::vec krlogit_gr_trunc(const arma::vec& par,
   return ret;
 }
 
-//' @export
-// [[Rcpp::export]]
-arma::vec krlogit_gr_trunc2(const arma::vec& par,
-                           const arma::mat& Utrunc,
-                           const arma::vec& D,
-                           const arma::vec& y,
-                           const double& lambda,
-                           const double& n) {
-  
-  arma::vec coef = par.subvec(0, par.n_elem - 2);
-  double beta0 = par(par.n_elem-1);
-  arma::vec resid = y - (1 / (1 + exp(-Utrunc * coef - beta0)));
-  
-  arma::vec ret(par.n_elem);
-  
-  // dividing by n means that each observation makes an equivalent contribution to the likelihood
-  ret.subvec(0, par.n_elem - 2) = Utrunc.t() * resid - (2 * (lambda / D) % coef) / n;
-  ret(par.n_elem - 1) = accu(resid);
-  
-  return ret;
-}
 
 // ----------
 // GAUSSIAN KERNELS
@@ -152,6 +131,37 @@ arma::mat mult_diag(const arma::mat& x, const arma::vec& d) {
     out.col(j) = x.col(j) * d(j);
   }
   return out;
+}
+
+
+//' @export
+// [[Rcpp::export]]
+arma::vec krlogit_gr_trunc2(const arma::vec& par,
+                            const arma::mat& Utrunc,
+                            const arma::vec& D,
+                            const arma::vec& y,
+                            const double& lambda,
+                            const double& n) {
+  
+  arma::vec coef = par.subvec(0, par.n_elem - 2);
+  double beta0 = par(par.n_elem-1);
+  arma::vec resid = y - (1 / (1 + exp(-Utrunc * coef - beta0)));
+  
+  arma::vec ret(par.n_elem);
+  
+  // arma::mat Dmat = diagmat(D);
+  arma::vec penalty(par.n_elem - 1);
+  
+  for (int i = 0; i < Utrunc.n_rows; ++i) {
+    penalty = penalty + (mult_diag(Utrunc.row(i), 1/D) * coef * mult_diag(Utrunc.row(i), D) * Utrunc.t() * mult_diag(Utrunc, 1/D)).t();
+  }
+  
+  // dividing by n means that each observation makes an equivalent contribution to the likelihood
+  ret.subvec(0, par.n_elem - 2) = Utrunc.t() * resid - penalty ;
+  // ret.subvec(0, par.n_elem - 2) = Utrunc.t() * resid - 2 * lambda * ((1/Dmat) * Utrunc.t() * Utrunc * Dmat * Utrunc.t() * Utrunc * (1/Dmat) * coef) ;
+  ret(par.n_elem - 1) = accu(resid);
+  
+  return ret;
 }
 
 
