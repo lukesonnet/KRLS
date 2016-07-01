@@ -45,8 +45,7 @@ krls <- function(# Data arguments
                     # Standard error arguments
                     vcov = TRUE,
                     derivative = TRUE,
-                    cpp = TRUE,
-                    clusters = NULL) {
+                    cpp = TRUE) {
   
   ## Prepare the data
   X <- as.matrix(X)
@@ -332,19 +331,6 @@ krls <- function(# Data arguments
       vcov.cb0 = solve(hessian)
       vcovmatc = tcrossprod(UDinv%*%vcov.cb0[1:length(chat), 1:length(chat)], UDinv)
       ## todo: return var b0
-      nclust <- length(clusters)
-      score <- matrix(NA, nclust, length(c(chat, beta0hat)))
-      for (j in 1:nclust) {
-        score[j, ] = krlogit_gr_trunc2(par=c(chat,beta0hat), Utrunc[clusters[[j]], , drop = F], eigvals, y[clusters[[j]], drop = F], lambda, n/length(clusters[[j]]))
-      }
-      
-      print(nclust)
-      #score = krlogit_gr_trunc(par=c(chat,beta0hat), Utrunc, eigvals, y, lambda)
-      meat <- (nclust/(nclust-1)) * crossprod(score)
-      vcov.rob.cb0 = vcov.cb0 %*% meat %*% vcov.cb0
-      vcovmatc.rob = tcrossprod(UDinv%*%vcov.rob.cb0[1:length(chat), 1:length(chat)], UDinv)
-      
-      #vcovrobmatc = 
     } else {vcov.cb0 = NULL}
     
   }
@@ -427,11 +413,7 @@ krls <- function(# Data arguments
   }
   
   if (truncate) {
-    scorei <- matrix(NA, n, length(c(chat, beta0hat)))
-    for(i in 1:n) {
-      scorei[i, ] = krlogit_gr_trunc2(par=c(chat,beta0hat), Utrunc[i, , drop = F], eigvals, y[i, drop = F], lambda, n)
-    }
-    score2 = krlogit_gr_trunc(par=c(chat,beta0hat), Utrunc, eigvals, y, lambda)
+    score = krlogit_gr_trunc(par=c(chat,beta0hat), Utrunc, eigvals, y, lambda)
   } 
   #else {score = krlogit.gr(par=c(chat,beta0hat), K=K, y=y,lambda=lambda)}
   
@@ -453,13 +435,7 @@ krls <- function(# Data arguments
             avgderiv = avgderiv,
             var.avgderiv = varavgderivmat,
             #lastkeeper = ncol(Ktilde)  
-            score=score,
-            scorei=scorei,
-            score2=score2,
-            vcovmatc.rob = vcovmatc.rob,
-            vcovmatc = vcovmatc,
-            vcov.cb0 = vcov.cb0,
-            vcov.rob.cb0 = vcov.rob.cb0
+            #score = score
             #vcov.cb0 = vcov.cb0,
             #opt = opt
   )
