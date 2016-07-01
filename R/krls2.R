@@ -180,7 +180,7 @@ krls <- function(# Data arguments
         full <- TRUE
       }
       truncDat <- Ktrunc(K = K, sigma=sigma, lastkeeper=lastkeeper, epsilon=epsilon,
-                         full = full, quiet = )
+                         full = full, quiet = F)
       Utrunc <- truncDat$Utrunc
       eigvals <- truncDat$eigvals
       if (full) {
@@ -212,7 +212,7 @@ krls <- function(# Data arguments
                               sigma = sigma,
                               #lambda = lambda,
                               vcov = FALSE,
-                              control=list(trace = T, abstol = 1e-5), method="BFGS")
+                              control=list(trace = T, abstol = 1e-3), method="BFGS")
             
           lambda <- exp(fit.lambda$par)
             
@@ -239,14 +239,14 @@ krls <- function(# Data arguments
     
     if(is.null(lambda)) {
       if(is.null(lambdarange)) {
-        fit.hyper <- optim(par=c(lambdastart, 2.2*d), lambdasigma.fn,
+        fit.hyper <- optim(par=log(c(lambdastart, 2.2*d)), lambdasigma.fn,
                            X=X.init, y=y, folds=hyperfolds, chunks = chunks,
                            truncate=truncate, epsilon=epsilon, lastkeeper=lastkeeper,
                            #sigma = sigma,
                            #lambda = lambda,
                            vcov = FALSE,
-                           control=list(trace = T, abstol = 1e-5), method="BFGS")
-        
+                           control=list(trace = T, abstol = 1e-3), method="BFGS")
+
         lambda <- exp(fit.hyper$par[1])
         sigma <- exp(fit.hyper$par[2])
       } else {
@@ -271,7 +271,7 @@ krls <- function(# Data arguments
                            #sigma = sigma,
                            lambda = lambda,
                            vcov = FALSE,
-                           control=list(trace = T, abstol = 1e-5), method="BFGS")
+                           control=list(trace = T, abstol = 1e-3), method="BFGS")
         sigma <- exp(fit.sigma$par)
       } else {
         sigmaMSE <- NULL
@@ -605,7 +605,7 @@ lambdasigma.fn <- function(par = NULL,
       Utrunc <- NULL
       eigvals <- NULL
     }
-
+    
     pars <- rep(0, ifelse(truncate, ncol(Utrunc), ncol(K)) + 1)
     parshat <- solveForC(par = pars, y=y[-fold], K=K, Utrunc=Utrunc, D=eigvals, lambda=lambda, vcov = FALSE)
 
@@ -632,7 +632,6 @@ Ktrunc <- function(X=NULL, K=NULL, sigma=NULL, epsilon=NULL, lastkeeper=NULL, fu
     X.sd <- apply(X, 2, sd)
     X.mu <- colMeans(X)
     K <- kern_gauss(scale(X), ifelse(is.null(sigma), ncol(X), sigma))
-
   }
   
   ## Todo: maybe later allow for full return of eigs_sym but not full
@@ -659,7 +658,6 @@ Ktrunc <- function(X=NULL, K=NULL, sigma=NULL, epsilon=NULL, lastkeeper=NULL, fu
     #denoms <- c(10, 6, 3, 1) # we could also let people set this to speed up the algorithm
     #CJH: even at 10, with N=5000 it is too big. Let's try this: 
     if (nrow(K) <= 500) numvectorss=nrow(K) else numvectorss=c(50, 100, 200, 300,500,1000)
-  
     enoughvar=FALSE
     j=1
     while (enoughvar==FALSE){
@@ -667,15 +665,13 @@ Ktrunc <- function(X=NULL, K=NULL, sigma=NULL, epsilon=NULL, lastkeeper=NULL, fu
       if(!quiet) print(paste("trying",numvectors,"vectors"))
       eigobj <- NULL
       eigobj <- try({eigs_sym(K, numvectors, which="LM")}, silent = T)
-    
+
       #for now, letting it throw an error in certain failure cases.
       totalvar=sum(eigobj$values)/nrow(K)
     
-      #notice I'm assuming epsilon is the remaining bit, e.g. .01 not .99.
-      #changed default to match.
       if (totalvar>=(1-epsilon)){
         lastkeeper = min(which(cumsum(eigobj$values)/nrow(K) > (1-epsilon)))
-        Ktilde <- mult_diag(eigobj$vectors[, 1:lastkeeper], eigobj$values)
+        Ktilde <- mult_diag(eigobj$vectors[, 1:lastkeeper, drop = F], eigobj$values)
         
         if(!quiet) print(paste("lastkeeper=",lastkeeper))
         enoughvar=TRUE
@@ -691,8 +687,8 @@ Ktrunc <- function(X=NULL, K=NULL, sigma=NULL, epsilon=NULL, lastkeeper=NULL, fu
   }
   
   return(
-         list(Utrunc=eigobj$vectors[, 1:lastkeeper],
-              eigvals=eigobj$values[1:lastkeeper])
+         list(Utrunc=eigobj$vectors[, 1:lastkeeper, drop = F],
+              eigvals=eigobj$values[1:lastkeeper, drop = F])
         )
 }
 
