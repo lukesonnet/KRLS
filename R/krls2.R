@@ -27,10 +27,10 @@ krls <- function(# Data arguments
                     # Kernel arguments
                     whichkernel = "gaussian", 
                     sigma = NULL,
+                    optimsigma = FALSE,
                     # Lambda arguments
-                    lambdarange = NULL,
-                    lambdafolds = 5,
                     lambda = NULL,
+                    hyperfolds = 5,
                     lambdastart = 0.5,
                     L = NULL,
                     U = NULL,
@@ -45,7 +45,8 @@ krls <- function(# Data arguments
                     # Standard error arguments
                     vcov = TRUE,
                     derivative = TRUE,
-                    cpp = TRUE) {
+                    cpp = TRUE,
+                    clusters = NULL) {
   
   ## Prepare the data
   X <- as.matrix(X)
@@ -90,16 +91,6 @@ krls <- function(# Data arguments
       stop("derivative==TRUE requires truncate==TRUE if loss == 'logistic'")
     }
   }
-
-  ## Default sigma to the number of features
-  if(is.null(sigma)){
-    sigma <- d
-  }  else{
-    stopifnot(is.vector(sigma),
-              length(sigma)==1,
-              is.numeric(sigma),
-              sigma>0)        
-  }
   
   # column names
   if (is.null(colnames(X))) {
@@ -127,6 +118,134 @@ krls <- function(# Data arguments
     }
   }
   
+  lambdarange <- NULL
+  sigmarange <- NULL
+  ## Default sigma to the number of features
+  if(is.null(sigma)){
+    if (!optimsigma) {sigma <- d}
+  }  else{
+    if(length(sigma) > 1) {
+      sigmarange <- sigma
+      sigma <- NULL
+    } else {
+      stopifnot(is.vector(sigma),
+                is.numeric(sigma),
+                sigma>0)
+    }
+  }
+  
+  
+  ## todo: unpack truncdat and add checks for if truncate is true, do not have
+  ## two seperate processes but instead checks at pertinent steps of process and
+  ## try to use similar variable names to economize on code
+  
+  ## todo: build distance matrix E first so that we can more quickly compute
+  ## K below
+  
+  if(!is.null(lambda)) {
+    # Allow range in lambda argument
+    if (length(lambda) > 1) {
+      lambdarange <- lambda
+      lambda <- NULL
+    } else {
+      # check user specified lambda
+      stopifnot(is.vector(lambda),
+                is.numeric(lambda),
+                lambda>0) 
+    }
+  }
+  
+  ## set chunks for any ranges
+  if(!is.null(c(lambdarange, sigmarange))) {
+    chunks <- chunk(sample(n), hyperfolds)
+  }
+  
+  ## lastkeeper is recomputed for now, might want to use a guess instead
+  if(!is.null(lambda)) {
+    
+    if(is.null(sigma)) {
+      if(is.null(sigmarange)) {
+        fit.sigma <- optim(par=lambdastart, lambdasigma.fn,
+                           X=X.init, y=y, folds=hyperfolds, chunks = chunks,
+                           truncate=truncate, epsilon=epsilon, lastkeeper=lastkeeper,
+                           #sigma = sigma,
+                           lambda = lambda,
+                           vcov = FALSE,
+                           control=list(trace = T, abstol = 1e-5), method="BFGS")
+        sigma <- exp(fit.sigma$par)
+        message(sprintf("Sigma selected: %s", sigma))
+      } else {
+        for(i in 1:length(sigmarange)){
+          if(sigmarange[i] < 0) stop("All sigmas must be positive")
+          sigmaMSE[i] <- lambdasigma.fn(par = log(sigmarange[i]), X=X.init,
+                                    y=y, folds=hyperfolds, chunks=chunks,
+                                    truncate=truncate, epsilon=epsilon,
+                                    lastkeeper = lastkeeper,
+                                    #sigma = sigma,
+                                    lambda = lambda)
+        }
+        sigma <- sigmarange[which.min(sigmaMSE)]
+        message(sprintf("Sigma selected: %s", sigma))
+      }
+
+      
+    }
+  } else {
+    
+    if (loss == "leastsquares") {
+      if(is.null(sigma)) stop("Cannot simultaneously search for both lambda and sigma with leastsquares loss")
+      lambda <- lambdasearch(#L=L,U=U,
+        y=y,K=K,Eigenobject=eigobj,truncate=truncate)#,eigtrunc=eigtrunc,noisy=noisy)
+    } else {
+      
+      if(is.null(lambdarange)) {
+        if (!is.null(sigmarange)) stop("Grid search for sigma only works with fixed lambda or lambda grid search.")
+        if (is.null(sigma)) {
+          fit.hyper <- optim(par=c(lambdastart, 2.2*d), lambdasigma.fn,
+                             X=X.init, y=y, folds=hyperfolds, chunks = chunks,
+                             truncate=truncate, epsilon=epsilon, lastkeeper=lastkeeper,
+                             #sigma = sigma,
+                             #lambda = lambda,
+                             vcov = FALSE,
+                             control=list(trace = T, abstol = 1e-5), method="BFGS")
+          
+          lambda <- exp(fit.hyper$par[1])
+          sigma <- exp(fit.hyper$par[2])
+          
+          message(sprintf("Lambda selected: %s", lambda))
+          message(sprintf("Sigma selected: %s", sigma))
+        } else {
+          fit.lambda <- optim(par=log(lambdastart), lambdasigma.fn,
+                             X=X.init, y=y, folds=hyperfolds, chunks = chunks,
+                             truncate=truncate, epsilon=epsilon, lastkeeper=lastkeeper,
+                             sigma = sigma,
+                             #lambda = lambda,
+                             vcov = FALSE,
+                             control=list(trace = T, abstol = 1e-5), method="BFGS")
+          
+          lambda <- exp(fit.lambda$par)
+
+          message(sprintf("Lambda selected: %s", lambda))
+        }
+
+      } else {
+        if (is.null(sigma)) stop("Grid search for lambda does not work with optimizing sigma. Set optimsigma = F or use a grid search for sigma.")
+        
+        lambdaMSE <- NULL
+        for(i in 1:length(lambdarange)){
+          lambdaMSE[i] <- lambdasigma.fn(par = log(lambdarange[i]), X=X.init,
+                                         y=y, folds=hyperfolds, chunks=chunks,
+                                         truncate=truncate, epsilon=epsilon,
+                                         lastkeeper = lastkeeper,
+                                         sigma = sigma)
+                                         #lambda = lambda)
+        }
+        lambda <- lambdarange[which.min(lambdaMSE)]
+        message(sprintf("Lambda selected: %s", lambda))
+      }
+    }
+  }
+ 
   ## Compute kernel matrix
   K <- NULL
   if(whichkernel=="gaussian"){ K <- kern_gauss(X, sigma)}
@@ -135,8 +254,6 @@ krls <- function(# Data arguments
   if(whichkernel=="poly3"){ K <- (tcrossprod(X)+1)^3 }
   if(whichkernel=="poly4"){ K <- (tcrossprod(X)+1)^4 }
   if(is.null(K)){ stop("No valid Kernel specified") }
-
-  
   
   Utrunc <- NULL
   if(truncate) {
@@ -165,50 +282,7 @@ krls <- function(# Data arguments
   lastkeeper <- NULL
   lastkeeper <- if(truncate) ncol(Utrunc)
   
-  ## todo: unpack truncdat and add checks for if truncate is true, do not have
-  ## two seperate processes but instead checks at pertinent steps of process and
-  ## try to use similar variable names to economize on code
   
-  if(!is.null(lambda)){  # check user specified lambda
-    stopifnot(is.vector(lambda),
-              length(lambda)==1,
-              is.numeric(lambda),
-              lambda>0)  
-  } else {
-    
-    if (loss == "leastsquares") {
-      lambda<- lambdasearch(#L=L,U=U,
-        y=y,K=K,Eigenobject=eigobj,truncate=truncate)#,eigtrunc=eigtrunc,noisy=noisy)
-    } else {
-      chunks <- chunk(sample(n), lambdafolds)
-      
-      if(is.null(lambdarange)) {
-        fit.lambda <- optim(par=lambdastart, lambda.fn, X=X.init, y=y, folds=lambdafolds,
-                            chunks = chunks, sigma=sigma, truncate=truncate, epsilon=epsilon,
-                            #U = U,
-                            lastkeeper=lastkeeper,
-                            vcov = FALSE,
-                            control=list(trace = T, abstol = 1e-5), method="BFGS")
-        
-        lambda <- exp(fit.lambda$par)
-        print(lambda)
-        #stop("give me lambda")
-      } else {
-        lambdaMSE <- NULL
-        for(i in 1:length(lambdarange)){
-          print(lambdarange[i])
-          lambdaMSE[i] <- lambda.fn(par = log(lambdarange[i]), X=X.init,
-                                    y=y, folds=lambdafolds, chunks=chunks,
-                                    sigma=sigma, truncate=truncate, epsilon=epsilon,
-                                    lastkeeper = lastkeeper)
-        }
-        lambda <- lambdarange[which.min(lambdaMSE)]
-        print(lambdaMSE)
-        print(lambda)
-      }
-    }
-  }
-
   ## Solve
   vcovmatc=NULL
   
@@ -233,7 +307,8 @@ krls <- function(# Data arguments
     if (vcov) {
       sigmasq <- as.vector((1/n) * crossprod(y-yfitted))
       
-      vcovmatc <- tcrossprod(mult_diag(eigobj$vectors,sigmasq*(eigobj$values+lambda)^-2),eigobj$vectors)        
+      vcovmatc <- tcrossprod(mult_diag(eigobj$vectors,sigmasq*(eigobj$values+lambda)^-2),eigobj$vectors)   
+      
     }
     beta0hat <- NULL
   } else {
@@ -257,6 +332,19 @@ krls <- function(# Data arguments
       vcov.cb0 = solve(hessian)
       vcovmatc = tcrossprod(UDinv%*%vcov.cb0[1:length(chat), 1:length(chat)], UDinv)
       ## todo: return var b0
+      nclust <- length(clusters)
+      score <- matrix(NA, nclust, length(c(chat, beta0hat)))
+      for (j in 1:nclust) {
+        score[j, ] = krlogit_gr_trunc2(par=c(chat,beta0hat), Utrunc[clusters[[j]], , drop = F], eigvals, y[clusters[[j]], drop = F], lambda, n/length(clusters[[j]]))
+      }
+      
+      print(nclust)
+      #score = krlogit_gr_trunc(par=c(chat,beta0hat), Utrunc, eigvals, y, lambda)
+      meat <- (nclust/(nclust-1)) * crossprod(score)
+      vcov.rob.cb0 = vcov.cb0 %*% meat %*% vcov.cb0
+      vcovmatc.rob = tcrossprod(UDinv%*%vcov.rob.cb0[1:length(chat), 1:length(chat)], UDinv)
+      
+      #vcovrobmatc = 
     } else {vcov.cb0 = NULL}
     
   }
@@ -337,8 +425,14 @@ krls <- function(# Data arguments
     avgderiv=NULL
     varavgderivmat=NULL
   }
-
-  #if (truncate) {score = krlogit_gr_trunc(par=c(chat,beta0hat), Utrunc, eigvals, y, lambda)} 
+  
+  if (truncate) {
+    scorei <- matrix(NA, n, length(c(chat, beta0hat)))
+    for(i in 1:n) {
+      scorei[i, ] = krlogit_gr_trunc2(par=c(chat,beta0hat), Utrunc[i, , drop = F], eigvals, y[i, drop = F], lambda, n)
+    }
+    score2 = krlogit_gr_trunc(par=c(chat,beta0hat), Utrunc, eigvals, y, lambda)
+  } 
   #else {score = krlogit.gr(par=c(chat,beta0hat), K=K, y=y,lambda=lambda)}
   
   # return
@@ -357,12 +451,18 @@ krls <- function(# Data arguments
             kernel=whichkernel,
             derivmat = derivmat,
             avgderiv = avgderiv,
-            var.avgderiv = varavgderivmat#,
+            var.avgderiv = varavgderivmat,
             #lastkeeper = ncol(Ktilde)  
-            #score=score,
+            score=score,
+            scorei=scorei,
+            score2=score2,
+            vcovmatc.rob = vcovmatc.rob,
+            vcovmatc = vcovmatc,
+            vcov.cb0 = vcov.cb0,
+            vcov.rob.cb0 = vcov.rob.cb0
             #vcov.cb0 = vcov.cb0,
             #opt = opt
-            )
+  )
     
   class(z) <- "krlogit"  
   
@@ -447,18 +547,29 @@ krlogit.gr.trunc <- function(par, K, Utrunc, y, lambda){
 ## This computes the RMSPE using 'folds' cross-validation, fitting a new model
 ## for each subset of the data
 #' @export
-lambda.fn <- function(par = NULL,
+lambdasigma.fn <- function(par = NULL,
                       X = NULL,
                       y = NULL,
                       folds = NULL,
                       chunks = NULL,
                       sigma = NULL,
+                      lambda = NULL,
                       truncate = NULL,
                       vcov = NULL,
                       epsilon = NULL,
                       lastkeeper = NULL) {
   
-  lambda <- exp(par)
+  if(is.null(c(lambda, sigma))) {
+    lambda <- exp(par[1])
+    sigma <- exp(par[2])
+  } else {
+    if (is.null(lambda)) {
+      lambda <- exp(par)
+    }
+    if (is.null(sigma)) {
+      sigma <- exp(par)
+    }
+  }
   
   mse <- 0
   for(j in 1:folds){
