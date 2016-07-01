@@ -239,6 +239,8 @@ krls <- function(# Data arguments
     
     if(is.null(lambda)) {
       if(is.null(lambdarange)) {
+        if (!is.null(sigmarange)) stop("Grid search for sigma only works with fixed lambda or lambda grid search.")
+        
         fit.hyper <- optim(par=log(c(lambdastart, 2.2*d)), lambdasigma.fn,
                            X=X.init, y=y, folds=hyperfolds, chunks = chunks,
                            truncate=truncate, epsilon=epsilon, lastkeeper=lastkeeper,
@@ -250,7 +252,7 @@ krls <- function(# Data arguments
         lambda <- exp(fit.hyper$par[1])
         sigma <- exp(fit.hyper$par[2])
       } else {
-        if (is.null(sigmarange)) stop("Grid search for sigma only works with fixed lambda or lambda grid search.")
+        if (optimsigma) stop("Optimizing sigma does not work with a grid search for lambda.")
         hypergrid <- as.matrix(expand.grid(lambdarange, sigmarange))
         hyperMSE <- NULL
         for(i in 1:nrow(hypergrid)){
