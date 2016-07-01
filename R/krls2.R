@@ -122,7 +122,7 @@ krls <- function(# Data arguments
   ## Default sigma to the number of features
   if(is.null(sigma)){
     if (!optimsigma) {sigma <- d}
-  }  else{
+  } else{
     if(length(sigma) > 1) {
       sigmarange <- sigma
       sigma <- NULL
@@ -155,14 +155,115 @@ krls <- function(# Data arguments
   }
   
   ## set chunks for any ranges
-  if(!is.null(c(lambdarange, sigmarange))) {
+  if(is.null(lambda) | is.null(sigma)) {
     chunks <- chunk(sample(n), hyperfolds)
+  } else {
+    chunks <- NULL
   }
   
-  ## lastkeeper is recomputed for now, might want to use a guess instead
-  if(!is.null(lambda)) {
+  ## If sigma ix fixed, compute all of the kernels
+  if(!is.null(sigma)) {
     
-    if(is.null(sigma)) {
+    ## Compute kernel matrix
+    K <- NULL
+    if(whichkernel=="gaussian"){ K <- kern_gauss(X, sigma)}
+    if(whichkernel=="linear"){ K <- tcrossprod(X) }
+    if(whichkernel=="poly2"){ K <- (tcrossprod(X)+1)^2 }
+    if(whichkernel=="poly3"){ K <- (tcrossprod(X)+1)^3 }
+    if(whichkernel=="poly4"){ K <- (tcrossprod(X)+1)^4 }
+    if(is.null(K)){ stop("No valid Kernel specified") }
+    
+    Utrunc <- NULL
+    if(truncate) {
+      full <- FALSE
+      if (loss == "leastsquares") {
+        full <- TRUE
+      }
+      truncDat <- Ktrunc(K = K, sigma=sigma, lastkeeper=lastkeeper, epsilon=epsilon,
+                         full = full, quiet = )
+      Utrunc <- truncDat$Utrunc
+      eigvals <- truncDat$eigvals
+      if (full) {
+        eigobj <- truncDat$eigobj
+      }
+    } else {
+      if (loss == "leastsquares") {
+        eigobj <- eigen(K)
+      }
+      Utrunc <- NULL
+      eigvals <- NULL
+    }
+    
+    lastkeeper <- NULL
+    lastkeeper <- if(truncate) ncol(Utrunc)
+    
+    if(is.null(lambda)) {
+      if (loss == "leastsquares") {
+        lambda <- lambdasearch(#L=L,U=U,
+          y=y,K=K,Eigenobject=eigobj,truncate=truncate)#,eigtrunc=eigtrunc,noisy=noisy)
+
+      } else {
+        
+        if(is.null(lambdarange)) {
+
+          fit.lambda <- optim(par=log(lambdastart), lambdasigma.fn,
+                              X=X.init, y=y, folds=hyperfolds, chunks = chunks,
+                              truncate=truncate, epsilon=epsilon, lastkeeper=lastkeeper,
+                              sigma = sigma,
+                              #lambda = lambda,
+                              vcov = FALSE,
+                              control=list(trace = T, abstol = 1e-5), method="BFGS")
+            
+          lambda <- exp(fit.lambda$par)
+            
+        } else {
+
+          lambdaMSE <- NULL
+          for(i in 1:length(lambdarange)){
+            lambdaMSE[i] <- lambdasigma.fn(par = log(lambdarange[i]), X=X.init,
+                                           y=y, folds=hyperfolds, chunks=chunks,
+                                           truncate=truncate, epsilon=epsilon,
+                                           lastkeeper = lastkeeper,
+                                           sigma = sigma)
+          }
+          lambda <- lambdarange[which.min(lambdaMSE)]
+        }
+      }
+    }
+  } else { # if(is.null(sigma)
+    if(loss == "leastsquares") {
+      message("Warning: Cannot simultaneously search for both lambda and sigma with leastsquares loss.")
+      message(sprintf("Setting sigma to %s", d))
+      sigma <- d
+    }
+    
+    if(is.null(lambda)) {
+      if(is.null(lambdarange)) {
+        fit.hyper <- optim(par=c(lambdastart, 2.2*d), lambdasigma.fn,
+                           X=X.init, y=y, folds=hyperfolds, chunks = chunks,
+                           truncate=truncate, epsilon=epsilon, lastkeeper=lastkeeper,
+                           #sigma = sigma,
+                           #lambda = lambda,
+                           vcov = FALSE,
+                           control=list(trace = T, abstol = 1e-5), method="BFGS")
+        
+        lambda <- exp(fit.hyper$par[1])
+        sigma <- exp(fit.hyper$par[2])
+      } else {
+        if (is.null(sigmarange)) stop("Grid search for sigma only works with fixed lambda or lambda grid search.")
+        hypergrid <- as.matrix(expand.grid(lambdarange, sigmarange))
+        hyperMSE <- NULL
+        for(i in 1:nrow(hypergrid)){
+          hyperMSE[i] <- lambdasigma.fn(par = log(hypergrid[i, ]), X=X.init,
+                                        y=y, folds=hyperfolds, chunks=chunks,
+                                        truncate=truncate, epsilon=epsilon,
+                                        lastkeeper = lastkeeper)
+        }
+        hyper <- hypergrid[which.min(hyperMSE), ]
+        lambda <- hyper[1]
+        sigma <- hyper[2]
+      }
+    } else { # lambda is set
       if(is.null(sigmarange)) {
         fit.sigma <- optim(par=lambdastart, lambdasigma.fn,
                            X=X.init, y=y, folds=hyperfolds, chunks = chunks,
@@ -172,115 +273,58 @@ krls <- function(# Data arguments
                            vcov = FALSE,
                            control=list(trace = T, abstol = 1e-5), method="BFGS")
         sigma <- exp(fit.sigma$par)
-        message(sprintf("Sigma selected: %s", sigma))
       } else {
+        sigmaMSE <- NULL
         for(i in 1:length(sigmarange)){
           if(sigmarange[i] < 0) stop("All sigmas must be positive")
           sigmaMSE[i] <- lambdasigma.fn(par = log(sigmarange[i]), X=X.init,
-                                    y=y, folds=hyperfolds, chunks=chunks,
-                                    truncate=truncate, epsilon=epsilon,
-                                    lastkeeper = lastkeeper,
-                                    #sigma = sigma,
-                                    lambda = lambda)
+                                        y=y, folds=hyperfolds, chunks=chunks,
+                                        truncate=truncate, epsilon=epsilon,
+                                        lastkeeper = lastkeeper,
+                                        #sigma = sigma,
+                                        lambda = lambda)
+          sigma <- sigmarange[which.min(sigmaMSE)]
         }
-        sigma <- sigmarange[which.min(sigmaMSE)]
-        message(sprintf("Sigma selected: %s", sigma))
       }
 
-      
     }
-  } else {
     
-    if (loss == "leastsquares") {
-      if(is.null(sigma)) stop("Cannot simultaneously search for both lambda and sigma with leastsquares loss")
-      lambda <- lambdasearch(#L=L,U=U,
-        y=y,K=K,Eigenobject=eigobj,truncate=truncate)#,eigtrunc=eigtrunc,noisy=noisy)
-    } else {
-      
-      if(is.null(lambdarange)) {
-        if (!is.null(sigmarange)) stop("Grid search for sigma only works with fixed lambda or lambda grid search.")
-        if (is.null(sigma)) {
-          fit.hyper <- optim(par=c(lambdastart, 2.2*d), lambdasigma.fn,
-                             X=X.init, y=y, folds=hyperfolds, chunks = chunks,
-                             truncate=truncate, epsilon=epsilon, lastkeeper=lastkeeper,
-                             #sigma = sigma,
-                             #lambda = lambda,
-                             vcov = FALSE,
-                             control=list(trace = T, abstol = 1e-5), method="BFGS")
-          
-          lambda <- exp(fit.hyper$par[1])
-          sigma <- exp(fit.hyper$par[2])
-          
-          message(sprintf("Lambda selected: %s", lambda))
-          message(sprintf("Sigma selected: %s", sigma))
-        } else {
-          fit.lambda <- optim(par=log(lambdastart), lambdasigma.fn,
-                             X=X.init, y=y, folds=hyperfolds, chunks = chunks,
-                             truncate=truncate, epsilon=epsilon, lastkeeper=lastkeeper,
-                             sigma = sigma,
-                             #lambda = lambda,
-                             vcov = FALSE,
-                             control=list(trace = T, abstol = 1e-5), method="BFGS")
-          
-          lambda <- exp(fit.lambda$par)
-
-          message(sprintf("Lambda selected: %s", lambda))
-        }
-
-      } else {
-        if (is.null(sigma)) stop("Grid search for lambda does not work with optimizing sigma. Set optimsigma = F or use a grid search for sigma.")
-        
-        lambdaMSE <- NULL
-        for(i in 1:length(lambdarange)){
-          lambdaMSE[i] <- lambdasigma.fn(par = log(lambdarange[i]), X=X.init,
-                                         y=y, folds=hyperfolds, chunks=chunks,
-                                         truncate=truncate, epsilon=epsilon,
-                                         lastkeeper = lastkeeper,
-                                         sigma = sigma)
-                                         #lambda = lambda)
-        }
-        lambda <- lambdarange[which.min(lambdaMSE)]
-        message(sprintf("Lambda selected: %s", lambda))
-      }
-    }
-  }
- 
-  ## Compute kernel matrix
-  K <- NULL
-  if(whichkernel=="gaussian"){ K <- kern_gauss(X, sigma)}
-  if(whichkernel=="linear"){ K <- tcrossprod(X) }
-  if(whichkernel=="poly2"){ K <- (tcrossprod(X)+1)^2 }
-  if(whichkernel=="poly3"){ K <- (tcrossprod(X)+1)^3 }
-  if(whichkernel=="poly4"){ K <- (tcrossprod(X)+1)^4 }
-  if(is.null(K)){ stop("No valid Kernel specified") }
-  
-  Utrunc <- NULL
-  if(truncate) {
-    full <- FALSE
-    if (loss == "leastsquares") {
-      full <- TRUE
-    }
-    truncDat <- Ktrunc(K = K, sigma=sigma, lastkeeper=lastkeeper, epsilon=epsilon,
-                       full = full)
-    Utrunc <- truncDat$Utrunc
-    eigvals <- truncDat$eigvals
-    if (full) {
-      eigobj <- truncDat$eigobj
-    }
-  } else {
-    if (loss == "leastsquares") {
-      eigobj <- eigen(K)
-    }
+    ## Compute kernel matrix
+    K <- NULL
+    if(whichkernel=="gaussian"){ K <- kern_gauss(X, sigma)}
+    if(whichkernel=="linear"){ K <- tcrossprod(X) }
+    if(whichkernel=="poly2"){ K <- (tcrossprod(X)+1)^2 }
+    if(whichkernel=="poly3"){ K <- (tcrossprod(X)+1)^3 }
+    if(whichkernel=="poly4"){ K <- (tcrossprod(X)+1)^4 }
+    if(is.null(K)){ stop("No valid Kernel specified") }
+    
     Utrunc <- NULL
-    eigvals <- NULL
+    if(truncate) {
+      full <- FALSE
+      if (loss == "leastsquares") {
+        full <- TRUE
+      }
+      truncDat <- Ktrunc(K = K, sigma=sigma, lastkeeper=lastkeeper, epsilon=epsilon,
+                         full = full, quiet = F)
+      Utrunc <- truncDat$Utrunc
+      eigvals <- truncDat$eigvals
+      if (full) {
+        eigobj <- truncDat$eigobj
+      }
+    } else {
+      if (loss == "leastsquares") {
+        eigobj <- eigen(K)
+      }
+      Utrunc <- NULL
+      eigvals <- NULL
+    }
+    
+    lastkeeper <- NULL
+    lastkeeper <- if(truncate) ncol(Utrunc)
   }
-  
-  #rm(Kfull) ## remove Kfull because it is probably quite a large object
-  #CJH: we'll need to keep Kfull for derivative
-  
-  lastkeeper <- NULL
-  lastkeeper <- if(truncate) ncol(Utrunc)
-  
+
+  message(sprintf("Lambda selected: %s", lambda))
+  message(sprintf("Sigma selected: %s", sigma))
   
   ## Solve
   vcovmatc=NULL
@@ -433,7 +477,7 @@ krls <- function(# Data arguments
             kernel=whichkernel,
             derivmat = derivmat,
             avgderiv = avgderiv,
-            var.avgderiv = varavgderivmat,
+            var.avgderiv = varavgderivmat
             #lastkeeper = ncol(Ktilde)  
             #score = score
             #vcov.cb0 = vcov.cb0,
@@ -561,6 +605,7 @@ lambdasigma.fn <- function(par = NULL,
       Utrunc <- NULL
       eigvals <- NULL
     }
+
     pars <- rep(0, ifelse(truncate, ncol(Utrunc), ncol(K)) + 1)
     parshat <- solveForC(par = pars, y=y[-fold], K=K, Utrunc=Utrunc, D=eigvals, lambda=lambda, vcov = FALSE)
 
@@ -582,11 +627,12 @@ lambdasigma.fn <- function(par = NULL,
 ## Function that returns truncated versions of the data if given
 ## todo: throws warning whenever n < 500 because it uses eigen, should we suppress?
 #' @export
-Ktrunc <- function(X=NULL, K=NULL, sigma=NULL, epsilon=NULL, lastkeeper=NULL, full=FALSE){
+Ktrunc <- function(X=NULL, K=NULL, sigma=NULL, epsilon=NULL, lastkeeper=NULL, full=FALSE, quiet = TRUE){
   if(is.null(K)){
     X.sd <- apply(X, 2, sd)
     X.mu <- colMeans(X)
     K <- kern_gauss(scale(X), ifelse(is.null(sigma), ncol(X), sigma))
+
   }
   
   ## Todo: maybe later allow for full return of eigs_sym but not full
@@ -600,7 +646,7 @@ Ktrunc <- function(X=NULL, K=NULL, sigma=NULL, epsilon=NULL, lastkeeper=NULL, fu
     
     Ktilde <- mult_diag(eigobj$vectors[, 1:lastkeeper], eigobj$values)
     
-    print(paste("lastkeeper=",lastkeeper))
+    if(!quiet) print(paste("lastkeeper=",lastkeeper))
     
     return(
       list(Ktilde=Ktilde,
@@ -618,7 +664,7 @@ Ktrunc <- function(X=NULL, K=NULL, sigma=NULL, epsilon=NULL, lastkeeper=NULL, fu
     j=1
     while (enoughvar==FALSE){
       numvectors=numvectorss[j]
-      print(paste("trying",numvectors,"vectors"))
+      if(!quiet) print(paste("trying",numvectors,"vectors"))
       eigobj <- NULL
       eigobj <- try({eigs_sym(K, numvectors, which="LM")}, silent = T)
     
@@ -631,7 +677,7 @@ Ktrunc <- function(X=NULL, K=NULL, sigma=NULL, epsilon=NULL, lastkeeper=NULL, fu
         lastkeeper = min(which(cumsum(eigobj$values)/nrow(K) > (1-epsilon)))
         Ktilde <- mult_diag(eigobj$vectors[, 1:lastkeeper], eigobj$values)
         
-        print(paste("lastkeeper=",lastkeeper))
+        if(!quiet) print(paste("lastkeeper=",lastkeeper))
         enoughvar=TRUE
         
       }
