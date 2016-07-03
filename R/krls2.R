@@ -685,7 +685,8 @@ Ktrunc <- function(X=NULL, K=NULL, sigma=NULL, epsilon=NULL, lastkeeper=NULL, fu
       # Allow to proceed w/out truncation and SEs or to try full eigen
     } #end while gotenough==FALSE      
   } else { #end if is.null(lastkeeper)
-    eigobj <- eigs_sym(K, lastkeeper, which="LM")
+    ## Suppress warning about using all eigenvalues
+    eigobj <- suppressWarnings({eigs_sym(K, lastkeeper, which="LM")})
     Ktilde <- mult_diag(eigobj$vectors, eigobj$values)
   }
   
