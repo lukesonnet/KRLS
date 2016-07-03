@@ -132,6 +132,7 @@ krls <- function(# Data arguments
                 sigma>0)
     }
   }
+  if(optimsigma) warning("optimsigma ignored when sigma argument is used.")
   
   
   ## todo: unpack truncdat and add checks for if truncate is true, do not have
