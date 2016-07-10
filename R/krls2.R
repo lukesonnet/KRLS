@@ -131,8 +131,9 @@ krls <- function(# Data arguments
                 is.numeric(sigma),
                 sigma>0)
     }
+    if(optimsigma) warning("optimsigma ignored when sigma argument is used.")
+    
   }
-  if(optimsigma) warning("optimsigma ignored when sigma argument is used.")
   
   
   ## todo: unpack truncdat and add checks for if truncate is true, do not have
@@ -213,7 +214,7 @@ krls <- function(# Data arguments
                               sigma = sigma,
                               #lambda = lambda,
                               vcov = FALSE,
-                              control=list(trace = T, abstol = 1e-3), method="BFGS")
+                              control=list(trace = T, abstol = 1e-4), method="BFGS")
             
           lambda <- exp(fit.lambda$par)
             
@@ -248,7 +249,7 @@ krls <- function(# Data arguments
                            #sigma = sigma,
                            #lambda = lambda,
                            vcov = FALSE,
-                           control=list(trace = T, abstol = 1e-3), method="BFGS")
+                           control=list(trace = T, abstol = 1e-4), method="BFGS")
 
         lambda <- exp(fit.hyper$par[1])
         sigma <- exp(fit.hyper$par[2])
@@ -274,7 +275,7 @@ krls <- function(# Data arguments
                            #sigma = sigma,
                            lambda = lambda,
                            vcov = FALSE,
-                           control=list(trace = T, abstol = 1e-3), method="BFGS")
+                           control=list(trace = T, abstol = 1e-4), method="BFGS")
         sigma <- exp(fit.sigma$par)
       } else {
         sigmaMSE <- NULL
