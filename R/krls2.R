@@ -201,9 +201,14 @@ krls <- function(# Data arguments
     
     if(is.null(lambda)) {
       if (loss == "leastsquares") {
-        lambda <- lambdasearch(#L=L,U=U,
-          y=y,K=K,Eigenobject=eigobj,truncate=truncate)#,eigtrunc=eigtrunc,noisy=noisy)
-
+        if(truncate) {
+          #todo: no way this lambdasearch is right. The Looe can't be right, the bounds can't be right... but it works
+          #stop("Must specify lambda for truncated least squares for now.")
+          lambda <- lambdasearch(y=y,D=eigvals,Utrunc=Utrunc,Eigenobject=eigobj,truncate=truncate)#,eigtrunc=eigtrunc,noisy=noisy,L=L,U=U)
+        } else {
+          lambda <- lambdasearch(#L=L,U=U,
+            y=y,K=K,Eigenobject=eigobj,truncate=truncate)#,eigtrunc=eigtrunc,noisy=noisy)
+        }
       } else {
         
         if(is.null(lambdarange)) {
@@ -292,7 +297,7 @@ krls <- function(# Data arguments
       }
 
     }
-    
+    ## todo: replace this with a function
     ## Compute kernel matrix
     K <- NULL
     if(whichkernel=="gaussian"){ K <- kern_gauss(X, sigma)}
@@ -329,14 +334,13 @@ krls <- function(# Data arguments
 
   message(sprintf("Lambda selected: %s", lambda))
   message(sprintf("Sigma selected: %s", sigma))
-  
   ## Solve
   vcovmatc=NULL
   
   if (loss == "leastsquares") {
     if (truncate){
-      out <- solve_for_c_ls_trunc(y=y, K=K,Utrunc =Utrunc, lambda=lambda)
-      print(Utrunc%*%out$coeffs)
+      out <- solve_for_c_ls_trunc(y=y, D = eigvals, Utrunc =Utrunc, lambda=lambda)
+      chat <- out$coeffs
     } else {
       out <- solve_for_c_ls(y=y, K=K, lambda=lambda)
       chat <- out$coeffs
@@ -353,9 +357,9 @@ krls <- function(# Data arguments
     
     if (vcov) {
       sigmasq <- as.vector((1/n) * crossprod(y-yfitted))
-      
+
+
       vcovmatc <- tcrossprod(mult_diag(eigobj$vectors,sigmasq*(eigobj$values+lambda)^-2),eigobj$vectors)   
-      
     }
     beta0hat <- NULL
   } else {
@@ -460,7 +464,7 @@ krls <- function(# Data arguments
     varavgderivmat=NULL
   }
   
-  if (truncate) {
+  if (truncate & loss == 'logistic') {
     score = krlogit_gr_trunc(par=c(chat,beta0hat), Utrunc, eigvals, y, lambda)
   } 
   #else {score = krlogit.gr(par=c(chat,beta0hat), K=K, y=y,lambda=lambda)}
@@ -475,13 +479,14 @@ krls <- function(# Data arguments
             beta0hat = beta0hat,
             fitted=yfitted,
             X=X.init,
-            y=y,
+            y=y.init,
             sigma=sigma,
             lambda=lambda,
             kernel=whichkernel,
             derivmat = derivmat,
             avgderiv = avgderiv,
-            var.avgderiv = varavgderivmat
+            var.avgderiv = varavgderivmat,
+            loss=loss
             #lastkeeper = ncol(Ktilde)  
             #score = score
             #vcov.cb0 = vcov.cb0,
@@ -653,7 +658,8 @@ Ktrunc <- function(X=NULL, K=NULL, sigma=NULL, epsilon=NULL, lastkeeper=NULL, fu
     
     return(
       list(Ktilde=Ktilde,
-           Utrunc=eigobj$vectors[, 1:lastkeeper],
+           Utrunc=eigobj$vectors[, 1:lastkeeper, drop = F],
+           eigvals=eigobj$values[1:lastkeeper, drop = F],
            eigobj=eigobj)
     )
     
@@ -779,7 +785,11 @@ predict.krlogit <- function(object, newdata, ...) {
   #  newdataK <- newdataK%*%object$Utrunc
   #}
   
-  yfitted <- logistic(K = newdataK, coeff = object$coeffs, beta0 = object$beta0hat)
+  if(object$loss == "logistic") {
+    yfitted <- logistic(K = newdataK, coeff = object$coeffs, beta0 = object$beta0hat)
+  } else if (object$loss == "leastsquares") {
+    yfitted <- ((newdataK %*% object$coeffs)* apply(object$y,2,sd))+mean(object$y)
+  }
   return(list(fit = yfitted,
               #se.fit = se.fit, vcov.fit = vcov.fit, newdata = newdata, 
               newdataK = newdataK))
@@ -869,6 +879,8 @@ lambdasearch <-
            U=NULL,
            y=NULL,
            K=NULL,
+           D=NULL,
+           Utrunc=NULL,
            Eigenobject=NULL,
            tol=NULL,
            noisy=FALSE,
@@ -920,8 +932,8 @@ lambdasearch <-
     X2 <- U - (.381966)*(U-L)
     
     # starting LOO losses
-    S1 <- looloss(lambda=X1,y=y,K=K, eigtrunc=eigtrunc,truncate=truncate)
-    S2 <- looloss(lambda=X2,y=y,K=K, eigtrunc=eigtrunc,truncate=truncate)
+    S1 <- looloss(lambda=X1,y=y,K=K, D=D, Utrunc=Utrunc,eigtrunc=eigtrunc,truncate=truncate)
+    S2 <- looloss(lambda=X2,y=y,K=K, D=D, Utrunc=Utrunc,eigtrunc=eigtrunc,truncate=truncate)
     
     if(noisy){cat("L:",L,"X1:",X1,"X2:",X2,"U:",U,"S1:",S1,"S2:",S2,"\n") }
     
@@ -933,14 +945,14 @@ lambdasearch <-
         X2 <- X1
         X1 <- L + (.381966)*(U-L)
         S2 <- S1
-        S1 <- looloss(lambda=X1,y=y,K=K, eigtrunc=eigtrunc,truncate=truncate)
+        S1 <- looloss(lambda=X1,y=y,K=K, D=D, Utrunc=Utrunc,eigtrunc=eigtrunc,truncate=truncate)
         
       } else { #S2 < S1
         L  <- X1
         X1 <- X2
         X2 <- U - (.381966)*(U-L)
         S1 <- S2
-        S2 <- looloss(lambda=X2,y=y,K=K,eigtrunc=eigtrunc,truncate=truncate)
+        S2 <- looloss(lambda=X2,y=y,K=K, D=D, Utrunc=Utrunc,eigtrunc=eigtrunc,truncate=truncate)
       }
       
       if(noisy){cat("L:",L,"X1:",X1,"X2:",X2,"U:",U,"S1:",S1,"S2:",S2,"\n") }
@@ -953,9 +965,9 @@ lambdasearch <-
 ## looloss for krls
 #' @export
 looloss <-
-  function(y=NULL,K=NULL,Utrunc=NULL,lambda=NULL,eigtrunc=NULL,truncate=NULL){
+  function(y=NULL,K=NULL,D=NULL,Utrunc=NULL,lambda=NULL,eigtrunc=NULL,truncate=NULL){
     if (truncate) {
-      return(solve_for_c_ls_trunc(y=y,K=K,Utrunc=Utrunc,lambda=lambda)$Le)
+      return(solve_for_c_ls_trunc(y=y,D=D,Utrunc=Utrunc,lambda=lambda)$Le)
     } else {
       return(solve_for_c_ls(y=y,K=K,lambda=lambda)$Le)
     }
