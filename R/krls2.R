@@ -19,6 +19,38 @@ NULL
 ## necessary for future analysis. I borrow liberally from the KRLS package
 
 #' @export
+pwmfxR = function(K, X, coefhat, vcovmatc, p1p0, sigma){
+  d=ncol(X)
+  n=nrow(X)
+  derivmat<-matrix(NA,n,d)
+  varavgderivmat<- avgderivmat <- matrix(NA,1,d)
+  
+  rows <- cbind(rep(1:nrow(X), each = nrow(X)), 1:nrow(X))
+  distances <- X[rows[,1],] - X[ rows[,2],]    # d by n*n matrix of pairwise distances  
+  colnames(derivmat)  <- colnames(X)
+  colnames(varavgderivmat) <- colnames(X)
+  
+  for(k in 1:d){       
+    if(d==1){
+      distk <-  matrix(distances,n,n,byrow=TRUE)
+    } else {
+      distk <-  matrix(distances[,k],n,n,byrow=TRUE) 
+    }
+    distkK <-  distk*K
+    # pointwise derivatives
+    derivmat[,k] <- p1p0*(distkK%*%coefhat)/sigma
+    # variance for average derivative
+    #varavgderivmat[1,k] <- (1/n^2)*sum((p1p0/sigma)^2 * crossprod(distkK,vcovmatc%*%distkK))
+    varavgderivmat[1,k] <- (1/(n*sigma)^2)*t(p1p0) %*% crossprod(distkK,vcovmatc%*%distkK)%*%p1p0
+    }
+  R=list()
+  R$derivmat=derivmat
+  R$varavgderivmat=varavgderivmat
+  return(R)
+}
+  
+
+#' @export
 krls <- function(# Data arguments
                     X = NULL,
                     y = NULL,
@@ -50,6 +82,7 @@ krls <- function(# Data arguments
   ## Prepare the data
   X <- as.matrix(X)
   y <- as.matrix(y)
+  y.init <- y  #CJH added this here so it applies for both logistic and squared loss
   
   n <- nrow(X)
   d <- ncol(X)
@@ -106,7 +139,7 @@ krls <- function(# Data arguments
   
   if (loss == "leastsquares") {
     ## Scale y
-    y.init <- y
+    #y.init <- y  # CJH: now obsolete
     y.init.sd <- apply(y.init,2,sd)
     y.init.mean <- mean(y.init)
     y <- scale(y,center=y.init.mean,scale=y.init.sd)
@@ -399,6 +432,9 @@ krls <- function(# Data arguments
     p1p0 <- rep(2, n)
   } else if (loss == "logistic") {
     p1p0 <- yfitted*(1-yfitted)
+    length(p1p0)
+    class(p1p0)
+    dim(p1p0)
   }
   
   #construct coefhat=c for no truncation and coefhat = Utrunc*c
@@ -406,10 +442,17 @@ krls <- function(# Data arguments
 
   if(cpp) {
 
-    derivout <- pwmfx(K, X, coefhat, vcovmatc, p1p0, sigma)
-    derivmat <- derivout[1:n, ]
-    varavgderivmat <- derivout[n+1, ]
+    # Original CPP version of pwfmx
+#    derivout <- pwmfx(K, X, coefhat, vcovmatc, p1p0, sigma)
+#    derivmat <- derivout[1:n, ]
+#    varavgderivmat <- derivout[n+1, ]
 
+    # Attempting R version.
+    pwmfxR.out <- pwmfxR(K, X, coefhat, vcovmatc, as.matrix(p1p0), sigma)
+    derivmat <- pwmfxR.out$derivmat
+    varavgderivmat <- pwmfxR.out$varavgderivmat
+    
+    
   } else {
     rows <- cbind(rep(1:n, each = n), 1:n)
     distances <- X[rows[,1],] - X[ rows[,2],] 

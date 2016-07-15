@@ -225,7 +225,10 @@ arma::mat pwmfx(const arma::mat& k,
       out(i, j) = - (p(i) / b)  * val;
     }
     distk = k % distmat;
-    out(n, j) = 1 / pow(b * n, 2) * accu(p2.t() * distk.t() * vcovc * distk);
+    //original
+    // out(n, j) = 1 / pow(b * n, 2) * accu(p2.t() * distk.t() * vcovc * distk);
+    // new
+    out(n, j) = (1 / pow(n, 2)) * accu(p2.t() * (distk.t() / b) * vcovc * (distk / b));
     
   }
   
