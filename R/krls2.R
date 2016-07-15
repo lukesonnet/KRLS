@@ -166,6 +166,7 @@ krls <- function(# Data arguments
                       lambdastart = lambdastart,
                       lambdarange = lambdarange,
                       sigmarange = sigmarange,
+                      optimsigma = optimsigma,
                       L = L,
                       U = U)
   } else {
@@ -173,7 +174,8 @@ krls <- function(# Data arguments
   }
   
   ## Carry vars in list
-  control = list(loss=loss,
+  control = list(d=d,
+                 loss=loss,
                  whichkernel=whichkernel,
                  truncate=truncate,
                  lastkeeper=lastkeeper,
@@ -208,91 +210,26 @@ krls <- function(# Data arguments
     }
     
     if(is.null(lambda)) {
-      if(is.null(lambdarange)) {
-        if (!is.null(sigmarange)) stop("Grid search for sigma only works with fixed lambda or lambda grid search.")
-        
-        fit.hyper <- optim(par=log(c(lambdastart, 2.2*d)), lambdasigma.fn,
-                           X=X.init, y=y, folds=hyperfolds, chunks = chunks,
-                           truncate=truncate, epsilon=epsilon, lastkeeper=lastkeeper,
-                           #sigma = sigma,
-                           #lambda = lambda,
-                           vcov = FALSE,
-                           control=list(trace = T, abstol = 1e-4), method="BFGS")
 
-        lambda <- exp(fit.hyper$par[1])
-        sigma <- exp(fit.hyper$par[2])
-      } else {
-        if (optimsigma) stop("Optimizing sigma does not work with a grid search for lambda.")
-        hypergrid <- as.matrix(expand.grid(lambdarange, sigmarange))
-        hyperMSE <- NULL
-        for(i in 1:nrow(hypergrid)){
-          hyperMSE[i] <- lambdasigma.fn(par = log(hypergrid[i, ]), X=X.init,
-                                        y=y, folds=hyperfolds, chunks=chunks,
-                                        truncate=truncate, epsilon=epsilon,
-                                        lastkeeper = lastkeeper)
-        }
-        hyper <- hypergrid[which.min(hyperMSE), ]
-        lambda <- hyper[1]
-        sigma <- hyper[2]
-      }
+      hyperOut <- lambdasigmasearch(y=y,
+                                    X.init=X.init,
+                                    hyperctrl=hyperctrl,
+                                    control=control)
+      lambda <- hyperOut$lambda
+      sigma <- hyperOut$sigma
+      
     } else { # lambda is set
-      if(is.null(sigmarange)) {
-        fit.sigma <- optim(par=lambdastart, lambdasigma.fn,
-                           X=X.init, y=y, folds=hyperfolds, chunks = chunks,
-                           truncate=truncate, epsilon=epsilon, lastkeeper=lastkeeper,
-                           #sigma = sigma,
-                           lambda = lambda,
-                           vcov = FALSE,
-                           control=list(trace = T, abstol = 1e-4), method="BFGS")
-        sigma <- exp(fit.sigma$par)
-      } else {
-        sigmaMSE <- NULL
-        for(i in 1:length(sigmarange)){
-          if(sigmarange[i] < 0) stop("All sigmas must be positive")
-          sigmaMSE[i] <- lambdasigma.fn(par = log(sigmarange[i]), X=X.init,
-                                        y=y, folds=hyperfolds, chunks=chunks,
-                                        truncate=truncate, epsilon=epsilon,
-                                        lastkeeper = lastkeeper,
-                                        #sigma = sigma,
-                                        lambda = lambda)
-          sigma <- sigmarange[which.min(sigmaMSE)]
-        }
-      }
+      sigma <- sigmasearch(y=y,
+                           X.init=X.init,
+                           hyperctrl=hyperctrl,
+                           control=control,
+                           lambda=lambda)
+    }
 
-    }
-    ## todo: replace this with a function
-    ## Compute kernel matrix
-    K <- NULL
-    if(whichkernel=="gaussian"){ K <- kern_gauss(X, sigma)}
-    if(whichkernel=="linear"){ K <- tcrossprod(X) }
-    if(whichkernel=="poly2"){ K <- (tcrossprod(X)+1)^2 }
-    if(whichkernel=="poly3"){ K <- (tcrossprod(X)+1)^3 }
-    if(whichkernel=="poly4"){ K <- (tcrossprod(X)+1)^4 }
-    if(is.null(K)){ stop("No valid Kernel specified") }
+    Kdat <- generateK(X=X,
+                      sigma=sigma,
+                      control=control)
     
-    Utrunc <- NULL
-    if(truncate) {
-      full <- FALSE
-      if (loss == "leastsquares") {
-        full <- TRUE
-      }
-      truncDat <- Ktrunc(K = K, sigma=sigma, lastkeeper=lastkeeper, epsilon=epsilon,
-                         full = full, quiet = F)
-      Utrunc <- truncDat$Utrunc
-      eigvals <- truncDat$eigvals
-      if (full) {
-        eigobj <- truncDat$eigobj
-      }
-    } else {
-      if (loss == "leastsquares") {
-        eigobj <- eigen(K)
-      }
-      Utrunc <- NULL
-      eigvals <- NULL
-    }
-    
-    lastkeeper <- NULL
-    lastkeeper <- if(truncate) ncol(Utrunc)
   }
 
   message(sprintf("Lambda selected: %s", lambda))
