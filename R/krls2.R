@@ -38,7 +38,7 @@ pwmfxR = function(K, X, coefhat, vcovmatc, p1p0, sigma){
     }
     distkK <-  distk*K
     # pointwise derivatives
-    derivmat[,k] <- p1p0*(distkK%*%coefhat)/sigma
+    derivmat[,k] <- -p1p0*(distkK%*%coefhat)/sigma
     # variance for average derivative
     #varavgderivmat[1,k] <- (1/n^2)*sum((p1p0/sigma)^2 * crossprod(distkK,vcovmatc%*%distkK))
     varavgderivmat[1,k] <- (1/(n*sigma)^2)*t(p1p0) %*% crossprod(distkK,vcovmatc%*%distkK)%*%p1p0
