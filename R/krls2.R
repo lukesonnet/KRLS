@@ -47,6 +47,10 @@ krls <- function(# Data arguments
                     derivative = TRUE,
                     cpp = TRUE) {
   
+  ###----------------------------------------
+  ## Input validation and housekeeping
+  ###----------------------------------------
+  
   ## Prepare the data
   X <- as.matrix(X)
   y <- as.matrix(y)
@@ -74,13 +78,10 @@ krls <- function(# Data arguments
     stop("nrow(X) not equal to number of elements in y")
   }
   
-  #if (truncate & loss == "leastsquares")
-  #  stop("Truncation is not allowed with least squares for now")
-  
   stopifnot(
     is.logical(derivative),
-    is.logical(vcov)#,
-    #is.logical(binary)
+    is.logical(vcov)
+    # todo: add more checks here
   )
   
   if(derivative==TRUE){
@@ -106,8 +107,7 @@ krls <- function(# Data arguments
   X <- scale(X, center = TRUE, scale = X.init.sd)    
   
   if (loss == "leastsquares") {
-    ## Scale y
-    #y.init <- y
+    
     y.init.sd <- apply(y.init,2,sd)
     y.init.mean <- mean(y.init)
     y <- scale(y,center=y.init.mean,scale=y.init.sd)
@@ -120,6 +120,7 @@ krls <- function(# Data arguments
   
   lambdarange <- NULL
   sigmarange <- NULL
+  
   ## Default sigma to the number of features
   if(is.null(sigma)){
     if (!optimsigma) {sigma <- d}
@@ -160,83 +161,44 @@ krls <- function(# Data arguments
   ## set chunks for any ranges
   if(is.null(lambda) | is.null(sigma)) {
     chunks <- chunk(sample(n), hyperfolds)
+
+    hyperctrl <- list(chunks = chunks,
+                      lambdastart = lambdastart,
+                      lambdarange = lambdarange,
+                      sigmarange = sigmarange,
+                      L = L,
+                      U = U)
   } else {
     chunks <- NULL
   }
   
+  ## Carry vars in list
+  control = list(loss=loss,
+                 whichkernel=whichkernel,
+                 truncate=truncate,
+                 lastkeeper=lastkeeper,
+                 epsilon=epsilon,
+                 quiet=FALSE)
+  
+  ###----------------------------------------
+  ## Setting hyperparameters sigma and lambda
+  ###----------------------------------------
+  
   ## If sigma ix fixed, compute all of the kernels
   if(!is.null(sigma)) {
     
-    ## Compute kernel matrix
-    K <- NULL
-    if(whichkernel=="gaussian"){ K <- kern_gauss(X, sigma)}
-    if(whichkernel=="linear"){ K <- tcrossprod(X) }
-    if(whichkernel=="poly2"){ K <- (tcrossprod(X)+1)^2 }
-    if(whichkernel=="poly3"){ K <- (tcrossprod(X)+1)^3 }
-    if(whichkernel=="poly4"){ K <- (tcrossprod(X)+1)^4 }
-    if(is.null(K)){ stop("No valid Kernel specified") }
-    
-    Utrunc <- NULL
-    if(truncate) {
-      full <- FALSE
-      if (loss == "leastsquares") {
-        full <- TRUE
-      }
-      truncDat <- Ktrunc(K = K, sigma=sigma, lastkeeper=lastkeeper, epsilon=epsilon,
-                         full = full, quiet = F)
-      Utrunc <- truncDat$Utrunc
-      eigvals <- truncDat$eigvals
-      if (full) {
-        eigobj <- truncDat$eigobj
-      }
-    } else {
-      if (loss == "leastsquares") {
-        eigobj <- eigen(K)
-      }
-      Utrunc <- NULL
-      eigvals <- NULL
-    }
-    
-    lastkeeper <- NULL
-    lastkeeper <- if(truncate) ncol(Utrunc)
+    ## Compute kernel matrix and truncated objects
+    Kdat <- generateK(X=X,
+                     sigma=sigma,
+                     control=control)
     
     if(is.null(lambda)) {
-      if (loss == "leastsquares") {
-        if(truncate) {
-          #todo: no way this lambdasearch is right. The Looe can't be right, the bounds can't be right... but it works
-          #stop("Must specify lambda for truncated least squares for now.")
-          lambda <- lambdasearch(y=y,D=eigvals,Utrunc=Utrunc,Eigenobject=eigobj,truncate=truncate)#,eigtrunc=eigtrunc,noisy=noisy,L=L,U=U)
-        } else {
-          lambda <- lambdasearch(#L=L,U=U,
-            y=y,K=K,Eigenobject=eigobj,truncate=truncate)#,eigtrunc=eigtrunc,noisy=noisy)
-        }
-      } else {
-        
-        if(is.null(lambdarange)) {
-
-          fit.lambda <- optim(par=log(lambdastart), lambdasigma.fn,
-                              X=X.init, y=y, folds=hyperfolds, chunks = chunks,
-                              truncate=truncate, epsilon=epsilon, lastkeeper=lastkeeper,
-                              sigma = sigma,
-                              #lambda = lambda,
-                              vcov = FALSE,
-                              control=list(trace = T, abstol = 1e-4), method="BFGS")
-            
-          lambda <- exp(fit.lambda$par)
-            
-        } else {
-
-          lambdaMSE <- NULL
-          for(i in 1:length(lambdarange)){
-            lambdaMSE[i] <- lambdasigma.fn(par = log(lambdarange[i]), X=X.init,
-                                           y=y, folds=hyperfolds, chunks=chunks,
-                                           truncate=truncate, epsilon=epsilon,
-                                           lastkeeper = lastkeeper,
-                                           sigma = sigma)
-          }
-          lambda <- lambdarange[which.min(lambdaMSE)]
-        }
-      }
+      lambda <- lambdasearch(y=y,
+                             X.init=X.init,
+                             Kdat=Kdat,
+                             hyperctrl=hyperctrl,
+                             control=control,
+                             sigma=sigma)
     }
   } else { # if(is.null(sigma)
     if(loss == "leastsquares") {
@@ -335,36 +297,40 @@ krls <- function(# Data arguments
 
   message(sprintf("Lambda selected: %s", lambda))
   message(sprintf("Sigma selected: %s", sigma))
-  ## Solve
+  
+  ###----------------------------------------
+  ## Estimating choice coefficients (solving)
+  ###----------------------------------------
+  
   vcovmatc=NULL
   
   if (loss == "leastsquares") {
     if (truncate){
-      out <- solve_for_c_ls_trunc(y=y, D = eigvals, Utrunc =Utrunc, lambda=lambda)
+      out <- solve_for_c_ls_trunc(y=y, D = Kdat$eigvals, Utrunc =Kdat$Utrunc, lambda=lambda)
       chat <- out$coeffs
     } else {
-      out <- solve_for_c_ls(y=y, K=K, lambda=lambda)
+      out <- solve_for_c_ls(y=y, K=Kdat$K, lambda=lambda)
       chat <- out$coeffs
     }
     
     ## getting c_p from d
     coefhat=NULL
     if(truncate==FALSE){coefhat=chat} else {
-      UDinv = mult_diag(Utrunc, 1/eigvals)
+      UDinv = mult_diag(Kdat$Utrunc, 1/Kdat$eigvals)
       coefhat=UDinv %*% chat
     }
     
-    yfitted <- K%*%coefhat
+    yfitted <- Kdat$K%*%coefhat
     
     if (vcov) {
       sigmasq <- as.vector((1/n) * crossprod(y-yfitted))
 
 
-      vcovmatc <- tcrossprod(mult_diag(eigobj$vectors,sigmasq*(eigobj$values+lambda)^-2),eigobj$vectors)   
+      vcovmatc <- tcrossprod(mult_diag(Kdat$eigobj$vectors,sigmasq*(Kdat$eigobj$values+lambda)^-2),Kdat$eigobj$vectors)   
     }
     beta0hat <- NULL
   } else {
-    out <- solveForC(y=y, K=K, Utrunc=Utrunc, D=eigvals, lambda=lambda, con=con, vcov=vcov, printout = printout, returnopt = returnopt)
+    out <- solveForC(y=y, K=Kdat$K, Utrunc=Kdat$Utrunc, D=Kdat$eigvals, lambda=lambda, con=con, vcov=vcov, printout = printout, returnopt = returnopt)
     chat <- out$chat
     beta0hat <- out$beta0hat
     hessian <- out$hessian
@@ -373,11 +339,11 @@ krls <- function(# Data arguments
     ## getting c_p from d
     coefhat=NULL
     if(truncate==FALSE){coefhat=chat} else {
-      UDinv = mult_diag(Utrunc, 1/eigvals)
+      UDinv = mult_diag(Kdat$Utrunc, 1/Kdat$eigvals)
       coefhat=UDinv %*% chat
     }
     
-    yfitted <- logistic(K=K, coeff=coefhat, beta0 = beta0hat)
+    yfitted <- logistic(K=Kdat$K, coeff=coefhat, beta0 = beta0hat)
     
     ## Vcov of d
     if (vcov & truncate) {
@@ -391,6 +357,7 @@ krls <- function(# Data arguments
   ###----------------------------------------
   ## Getting pwmfx
   ###----------------------------------------
+  
   if (derivative==TRUE){
   derivmat <- matrix(NA, ncol=d, nrow=n,
                      dimnames=list(NULL, colnames(X)))
@@ -407,7 +374,7 @@ krls <- function(# Data arguments
 
   if(cpp) {
 
-    derivout <- pwmfx(K, X, coefhat, vcovmatc, p1p0, sigma)
+    derivout <- pwmfx(Kdat$K, X, coefhat, vcovmatc, p1p0, sigma)
     derivmat <- derivout[1:n, ]
     varavgderivmat <- derivout[n+1, ]
 
@@ -466,13 +433,16 @@ krls <- function(# Data arguments
   }
   
   if (truncate & loss == 'logistic') {
-    score = krlogit_gr_trunc(par=c(chat,beta0hat), Utrunc, eigvals, y, lambda)
+    score = krlogit_gr_trunc(par=c(chat,beta0hat), Kdat$Utrunc, Kdat$eigvals, y, lambda)
   } 
   #else {score = krlogit.gr(par=c(chat,beta0hat), K=K, y=y,lambda=lambda)}
   
-  # return
-  z <- list(K=K,
-            Utrunc=Utrunc,
+  ###----------------------------------------
+  ## Returning results
+  ###----------------------------------------
+  
+  z <- list(K=Kdat$K,
+            Utrunc=Kdat$Utrunc,
             lastkeeper = lastkeeper,
             truncate = truncate,
             coeffs=coefhat,
@@ -634,88 +604,6 @@ lambdasigma.fn <- function(par = NULL,
   return(rmspe)
 }
 
-## Function that returns truncated versions of the data if given
-## todo: throws warning whenever n < 500 because it uses eigen, should we suppress?
-#' @export
-Ktrunc <- function(X=NULL, K=NULL, sigma=NULL, epsilon=NULL, lastkeeper=NULL, full=FALSE, quiet = TRUE){
-  if(is.null(K)){
-    X.sd <- apply(X, 2, sd)
-    X.mu <- colMeans(X)
-    K <- kern_gauss(scale(X), ifelse(is.null(sigma), ncol(X), sigma))
-  }
-  
-  ## Todo: maybe later allow for full return of eigs_sym but not full
-  ## eigen decomposition. Might be useful for lambda search for logistic
-  if(full){
-    eigobj <- eigen(K)
-    
-    lastkeeper <- ifelse(is.null(lastkeeper),
-                        min(which(cumsum(eigobj$values)/nrow(K) > (1-epsilon))),
-                        lastkeeper)
-    
-    Ktilde <- mult_diag(eigobj$vectors[, 1:lastkeeper], eigobj$values)
-    
-    if(!quiet) print(paste("lastkeeper=",lastkeeper))
-    
-    return(
-      list(Ktilde=Ktilde,
-           Utrunc=eigobj$vectors[, 1:lastkeeper, drop = F],
-           eigvals=eigobj$values[1:lastkeeper, drop = F],
-           eigobj=eigobj)
-    )
-    
-  }
-  if(is.null(lastkeeper)){
-    #denoms <- c(10, 6, 3, 1) # we could also let people set this to speed up the algorithm
-    #CJH: even at 10, with N=5000 it is too big. Let's try this: 
-    if (nrow(K) <= 500) numvectorss=nrow(K) else numvectorss=c(50, 100, 200, 300,500,1000)
-    enoughvar=FALSE
-    j=1
-    while (enoughvar==FALSE){
-      numvectors=numvectorss[j]
-      if(!quiet) print(paste("trying",numvectors,"vectors"))
-      eigobj <- NULL
-      eigobj <- try({eigs_sym(K, numvectors, which="LM")}, silent = T)
-
-      #for now, letting it throw an error in certain failure cases.
-      totalvar=sum(eigobj$values)/nrow(K)
-    
-      if (totalvar>=(1-epsilon)){
-        lastkeeper = min(which(cumsum(eigobj$values)/nrow(K) > (1-epsilon)))
-        Ktilde <- mult_diag(eigobj$vectors[, 1:lastkeeper, drop = F], eigobj$values)
-        
-        if(!quiet) print(paste("lastkeeper=",lastkeeper))
-        enoughvar=TRUE
-        
-      }
-      j=j+1
-      # Will eventually add warning here for var < 0.99 at numvector= 300
-      # Allow to proceed w/out truncation and SEs or to try full eigen
-    } #end while gotenough==FALSE      
-  } else { #end if is.null(lastkeeper)
-    ## Suppress warning about using all eigenvalues
-    eigobj <- suppressWarnings({eigs_sym(K, lastkeeper, which="LM")})
-    Ktilde <- mult_diag(eigobj$vectors, eigobj$values)
-  }
-  
-  return(
-         list(Utrunc=eigobj$vectors[, 1:lastkeeper, drop = F],
-              eigvals=eigobj$values[1:lastkeeper, drop = F])
-        )
-}
-
-
-## Computes the Gaussian kernel matrix from the data matrix X
-## Parameters:
-##   'X' - the data matrix
-##   'sigma' - the kernel bandwitch, recommended by HH2013 to be ncol(X)
-## Values:
-##   'K' - the Gaussian kernel matrix
-#' @export
-gaussKernel <- function(X=NULL, sigma=NULL) {
-  return( exp(-1*as.matrix(dist(X)^2)/(2*sigma)) )
-}
-
 
 ## Optimize C in 'krlogit.fn' given the data and lambda
 ## Parameters:
@@ -816,48 +704,6 @@ logistic <- function(K, coeff, beta0) {
   return(yhat)
 }
 
-## Produce a new Kernel from new data and data that was used to fit model for
-## prediction
-## Parameters:
-##   'X' - the original data matrix, UNSCALED
-##   'newData' - the new data matrix (with same features), unscaled
-##   'whichkernel' - which kernel was used on the original data
-## Values:
-##   'newK' - The new Kernel to be used for prediction
-#' @export
-newKernel <- function(X, newData, whichkernel = "gaussian") {
-  
-  # Get values of oldData to scale newData
-  Xmeans <- colMeans(X)
-  Xsd <- apply(X, 2, sd)
-  X <- scale(X, center = Xmeans, scale = Xsd)
-
-  # scale new data by means and sd of old data
-  newData <- scale(newData, center = Xmeans, scale = Xsd)      
-  
-  # predict based on new kernel matrix
-  nn <- nrow(newData)
-  
-  ## Compute kernel matrix
-  K <- NULL
-  if(whichkernel=="gaussian"){ 
-    newK <- new_gauss_kern(newData, X, ncol(X))
-  }
-  
-  if(whichkernel=="linear"){ K <- tcrossprod(rbind(newData, X)) }
-  if(whichkernel=="poly2"){ K <- (tcrossprod(rbind(newData, X))+1)^2 }
-  if(whichkernel=="poly3"){ K <- (tcrossprod(rbind(newData, X))+1)^3 }
-  if(whichkernel=="poly4"){ K <- (tcrossprod(rbind(newData, X))+1)^4 }
-  if(is.null(K) & is.null(newK)){ stop("No valid Kernel specified") }
-  
-  if(whichkernel != "gaussian"){
-    newK <- matrix(K[1:nn, (nn+1):(nn+nrow(X))],
-                   nrow=nrow(newData),
-                   byrow=FALSE)
-  }
-  
-  return(newK)
-}
 
 ## Function that splits a vector in to n chunks
 #' @export
