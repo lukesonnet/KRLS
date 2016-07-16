@@ -6,6 +6,29 @@
 
 using namespace Rcpp;
 
+// mult_diag
+arma::mat mult_diag(const arma::mat& x, const arma::vec& d);
+RcppExport SEXP KRLS2_mult_diag(SEXP xSEXP, SEXP dSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< const arma::mat& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type d(dSEXP);
+    __result = Rcpp::wrap(mult_diag(x, d));
+    return __result;
+END_RCPP
+}
+// eigsym
+Rcpp::List eigsym(const arma::mat& x);
+RcppExport SEXP KRLS2_eigsym(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< const arma::mat& >::type x(xSEXP);
+    __result = Rcpp::wrap(eigsym(x));
+    return __result;
+END_RCPP
+}
 // krlogit_fn_trunc
 double krlogit_fn_trunc(const arma::vec& par, const arma::mat& Utrunc, const arma::vec& D, const arma::vec& y, const double& lambda);
 RcppExport SEXP KRLS2_krlogit_fn_trunc(SEXP parSEXP, SEXP UtruncSEXP, SEXP DSEXP, SEXP ySEXP, SEXP lambdaSEXP) {
@@ -33,6 +56,21 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
     Rcpp::traits::input_parameter< const double& >::type lambda(lambdaSEXP);
     __result = Rcpp::wrap(krlogit_gr_trunc(par, Utrunc, D, y, lambda));
+    return __result;
+END_RCPP
+}
+// krlogit_hess_trunc
+arma::mat krlogit_hess_trunc(const arma::vec& par, const arma::mat& Utrunc, const arma::vec& D, const arma::vec& y, const double& lambda);
+RcppExport SEXP KRLS2_krlogit_hess_trunc(SEXP parSEXP, SEXP UtruncSEXP, SEXP DSEXP, SEXP ySEXP, SEXP lambdaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< const arma::vec& >::type par(parSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type Utrunc(UtruncSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type D(DSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const double& >::type lambda(lambdaSEXP);
+    __result = Rcpp::wrap(krlogit_hess_trunc(par, Utrunc, D, y, lambda));
     return __result;
 END_RCPP
 }
@@ -83,29 +121,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::mat& >::type oldx(oldxSEXP);
     Rcpp::traits::input_parameter< const double& >::type b(bSEXP);
     __result = Rcpp::wrap(new_gauss_kern(newx, oldx, b));
-    return __result;
-END_RCPP
-}
-// mult_diag
-arma::mat mult_diag(const arma::mat& x, const arma::vec& d);
-RcppExport SEXP KRLS2_mult_diag(SEXP xSEXP, SEXP dSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< const arma::mat& >::type x(xSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type d(dSEXP);
-    __result = Rcpp::wrap(mult_diag(x, d));
-    return __result;
-END_RCPP
-}
-// eigsym
-Rcpp::List eigsym(const arma::mat& x);
-RcppExport SEXP KRLS2_eigsym(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< const arma::mat& >::type x(xSEXP);
-    __result = Rcpp::wrap(eigsym(x));
     return __result;
 END_RCPP
 }

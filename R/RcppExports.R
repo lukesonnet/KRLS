@@ -2,6 +2,16 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 #' @export
+mult_diag <- function(x, d) {
+    .Call('KRLS2_mult_diag', PACKAGE = 'KRLS2', x, d)
+}
+
+#' @export
+eigsym <- function(x) {
+    .Call('KRLS2_eigsym', PACKAGE = 'KRLS2', x)
+}
+
+#' @export
 krlogit_fn_trunc <- function(par, Utrunc, D, y, lambda) {
     .Call('KRLS2_krlogit_fn_trunc', PACKAGE = 'KRLS2', par, Utrunc, D, y, lambda)
 }
@@ -9,6 +19,11 @@ krlogit_fn_trunc <- function(par, Utrunc, D, y, lambda) {
 #' @export
 krlogit_gr_trunc <- function(par, Utrunc, D, y, lambda) {
     .Call('KRLS2_krlogit_gr_trunc', PACKAGE = 'KRLS2', par, Utrunc, D, y, lambda)
+}
+
+#' @export
+krlogit_hess_trunc <- function(par, Utrunc, D, y, lambda) {
+    .Call('KRLS2_krlogit_hess_trunc', PACKAGE = 'KRLS2', par, Utrunc, D, y, lambda)
 }
 
 #' @export
@@ -29,16 +44,6 @@ kern_gauss <- function(x, b) {
 #' @export
 new_gauss_kern <- function(newx, oldx, b) {
     .Call('KRLS2_new_gauss_kern', PACKAGE = 'KRLS2', newx, oldx, b)
-}
-
-#' @export
-mult_diag <- function(x, d) {
-    .Call('KRLS2_mult_diag', PACKAGE = 'KRLS2', x, d)
-}
-
-#' @export
-eigsym <- function(x) {
-    .Call('KRLS2_eigsym', PACKAGE = 'KRLS2', x)
 }
 
 #' @export

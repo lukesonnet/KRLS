@@ -284,12 +284,17 @@ krls <- function(# Data arguments
     
     ## Vcov of d
     if (vcov & truncate) {
+      #optimHess = hessian
+      #fixedHess = krlogit_hess_trunc(c(chat, beta0hat), Kdat$Utrunc, Kdat$eigvals, y, lambda)
+      #fixedHessR <- krlogit.hess.trunc(c(chat, beta0hat), Kdat$Utrunc, Kdat$eigvals, y, lambda)
       vcov.cb0 = solve(hessian)
       vcovmatc = tcrossprod(UDinv%*%vcov.cb0[1:length(chat), 1:length(chat)], UDinv)
       ## todo: return var b0
     } else {vcov.cb0 = NULL}
     
   }
+  
+  
   
   ###----------------------------------------
   ## Getting pwmfx
@@ -326,7 +331,7 @@ krls <- function(# Data arguments
       } else {
         distk <-  matrix(distances[,k],n,n,byrow=TRUE) 
       }
-      L <-  distk*Kfull  #Kfull rather than K here as truncation handled through coefs
+      L <-  distk*Kdat$K  #Kfull rather than K here as truncation handled through coefs
       derivmat[,k] <- p1p0*(-1/sigma)*(L%*%coefhat)
       if(truncate==FALSE) {
         varavgderivmat = NULL
@@ -336,17 +341,7 @@ krls <- function(# Data arguments
     }
     
   }
-    #donebelow
-    #avgderiv <- matrix(colMeans(derivmat),nrow=1)
-    #colnames(avgderiv) <- colnames(X)
-    
-    
-    #print(colMeans(X.init))
-    #print(X.init.sd)
-    #print(derivmat)
-    #effectmat <- t((1/X.init.sd)*t(derivmat))
-    # or, equivalently, and probably more efficiently
-    ## todo: smart checker if Y was rescaled?
+
     if (loss == "leastsquares") {
       avgderivmat <- colMeans(derivmat)
       derivmat <- scale(y.init.sd*derivmat,center=FALSE,scale=X.init.sd)
@@ -395,6 +390,9 @@ krls <- function(# Data arguments
             avgderiv = avgderiv,
             var.avgderiv = varavgderivmat,
             loss=loss
+            #optimHess=optimHess,
+            #fixedHess=fixedHess,
+            #fixedHessR=fixedHessR
             #lastkeeper = ncol(Ktilde)  
             #score = score
             #vcov.cb0 = vcov.cb0,
@@ -428,6 +426,7 @@ krlogit.fn <- function(par, K, y, lambda = 0.5) {
   return(r)
 }
 
+## This has the wrong norm
 #' @export
 krlogit.fn.trunc <- function(par, K, Utrunc, y, lambda = 0.5) {
   
@@ -458,6 +457,7 @@ krlogit.gr <- function(par, K, y, lambda){
   return(c(dc, db0))
 }
 
+## this has the wrong norm
 #' @export
 krlogit.gr.trunc <- function(par, K, Utrunc, y, lambda){
   
@@ -473,73 +473,40 @@ krlogit.gr.trunc <- function(par, K, Utrunc, y, lambda){
   return(c(dc, db0))
 }
 
+#' @export
+krlogit.hess.trunc <- function(par, Utrunc, D, y, lambda) {
+  
+  coef <- par[1:ncol(Utrunc)]
+  beta0 <- par[ncol(Utrunc)+1]
+  
+  Ud <- Utrunc %*% coef
+  
+  meat <- exp(-Ud - beta0) / (1 + exp(-Ud - beta0))^2
+  
+  dcdc <- mult_diag(t(Utrunc), meat) %*% Utrunc + diag(2 * lambda / D)
+  dcdb <- crossprod(Utrunc, meat)
+  dbdb <- sum(meat)
+
+  print(dcdc[1:3, 1:3])
+  
+  ret = matrix(nrow = length(par), ncol = length(par))
+  ret[1:length(coef), 1:length(coef)] <- dcdc
+  ret[length(par), 1:length(coef)] <- dcdb
+  ret[1:length(coef), length(par)] <- dcdb
+  ret[length(par), length(par)] <- dbdb
+  
+  print(ret[1:3, 1:3])
+  
+  return(ret)
+}
+
+
 #krlogit.hess <- function(par, K, y, lambda){
 #  cb <- crossprod(K, (exp(-K%*%chat - beta0)/(1 + exp(-K%*%chat - beta0))^2))
 #  bb <- sum(exp(-K%*%chat - beta0)/(1 + exp(-K%*%chat - beta0))^2)
 #  cc <- can't get this to match what optim returns, see krlogit_testingmath
   
 
-# todo: Unless the folds are much smaller, lastkeeper will probably be the same
-# or only one or two smaller, should we pass lastkeeper and just use it?
-## This computes the RMSPE using 'folds' cross-validation, fitting a new model
-## for each subset of the data
-#' @export
-lambdasigma.fn <- function(par = NULL,
-                      X = NULL,
-                      y = NULL,
-                      folds = NULL,
-                      chunks = NULL,
-                      sigma = NULL,
-                      lambda = NULL,
-                      truncate = NULL,
-                      vcov = NULL,
-                      epsilon = NULL,
-                      lastkeeper = NULL) {
-  
-  if(is.null(c(lambda, sigma))) {
-    lambda <- exp(par[1])
-    sigma <- exp(par[2])
-  } else {
-    if (is.null(lambda)) {
-      lambda <- exp(par)
-    }
-    if (is.null(sigma)) {
-      sigma <- exp(par)
-    }
-  }
-  
-  mse <- 0
-  for(j in 1:folds){
-    fold <- chunks[[j]]
-    if(truncate) {
-      #cjh added lastkeeper to this, to reuse it rather than re-search
-      truncDat <- Ktrunc(X = X[-fold,], sigma=sigma, epsilon=epsilon,lastkeeper=lastkeeper) 
-      K <- NULL
-      Utrunc <- truncDat$Utrunc
-      eigvals <- truncDat$eigvals
-    } else {
-      K <- kern_gauss(scale(X[-fold,]), sigma)
-      Utrunc <- NULL
-      eigvals <- NULL
-    }
-    
-    pars <- rep(0, ifelse(truncate, ncol(Utrunc), ncol(K)) + 1)
-    parshat <- solveForC(par = pars, y=y[-fold], K=K, Utrunc=Utrunc, D=eigvals, lambda=lambda, vcov = FALSE)
-
-    K <- newKernel(X[-fold, ], newData = X[fold, ])
-    ## Is this transformation right?
-    if(truncate) {
-      coefhat <- mult_diag(Utrunc, 1/eigvals) %*% parshat$chat
-    } else {
-      coefhat <- parshat$chat
-    }
-    yhat <- logistic(K=K, coefhat, beta0=parshat$beta0hat)
-    mse <- mse + sum((y[fold] - yhat)^2)
-  }
-  rmspe <- sqrt(mse/length(y))
-    
-  return(rmspe)
-}
 
 
 ## Optimize C in 'krlogit.fn' given the data and lambda

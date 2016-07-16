@@ -123,3 +123,65 @@ sigmasearch <- function(y,
   return(sigma)
   
 }
+
+# todo: Unless the folds are much smaller, lastkeeper will probably be the same
+# or only one or two smaller, should we pass lastkeeper and just use it?
+## This computes the RMSPE using 'folds' cross-validation, fitting a new model
+## for each subset of the data
+#' @export
+lambdasigma.fn <- function(par = NULL,
+                           X = NULL,
+                           y = NULL,
+                           folds = NULL,
+                           chunks = NULL,
+                           sigma = NULL,
+                           lambda = NULL,
+                           truncate = NULL,
+                           vcov = NULL,
+                           epsilon = NULL,
+                           lastkeeper = NULL) {
+  
+  if(is.null(c(lambda, sigma))) {
+    lambda <- exp(par[1])
+    sigma <- exp(par[2])
+  } else {
+    if (is.null(lambda)) {
+      lambda <- exp(par)
+    }
+    if (is.null(sigma)) {
+      sigma <- exp(par)
+    }
+  }
+  
+  mse <- 0
+  for(j in 1:folds){
+    fold <- chunks[[j]]
+    if(truncate) {
+      #cjh added lastkeeper to this, to reuse it rather than re-search
+      truncDat <- Ktrunc(X = X[-fold,], sigma=sigma, epsilon=epsilon,lastkeeper=lastkeeper) 
+      K <- NULL
+      Utrunc <- truncDat$Utrunc
+      eigvals <- truncDat$eigvals
+    } else {
+      K <- kern_gauss(scale(X[-fold,]), sigma)
+      Utrunc <- NULL
+      eigvals <- NULL
+    }
+    
+    pars <- rep(0, ifelse(truncate, ncol(Utrunc), ncol(K)) + 1)
+    parshat <- solveForC(par = pars, y=y[-fold], K=K, Utrunc=Utrunc, D=eigvals, lambda=lambda, vcov = FALSE)
+    
+    K <- newKernel(X[-fold, ], newData = X[fold, ])
+    ## Is this transformation right?
+    if(truncate) {
+      coefhat <- mult_diag(Utrunc, 1/eigvals) %*% parshat$chat
+    } else {
+      coefhat <- parshat$chat
+    }
+    yhat <- logistic(K=K, coefhat, beta0=parshat$beta0hat)
+    mse <- mse + sum((y[fold] - yhat)^2)
+  }
+  rmspe <- sqrt(mse/length(y))
+  
+  return(rmspe)
+}

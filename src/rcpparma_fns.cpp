@@ -8,6 +8,36 @@
 //
 // [[Rcpp::depends(RcppArmadillo)]]
 
+
+//----------
+// Helper functions
+//----------
+
+//' @export
+// [[Rcpp::export]]
+arma::mat mult_diag(const arma::mat& x, const arma::vec& d) {
+  arma::mat out(x.n_rows, x.n_cols);
+  for (int j = 0; j < x.n_cols; ++j) {
+    out.col(j) = x.col(j) * d(j);
+  }
+  return out;
+}
+
+
+// Eigen decomposition, unused
+
+//' @export
+// [[Rcpp::export]]
+Rcpp::List eigsym(const arma::mat& x) {
+  arma::vec eigval;
+  arma::mat eigvec;
+  
+  eig_sym(eigval, eigvec, x);
+  
+  return Rcpp::List::create(Rcpp::Named("eigvec") = eigvec,
+                            Rcpp::Named("eigval") = eigval);
+}
+
 //' @export
 // [[Rcpp::export]]
 double krlogit_fn_trunc(const arma::vec& par,
@@ -44,6 +74,38 @@ arma::vec krlogit_gr_trunc(const arma::vec& par,
   
   ret.subvec(0, par.n_elem - 2) = -Utrunc.t() * resid + 2 * (lambda / D) % coef;
   ret(par.n_elem - 1) = -accu(resid);
+  
+  return ret;
+}
+
+//' @export
+// [[Rcpp::export]]
+arma::mat krlogit_hess_trunc(const arma::vec& par,
+                           const arma::mat& Utrunc,
+                           const arma::vec& D,
+                           const arma::vec& y,
+                           const double& lambda) {
+  
+  arma::vec coef = par.subvec(0, par.n_elem - 2);
+  double beta0 = par(par.n_elem-1);
+  arma::vec meat = exp(-Utrunc * coef - beta0) / pow((1 + exp(-Utrunc * coef - beta0)), 2);
+
+  arma::mat ret(par.n_elem, par.n_elem);
+
+  arma::mat dcdc = mult_diag(Utrunc.t(), meat) * Utrunc + diagmat(2 * (lambda / D));
+
+  Rcpp::Rcout << dcdc.submat(0,0,2,2);
+    
+  arma::vec dcdb = Utrunc.t() * meat;
+  
+  double dbdb = accu(meat);
+  
+  ret.submat(0, 0, coef.n_elem - 1, coef.n_elem - 1) = dcdc;
+  ret.submat(coef.n_elem, 0, coef.n_elem, coef.n_elem - 1) = dcdb.t();
+  ret.submat(0, coef.n_elem, coef.n_elem - 1, coef.n_elem) = dcdb;
+  ret(coef.n_elem, coef.n_elem) = dbdb;
+  
+  Rcpp::Rcout << ret.submat(0,0,2,2);
   
   return ret;
 }
@@ -118,34 +180,6 @@ arma::mat new_gauss_kern(const arma::mat& newx, const arma::mat& oldx, const dou
 }
 
 
-//----------
-// Helper functions
-//----------
-
-//' @export
-// [[Rcpp::export]]
-arma::mat mult_diag(const arma::mat& x, const arma::vec& d) {
-  arma::mat out(x.n_rows, x.n_cols);
-  for (int j = 0; j < x.n_cols; ++j) {
-    out.col(j) = x.col(j) * d(j);
-  }
-  return out;
-}
-
-
-// Eigen decomposition, unused
-
-//' @export
-// [[Rcpp::export]]
-Rcpp::List eigsym(const arma::mat& x) {
-  arma::vec eigval;
-  arma::mat eigvec;
-  
-  eig_sym(eigval, eigvec, x);
-
-  return Rcpp::List::create(Rcpp::Named("eigvec") = eigvec,
-                            Rcpp::Named("eigval") = eigval);
-}
 
 //' @export
 // [[Rcpp::export]]
