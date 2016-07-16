@@ -50,6 +50,7 @@ krls <- function(# Data arguments
   ## Prepare the data
   X <- as.matrix(X)
   y <- as.matrix(y)
+  y.init <- y
   
   n <- nrow(X)
   d <- ncol(X)
@@ -106,7 +107,7 @@ krls <- function(# Data arguments
   
   if (loss == "leastsquares") {
     ## Scale y
-    y.init <- y
+    #y.init <- y
     y.init.sd <- apply(y.init,2,sd)
     y.init.mean <- mean(y.init)
     y <- scale(y,center=y.init.mean,scale=y.init.sd)
