@@ -45,7 +45,8 @@ krls <- function(# Data arguments
                     # Standard error arguments
                     vcov = TRUE,
                     derivative = TRUE,
-                    cpp = TRUE) {
+                    cpp = TRUE,
+                    sandwich = TRUE) {
   
   ###----------------------------------------
   ## Input validation and housekeeping
@@ -240,7 +241,9 @@ krls <- function(# Data arguments
   ###----------------------------------------
   
   vcovmatc=NULL
-  
+  score <- NULL
+  hessian <- NULL
+  vcov.cb0 <- NULL
   if (loss == "leastsquares") {
     if (truncate){
       out <- solve_for_c_ls_trunc(y=y, D = Kdat$eigvals, Utrunc =Kdat$Utrunc, lambda=lambda)
@@ -288,6 +291,17 @@ krls <- function(# Data arguments
       #fixedHess = krlogit_hess_trunc(c(chat, beta0hat), Kdat$Utrunc, Kdat$eigvals, y, lambda)
       #fixedHessR <- krlogit.hess.trunc(c(chat, beta0hat), Kdat$Utrunc, Kdat$eigvals, y, lambda)
       vcov.cb0 = solve(hessian)
+      
+      score <- matrix(nrow = n, ncol = length(c(chat,beta0hat)))
+      B <- matrix(0, nrow = length(c(chat,beta0hat)), ncol = length(c(chat,beta0hat)))
+      
+      for(i in 1:n) {
+        score[i, ] = t(-1 * krlogit_gr_trunc(par=c(chat,beta0hat), Kdat$Utrunc[i, , drop=F], Kdat$eigvals, y[i, drop = F], lambda/n))
+        B <- B + tcrossprod(score[i, ])
+      }
+      if(sandwich) {
+        vcov.cb0 <- vcov.cb0 %*% B %*% vcov.cb0
+      }
       vcovmatc = tcrossprod(UDinv%*%vcov.cb0[1:length(chat), 1:length(chat)], UDinv)
       ## todo: return var b0
     } else {vcov.cb0 = NULL}
@@ -364,10 +378,20 @@ krls <- function(# Data arguments
     varavgderivmat=NULL
   }
   
-  if (truncate & loss == 'logistic') {
-    score = krlogit_gr_trunc(par=c(chat,beta0hat), Kdat$Utrunc, Kdat$eigvals, y, lambda)
-  } 
-  #else {score = krlogit.gr(par=c(chat,beta0hat), K=K, y=y,lambda=lambda)}
+  #score <- matrix(nrow = n, ncol = length(c(chat,beta0hat)))
+  #B <- matrix(0, nrow = length(c(chat,beta0hat)), ncol = length(c(chat,beta0hat)))
+  #if (truncate & loss == 'logistic') {
+  #  for(i in 1:n) {
+  #    score[i, ] = t(-1 * krlogit_gr_trunc(par=c(chat,beta0hat), Kdat$Utrunc[i, , drop=F], Kdat$eigvals, y[i, drop = F], lambda/n))
+  #    B <- B + tcrossprod(score[i, ])
+  #  }
+  #} else {
+  #  score = -2 * K %*% (y - yfitted) + 2 * lambda * yfitted
+  #}
+  #if {score = krlogit.gr(par=c(chat,beta0hat), K=K, y=y,lambda=lambda)}
+  
+  
+  #vcov.cb0.sand <- vcov.cb0 %*% B %*% vcov.cb0
   
   ###----------------------------------------
   ## Returning results
@@ -389,13 +413,14 @@ krls <- function(# Data arguments
             derivmat = derivmat,
             avgderiv = avgderiv,
             var.avgderiv = varavgderivmat,
-            loss=loss
-            #optimHess=optimHess,
-            #fixedHess=fixedHess,
+            loss=loss,
+            score=score,
+            hessian=hessian,
             #fixedHessR=fixedHessR
             #lastkeeper = ncol(Ktilde)  
             #score = score
-            #vcov.cb0 = vcov.cb0,
+            vcov.cb0 = vcov.cb0
+            #vcov.cb0.sand = vcov.cb0.sand
             #opt = opt
   )
     
@@ -499,7 +524,6 @@ krlogit.hess.trunc <- function(par, Utrunc, D, y, lambda) {
   
   return(ret)
 }
-
 
 #krlogit.hess <- function(par, K, y, lambda){
 #  cb <- crossprod(K, (exp(-K%*%chat - beta0)/(1 + exp(-K%*%chat - beta0))^2))
