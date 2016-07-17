@@ -659,7 +659,7 @@ multdiag <- function(X,d){
 
 ## Lambda search for KRLS
 #' @export
-lambdasearch <-
+lambdaline <-
   function(L=NULL,
            U=NULL,
            y=NULL,

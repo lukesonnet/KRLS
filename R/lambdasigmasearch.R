@@ -52,10 +52,10 @@ lambdasearch <- function(y,
     if(control$truncate) {
       #todo: no way this lambdasearch is right. The Looe can't be right, the bounds can't be right... but it works
       #stop("Must specify lambda for truncated least squares for now.")
-      lambda <- lambdasearch(y=y, D=kdat$eigvals, Utrunc=Kdat$Utrunc,
+      lambda <- lambdaline(y=y, D=Kdat$eigvals, Utrunc=Kdat$Utrunc,
                              Eigenobject=Kdat$eigobj, truncate=control$truncate)#,eigtrunc=eigtrunc,noisy=noisy,L=L,U=U)
     } else {
-      lambda <- lambdasearch(y=y, K=kdat$K, Eigenobject=kdat$eigobj,
+      lambda <- lambdaline(y=y, K=Kdat$K, Eigenobject=Kdat$eigobj,
                              truncate=control$truncate)#,eigtrunc=eigtrunc,noisy=noisy,L=L,U=U)
     }
   } else {
