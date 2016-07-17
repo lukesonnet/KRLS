@@ -46,7 +46,8 @@ krls <- function(# Data arguments
                     vcov = TRUE,
                     derivative = TRUE,
                     cpp = TRUE,
-                    sandwich = TRUE) {
+                    sandwich = ifelse(loss == "leastsquares", FALSE, TRUE),
+                    clusters = NULL) {
   
   ###----------------------------------------
   ## Input validation and housekeeping
@@ -119,6 +120,7 @@ krls <- function(# Data arguments
     }
   }
   
+  ## Initialize hyper-parameter variables
   lambdarange <- NULL
   sigmarange <- NULL
   
@@ -300,7 +302,15 @@ krls <- function(# Data arguments
         B <- B + tcrossprod(score[i, ])
       }
       if(sandwich) {
+        if(!is.null(clusters)) {
+          B <- matrix(0, nrow = length(c(chat,beta0hat)), ncol = length(c(chat,beta0hat)))
+          for(j in 1:length(clusters)){
+            B <- B + tcrossprod(apply(score[clusters[[j]], ], 2, sum))
+          }
+          
+        }
         vcov.cb0 <- vcov.cb0 %*% B %*% vcov.cb0
+        
       }
       vcovmatc = tcrossprod(UDinv%*%vcov.cb0[1:length(chat), 1:length(chat)], UDinv)
       ## todo: return var b0
