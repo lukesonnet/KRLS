@@ -20,6 +20,7 @@ arma::mat mult_diag(const arma::mat& x, const arma::vec& d) {
   for (int j = 0; j < x.n_cols; ++j) {
     out.col(j) = x.col(j) * d(j);
   }
+
   return out;
 }
 
@@ -93,9 +94,7 @@ arma::mat krlogit_hess_trunc(const arma::vec& par,
   arma::mat ret(par.n_elem, par.n_elem);
 
   arma::mat dcdc = mult_diag(Utrunc.t(), meat) * Utrunc + diagmat(2 * (lambda / D));
-
-  Rcpp::Rcout << dcdc.submat(0,0,2,2);
-    
+  
   arma::vec dcdb = Utrunc.t() * meat;
   
   double dbdb = accu(meat);
@@ -104,8 +103,6 @@ arma::mat krlogit_hess_trunc(const arma::vec& par,
   ret.submat(coef.n_elem, 0, coef.n_elem, coef.n_elem - 1) = dcdb.t();
   ret.submat(0, coef.n_elem, coef.n_elem - 1, coef.n_elem) = dcdb;
   ret(coef.n_elem, coef.n_elem) = dbdb;
-  
-  Rcpp::Rcout << ret.submat(0,0,2,2);
   
   return ret;
 }

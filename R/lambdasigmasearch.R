@@ -169,7 +169,7 @@ lambdasigma.fn <- function(par = NULL,
     }
     
     pars <- rep(0, ifelse(truncate, ncol(Utrunc), ncol(K)) + 1)
-    parshat <- solveForC(par = pars, y=y[-fold], K=K, Utrunc=Utrunc, D=eigvals, lambda=lambda, vcov = FALSE)
+    parshat <- solveForC(par = pars, y=y[-fold], K=K, Utrunc=Utrunc, D=eigvals, lambda=lambda)
     
     K <- newKernel(X[-fold, ], newData = X[fold, ])
     ## Is this transformation right?

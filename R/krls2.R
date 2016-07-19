@@ -20,8 +20,8 @@ NULL
 
 #' @export
 krls <- function(# Data arguments
-                    X = NULL,
-                    y = NULL,
+                    X,
+                    y,
                     # Family
                     loss = "leastsquares",
                     # Kernel arguments
@@ -41,13 +41,10 @@ krls <- function(# Data arguments
                     # Optimization arguments
                     con = list(maxit=500),
                     printout = TRUE,
-                    returnopt = TRUE,
-                    # Standard error arguments
-                    vcov = TRUE,
-                    derivative = TRUE,
-                    cpp = TRUE,
-                    sandwich = ifelse(loss == "leastsquares", FALSE, TRUE),
-                    clusters = NULL) {
+                    returnopt = TRUE){
+                    #cpp = TRUE,
+                    #sandwich = ifelse(loss == "leastsquares", FALSE, TRUE),
+                    #clusters = NULL) {
   
   ###----------------------------------------
   ## Input validation and housekeeping
@@ -80,22 +77,7 @@ krls <- function(# Data arguments
     stop("nrow(X) not equal to number of elements in y")
   }
   
-  stopifnot(
-    is.logical(derivative),
-    is.logical(vcov)
-    # todo: add more checks here
-  )
-  
-  if(derivative==TRUE){
-    if(vcov==FALSE){
-      stop("derivative==TRUE requires vcov=TRUE")
-    }
-    if(truncate==FALSE & loss == "logistic") {
-      stop("derivative==TRUE requires truncate==TRUE if loss == 'logistic'")
-    }
-  }
-  
-  # column names
+  # column names in case there are none
   if (is.null(colnames(X))) {
     colnames(X) <- paste("x",1:d,sep="")
   }
@@ -109,7 +91,7 @@ krls <- function(# Data arguments
   X <- scale(X, center = TRUE, scale = X.init.sd)    
   
   if (loss == "leastsquares") {
-
+    
     y.init.sd <- apply(y.init,2,sd)
     y.init.mean <- mean(y.init)
     y <- scale(y,center=y.init.mean,scale=y.init.sd)
@@ -119,6 +101,19 @@ krls <- function(# Data arguments
       stop("y is not binary data")
     }
   }
+  
+  ## Carry vars in list
+  control = list(d=d,
+                 loss=loss,
+                 whichkernel=whichkernel,
+                 truncate=truncate,
+                 lastkeeper=lastkeeper,
+                 epsilon=epsilon,
+                 quiet=FALSE)
+  
+  ###----------------------------------------
+  ## Preparing to search for hyperparameters
+  ###----------------------------------------
   
   ## Initialize hyper-parameter variables
   lambdarange <- NULL
@@ -164,7 +159,7 @@ krls <- function(# Data arguments
   ## set chunks for any ranges
   if(is.null(lambda) | is.null(sigma)) {
     chunks <- chunk(sample(n), hyperfolds)
-
+    
     hyperctrl <- list(chunks = chunks,
                       lambdastart = lambdastart,
                       lambdarange = lambdarange,
@@ -176,17 +171,8 @@ krls <- function(# Data arguments
     chunks <- NULL
   }
   
-  ## Carry vars in list
-  control = list(d=d,
-                 loss=loss,
-                 whichkernel=whichkernel,
-                 truncate=truncate,
-                 lastkeeper=lastkeeper,
-                 epsilon=epsilon,
-                 quiet=FALSE)
-  
   ###----------------------------------------
-  ## Setting hyperparameters sigma and lambda
+  ## searching for hyperparameters
   ###----------------------------------------
   
   ## If sigma ix fixed, compute all of the kernels
@@ -194,8 +180,8 @@ krls <- function(# Data arguments
     
     ## Compute kernel matrix and truncated objects
     Kdat <- generateK(X=X,
-                     sigma=sigma,
-                     control=control)
+                      sigma=sigma,
+                      control=control)
     
     if(is.null(lambda)) {
       lambda <- lambdasearch(y=y,
@@ -213,7 +199,7 @@ krls <- function(# Data arguments
     }
     
     if(is.null(lambda)) {
-
+      
       hyperOut <- lambdasigmasearch(y=y,
                                     X.init=X.init,
                                     hyperctrl=hyperctrl,
@@ -228,13 +214,13 @@ krls <- function(# Data arguments
                            control=control,
                            lambda=lambda)
     }
-
+    
     Kdat <- generateK(X=X,
                       sigma=sigma,
                       control=control)
     
   }
-
+  
   message(sprintf("Lambda selected: %s", lambda))
   message(sprintf("Sigma selected: %s", sigma))
   
@@ -242,10 +228,6 @@ krls <- function(# Data arguments
   ## Estimating choice coefficients (solving)
   ###----------------------------------------
   
-  vcovmatc=NULL
-  score <- NULL
-  hessian <- NULL
-  vcov.cb0 <- NULL
   if (loss == "leastsquares") {
     if (truncate){
       out <- solve_for_c_ls_trunc(y=y, D = Kdat$eigvals, Utrunc =Kdat$Utrunc, lambda=lambda)
@@ -263,19 +245,14 @@ krls <- function(# Data arguments
     }
     
     yfitted <- Kdat$K%*%coefhat
+    yfitted <- yfitted*y.init.sd+y.init.mean
     
-    if (vcov) {
-      sigmasq <- as.vector((1/n) * crossprod(y-yfitted))
-
-
-      vcovmatc <- tcrossprod(mult_diag(Kdat$eigobj$vectors,sigmasq*(Kdat$eigobj$values+lambda)^-2),Kdat$eigobj$vectors)   
-    }
     beta0hat <- NULL
+    
   } else {
-    out <- solveForC(y=y, K=Kdat$K, Utrunc=Kdat$Utrunc, D=Kdat$eigvals, lambda=lambda, con=con, vcov=vcov, printout = printout, returnopt = returnopt)
+    out <- solveForC(y=y, K=Kdat$K, Utrunc=Kdat$Utrunc, D=Kdat$eigvals, lambda=lambda, con=con, printout = printout, returnopt = returnopt)
     chat <- out$chat
     beta0hat <- out$beta0hat
-    hessian <- out$hessian
     opt <- if(returnopt) out$opt else NULL
     
     ## getting c_p from d
@@ -287,128 +264,12 @@ krls <- function(# Data arguments
     
     yfitted <- logistic(K=Kdat$K, coeff=coefhat, beta0 = beta0hat)
     
-    ## Vcov of d
-    if (vcov & truncate) {
-      #optimHess = hessian
-      #fixedHess = krlogit_hess_trunc(c(chat, beta0hat), Kdat$Utrunc, Kdat$eigvals, y, lambda)
-      #fixedHessR <- krlogit.hess.trunc(c(chat, beta0hat), Kdat$Utrunc, Kdat$eigvals, y, lambda)
-      vcov.cb0 = solve(hessian)
-      
-      score <- matrix(nrow = n, ncol = length(c(chat,beta0hat)))
-      B <- matrix(0, nrow = length(c(chat,beta0hat)), ncol = length(c(chat,beta0hat)))
-      
-      for(i in 1:n) {
-        score[i, ] = t(-1 * krlogit_gr_trunc(par=c(chat,beta0hat), Kdat$Utrunc[i, , drop=F], Kdat$eigvals, y[i, drop = F], lambda/n))
-        B <- B + tcrossprod(score[i, ])
-      }
-      if(sandwich) {
-        if(!is.null(clusters)) {
-          B <- matrix(0, nrow = length(c(chat,beta0hat)), ncol = length(c(chat,beta0hat)))
-          for(j in 1:length(clusters)){
-            B <- B + tcrossprod(apply(score[clusters[[j]], ], 2, sum))
-          }
-          
-        }
-        vcov.cb0 <- vcov.cb0 %*% B %*% vcov.cb0
-        
-      }
-      vcovmatc = tcrossprod(UDinv%*%vcov.cb0[1:length(chat), 1:length(chat)], UDinv)
-      ## todo: return var b0
-    } else {vcov.cb0 = NULL}
-    
   }
-  
-  
-  
-  ###----------------------------------------
-  ## Getting pwmfx
-  ###----------------------------------------
-  
-  if (derivative==TRUE){
-  derivmat <- matrix(NA, ncol=d, nrow=n,
-                     dimnames=list(NULL, colnames(X)))
-  varavgderivmat <- matrix(NA,1,d)
-  
-  if(loss == "leastsquares") {
-    p1p0 <- rep(2, n)
-  } else if (loss == "logistic") {
-    p1p0 <- yfitted*(1-yfitted)
-  }
-  
-  #construct coefhat=c for no truncation and coefhat = Utrunc*c
-  #to take the truncation into the coefficients. 
-
-  if(cpp) {
-
-    derivout <- pwmfx(Kdat$K, X, coefhat, vcovmatc, p1p0, sigma)
-    derivmat <- derivout[1:n, ]
-    varavgderivmat <- derivout[n+1, ]
-
-  } else {
-    rows <- cbind(rep(1:n, each = n), 1:n)
-    distances <- X[rows[,1],] - X[ rows[,2],] 
-    
-    for(k in 1:d){
-      print(paste("Computing derivatives, variable", k))
-      if(d==1){
-        distk <-  matrix(distances,n,n,byrow=TRUE)
-      } else {
-        distk <-  matrix(distances[,k],n,n,byrow=TRUE) 
-      }
-      L <-  distk*Kdat$K  #Kfull rather than K here as truncation handled through coefs
-      derivmat[,k] <- p1p0*(-1/sigma)*(L%*%coefhat)
-      if(truncate==FALSE) {
-        varavgderivmat = NULL
-      } else {
-        varavgderivmat[1,k] <- 1/(sigma * n)^2 * sum(crossprod(p1p0^2, crossprod(L,vcovmatc%*%L)))
-      }
-    }
-    
-  }
-
-    if (loss == "leastsquares") {
-      avgderivmat <- colMeans(derivmat)
-      derivmat <- scale(y.init.sd*derivmat,center=FALSE,scale=X.init.sd)
-      attr(derivmat,"scaled:scale")<- NULL
-      avgderiv <- scale(y.init.sd*matrix(avgderivmat, nrow = 1),center=FALSE,scale=X.init.sd)
-      attr(avgderiv,"scaled:scale")<- NULL
-      varavgderivmat <- (y.init.sd/X.init.sd)^2*varavgderivmat
-      attr(varavgderivmat,"scaled:scale")<- NULL
-      yfitted     <- yfitted*y.init.sd+y.init.mean
-    } else {
-      derivmat <- scale(derivmat, center=F, scale = X.init.sd)
-      avgderiv <- colMeans(derivmat)
-      varavgderivmat <- (1/X.init.sd)^2*varavgderivmat
-    }
-  
-
-  } else {
-    derivmat=NULL
-    avgderiv=NULL
-    varavgderivmat=NULL
-  }
-  
-  #score <- matrix(nrow = n, ncol = length(c(chat,beta0hat)))
-  #B <- matrix(0, nrow = length(c(chat,beta0hat)), ncol = length(c(chat,beta0hat)))
-  #if (truncate & loss == 'logistic') {
-  #  for(i in 1:n) {
-  #    score[i, ] = t(-1 * krlogit_gr_trunc(par=c(chat,beta0hat), Kdat$Utrunc[i, , drop=F], Kdat$eigvals, y[i, drop = F], lambda/n))
-  #    B <- B + tcrossprod(score[i, ])
-  #  }
-  #} else {
-  #  score = -2 * K %*% (y - yfitted) + 2 * lambda * yfitted
-  #}
-  #if {score = krlogit.gr(par=c(chat,beta0hat), K=K, y=y,lambda=lambda)}
-  
-  
-  #vcov.cb0.sand <- vcov.cb0 %*% B %*% vcov.cb0
-  
-  ###----------------------------------------
-  ## Returning results
-  ###----------------------------------------
   
   z <- list(K=Kdat$K,
             Utrunc=Kdat$Utrunc,
+            D=Kdat$eigvals,
+            eigobj=Kdat$eigobj,
             lastkeeper = lastkeeper,
             truncate = truncate,
             coeffs=coefhat,
@@ -420,24 +281,181 @@ krls <- function(# Data arguments
             sigma=sigma,
             lambda=lambda,
             kernel=whichkernel,
-            derivmat = derivmat,
-            avgderiv = avgderiv,
-            var.avgderiv = varavgderivmat,
-            loss=loss,
-            score=score,
-            hessian=hessian,
-            #fixedHessR=fixedHessR
-            #lastkeeper = ncol(Ktilde)  
-            #score = score
-            vcov.cb0 = vcov.cb0
-            #vcov.cb0.sand = vcov.cb0.sand
-            #opt = opt
+            loss=loss
   )
-    
-  class(z) <- "krlogit"  
+  
+  class(z) <- "krls2"  
   
   return(z)
 }
+
+#' @export
+inference.krls2 <- function(obj, sandwich = TRUE, clusters = NULL, vcov = TRUE, derivative = TRUE, cpp = TRUE) {
+  
+  if(derivative & !vcov) {
+    stop("Derivatives require vcov = T")
+  }
+  
+  if(!obj$truncate & obj$loss == "logistic") {
+    stop("Derivatives only available for binary models with truncation")
+  }
+  
+  ## Scale data
+  y.init <- obj$y
+  X.init <- obj$X
+  X.init.sd <- apply(X.init, 2, sd)
+  X <- scale(X.init, center = TRUE, scale = X.init.sd)    
+  
+  if (obj$loss == "leastsquares") {
+    y.init.sd <- apply(y.init,2,sd)
+    y.init.mean <- mean(y.init)
+    y <- scale(y.init,center=y.init.mean,scale=y.init.sd)
+    
+    yfitted <- (obj$fitted - y.init.mean) / y.init.sd
+
+  } else {
+    yfitted <- obj$fitted
+    y <- obj$y
+  }
+  
+  n <- length(y.init)
+  d <- ncol(X.init)
+  
+  ###----------------------------------------
+  ## Getting vcov matrices
+  ###----------------------------------------
+  
+  vcov.c <- NULL
+  score <- NULL
+  hessian <- NULL
+  vcov.cb0 <- NULL
+  
+  if (vcov) {
+    
+    if (obj$loss == "leastsquares") {
+      sigmasq <- as.vector((1/n) * crossprod(y-yfitted))
+      
+      vcov.c <- tcrossprod(mult_diag(obj$eigobj$vectors,sigmasq*(obj$eigobj$values+obj$lambda)^-2),obj$eigobj$vectors)   
+    } else {
+      ## Vcov of d
+      if (vcov & obj$truncate) {
+  
+        UDinv <- mult_diag(obj$Utrunc, 1/obj$D)
+        
+        hessian <- krlogit_hess_trunc(c(obj$chat, obj$beta0hat), obj$Utrunc, obj$D, y, obj$lambda)
+        vcov.cb0 <- solve(hessian)
+        
+        score <- matrix(nrow = n, ncol = length(c(obj$chat, obj$beta0hat)))
+        B <- matrix(0, nrow = length(c(obj$chat,obj$beta0hat)), ncol = length(c(obj$chat,obj$beta0hat)))
+        
+        for(i in 1:n) {
+          score[i, ] = t(-1 * krlogit_gr_trunc(c(obj$chat, obj$beta0hat), obj$Utrunc[i, , drop=F], obj$D, y[i, drop = F], obj$lambda/n))
+          B <- B + tcrossprod(score[i, ])
+        }
+        if(sandwich) {
+          if(!is.null(clusters)) {
+            B <- matrix(0, nrow = length(c(obj$chat,obj$beta0hat)), ncol = length(c(obj$chat,obj$beta0hat)))
+            for(j in 1:length(clusters)){
+              B <- B + tcrossprod(apply(score[clusters[[j]], ], 2, sum))
+            }
+            
+          }
+          vcov.cb0 <- vcov.cb0 %*% B %*% vcov.cb0
+          
+        }
+        vcov.c <- tcrossprod(UDinv%*%vcov.cb0[1:length(obj$chat), 1:length(obj$chat)], UDinv)
+        ## todo: return var b0
+      } else {vcov.cb0 = NULL}
+      
+    }
+    
+  }
+  
+  ###----------------------------------------
+  ## Getting pwmfx
+  ###----------------------------------------
+  
+  if (derivative==TRUE) {
+    
+    derivatives <- matrix(NA, ncol=d, nrow=n,
+                          dimnames=list(NULL, colnames(X)))
+    var.avgderivatives <- matrix(NA,1,d)
+    
+    if(obj$loss == "leastsquares") {
+      tau <- rep(2, n)
+    } else if (obj$loss == "logistic") {
+      tau <- yfitted*(1-yfitted)
+    }
+    
+    #construct coefhat=c for no truncation and coefhat = Utrunc*c
+    #to take the truncation into the coefficients. 
+    
+    if(cpp) {
+
+      derivout <- pwmfx(obj$K, X, obj$coeffs, vcov.c, tau, obj$sigma)
+      derivatives <- derivout[1:n, ]
+      var.avgderivatives <- derivout[n+1, ]
+      
+    } else {
+      rows <- cbind(rep(1:n, each = n), 1:n)
+      distances <- X[rows[,1],] - X[ rows[,2],] 
+      
+      for(k in 1:d){
+        print(paste("Computing derivatives, variable", k))
+        if(d==1){
+          distk <-  matrix(distances,n,n,byrow=TRUE)
+        } else {
+          distk <-  matrix(distances[,k],n,n,byrow=TRUE) 
+        }
+        L <-  distk*obj$K  #Kfull rather than K here as truncation handled through coefs
+        derivatives[,k] <- tau*(-1/obj$sigma)*(L%*%obj$coeffs)
+        if(obj$truncate==FALSE) {
+          var.avgderivatives = NULL
+        } else {
+          var.avgderivatives[1,k] <- 1/(obj$sigma * n)^2 * sum(crossprod(tau^2, crossprod(L,vcov.c%*%L)))
+        }
+      }
+    }
+    
+    ## Rescale quantities of interest
+    if (obj$loss == "leastsquares") {
+      avgderivatives <- colMeans(derivatives)
+      derivatives <- scale(y.init.sd*derivatives,center=FALSE,scale=X.init.sd)
+      attr(derivatives,"scaled:scale")<- NULL
+      avgderivatives <- scale(y.init.sd*matrix(avgderivatives, nrow = 1),center=FALSE,scale=X.init.sd)
+      attr(avgderivatives,"scaled:scale")<- NULL
+      var.avgderivatives <- (y.init.sd/X.init.sd)^2*var.avgderivatives
+      attr(var.avgderivatives,"scaled:scale")<- NULL
+    } else {
+      derivatives <- scale(derivatives, center=F, scale = X.init.sd)
+      avgderivatives <- t(colMeans(derivatives))
+      var.avgderivatives <- (1/X.init.sd)^2*var.avgderivatives
+    }
+    
+    
+  } else {
+    derivatives=NULL
+    avgderivatives=NULL
+    var.avgderivatives=NULL
+  }
+
+  ###----------------------------------------
+  ## Returning results
+  ###----------------------------------------
+  
+  z <- list(vcov.cb0 = vcov.cb0,
+            vcov.c = vcov.c,
+            score = score,
+            hessian = hessian,
+            derivatives = derivatives,
+            avgderivatives = avgderivatives,
+            var.avgderivatives = var.avgderivatives
+            )
+  
+  return(z)
+}
+
+  
 
 ## The Kernel Regularized Logit target function to be minimized
 ## Parameters:
@@ -561,7 +579,6 @@ solveForC <- function(par= NULL,
                       D = NULL,
                       lambda = NULL,
                       con = list(),
-                      vcov = NULL,
                       printout = FALSE,
                       returnopt = TRUE) {
   
@@ -570,10 +587,10 @@ solveForC <- function(par= NULL,
   
   if(is.null(D)){
     opt <- optim(par, krlogit.fn, gr=krlogit.gr, K=K, y=y, lambda=lambda,
-                 method="BFGS", control=con, hessian = vcov)
+                 method="BFGS", control=con)
   } else {
     opt <- optim(par, krlogit_fn_trunc, gr=krlogit_gr_trunc, Utrunc=Utrunc, D = D, y=y, lambda=lambda,
-                 method="BFGS", control=con, hessian = vcov)
+                 method="BFGS", control=con)
   }
   
   chat <- opt$par[1:ncoeffs]
@@ -587,16 +604,15 @@ solveForC <- function(par= NULL,
   
   return(list(chat = chat,
               beta0hat = beta0hat,
-              hessian = opt$hessian,
               opt = opt))
 }
 
 
 ## a predict function for class 'krlogit'
 #' @export
-predict.krlogit <- function(object, newdata, ...) {
-  if (class(object) != "krlogit") {
-    warning("Object not of class 'krlogit'")
+predict.krls2 <- function(object, newdata, ...) {
+  if (class(object) != "krls2") {
+    warning("Object not of class 'krls2'")
     UseMethod("predict")
     return(invisible(NULL))
   }
