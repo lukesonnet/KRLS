@@ -1,6 +1,6 @@
 #' @export
 summary.krls2 <-
-function(object, probs=c(.25,.5,.75),...)
+function(object, probs=c(.25,.5,.75), returninf = F,...)
       {
             
         if( class(object)!= "krls2" ){
@@ -59,6 +59,7 @@ function(object, probs=c(.25,.5,.75),...)
                      
       object$sumavgderiv <- avgcoefficients
       object$qderiv <- qderiv
+      if (returninf) {object$infobj <- inferenceobj}
       
       return(invisible(object))
 }
