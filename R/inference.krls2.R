@@ -11,7 +11,7 @@ inference.krls2 <- function(obj,
     stop("Derivatives require vcov = T")
   }
   
-  if(sandwich & !is.null(clusters)) {
+  if(!sandwich & !is.null(clusters)) {
     stop("Clusters require using sandwich == T")
   }
   
