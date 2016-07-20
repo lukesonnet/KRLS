@@ -39,6 +39,35 @@ Rcpp::List eigsym(const arma::mat& x) {
                             Rcpp::Named("eigval") = eigval);
 }
 
+// Have to use rows here because the penalty requires Kc while the loss requires
+// Ki c. While the truncated penalty only needs D so this can be avoided.
+//' @export
+// [[Rcpp::export]]
+arma::vec krls_gr(
+               const arma::mat& K,
+               const arma::vec& y,
+               const arma::vec& fitted,
+               const arma::vec& fittedFull,
+               const double& lambda) {
+  
+  arma::vec score = -2 * K * (y - fitted) + 2 * lambda * fittedFull; 
+  
+  return score;
+  
+}
+
+//' @export
+// [[Rcpp::export]]
+arma::mat krls_hess_sample(const arma::mat& K,
+                  const double& lambda) {
+  
+  arma::mat I(K.n_rows, K.n_cols, arma::fill::eye);
+  arma::mat hess = 2 * K * (K + I * lambda);
+  
+  return hess;
+  
+}
+
 //' @export
 // [[Rcpp::export]]
 double krlogit_fn_trunc(const arma::vec& par,

@@ -12,6 +12,16 @@ eigsym <- function(x) {
 }
 
 #' @export
+krls_gr <- function(K, y, fitted, fittedFull, lambda) {
+    .Call('KRLS2_krls_gr', PACKAGE = 'KRLS2', K, y, fitted, fittedFull, lambda)
+}
+
+#' @export
+krls_hess_sample <- function(K, lambda) {
+    .Call('KRLS2_krls_hess_sample', PACKAGE = 'KRLS2', K, lambda)
+}
+
+#' @export
 krlogit_fn_trunc <- function(par, Utrunc, D, y, lambda) {
     .Call('KRLS2_krlogit_fn_trunc', PACKAGE = 'KRLS2', par, Utrunc, D, y, lambda)
 }

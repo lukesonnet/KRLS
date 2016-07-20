@@ -290,7 +290,12 @@ krls <- function(# Data arguments
 }
 
 #' @export
-inference.krls2 <- function(obj, sandwich = TRUE, clusters = NULL, vcov = TRUE, derivative = TRUE, cpp = TRUE) {
+inference.krls2 <- function(obj,
+                            sandwich = ifelse(obj$loss == "leastsquares", F, T),
+                            clusters = NULL,
+                            vcov = TRUE,
+                            derivative = TRUE,
+                            cpp = TRUE) {
   
   if(derivative & !vcov) {
     stop("Derivatives require vcov = T")
@@ -333,9 +338,33 @@ inference.krls2 <- function(obj, sandwich = TRUE, clusters = NULL, vcov = TRUE, 
   if (vcov) {
     
     if (obj$loss == "leastsquares") {
-      sigmasq <- as.vector((1/n) * crossprod(y-yfitted))
+      if(!sandwich) {
+        sigmasq <- as.vector((1/n) * crossprod(y-yfitted))
       
-      vcov.c <- tcrossprod(mult_diag(obj$eigobj$vectors,sigmasq*(obj$eigobj$values+obj$lambda)^-2),obj$eigobj$vectors)   
+        vcov.c <- tcrossprod(mult_diag(obj$eigobj$vectors,sigmasq*(obj$eigobj$values+obj$lambda)^-2),obj$eigobj$vectors)
+      } else {
+        
+        hessian <- krls_hess_sample(obj$K, obj$lambda)
+        
+        Ainv <- solve(hessian)
+        
+        score <- matrix(nrow = n, ncol = length(obj$coeffs))
+        B <- matrix(0, nrow = length(obj$coeffs), ncol = length(obj$coeffs))
+        
+        for(i in 1:n) {
+          score[i, ] = krls_gr(obj$K[, i, drop = F], y[i], yfitted[i], yfitted, obj$lambda/n)
+          B <- B + tcrossprod(score[i, ])
+        }
+        
+        if(!is.null(clusters)) {
+          B <- matrix(0, nrow = length(c(obj$chat,obj$beta0hat)), ncol = length(c(obj$chat,obj$beta0hat)))
+          for(j in 1:length(clusters)){
+            B <- B + tcrossprod(apply(score[clusters[[j]], ], 2, sum))
+          }
+        }
+        vcov.c <- Ainv %*% B %*% Ainv
+      }
+        
     } else {
       ## Vcov of d
       if (vcov & obj$truncate) {

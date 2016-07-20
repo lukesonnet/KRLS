@@ -21,7 +21,7 @@ function(object, probs=c(.25,.5,.75),...)
                 
        
         if(is.null(object$derivatives)){
-          inferenceobj <- inference.krls2(object)
+          inferenceobj <- inference.krls2(object, ...)
         } 
 
         # average marginal effects  
