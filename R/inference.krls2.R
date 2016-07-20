@@ -19,6 +19,11 @@ inference.krls2 <- function(obj,
     stop("Derivatives only available for binary models with truncation")
   }
   
+  if(!is.list(clusters)) {
+    if(length(clusters) != nrow(obj$X)) stop("Clusters must be a vector the same length as X")
+    clusters <- lapply(unique(clusters), function(clust) which(clusters == clust))
+  }
+  
   ## Scale data
   y.init <- obj$y
   X.init <- obj$X
