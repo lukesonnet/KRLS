@@ -3,6 +3,7 @@
 inference.krls2 <- function(obj,
                             sandwich = ifelse(obj$loss == "leastsquares", F, T),
                             clusters = NULL,
+                            returnmoreinf = FALSE,
                             vcov = TRUE,
                             derivative = TRUE,
                             cpp = TRUE) {
@@ -19,7 +20,7 @@ inference.krls2 <- function(obj,
     stop("Derivatives only available for binary models with truncation")
   }
   
-  if(!is.list(clusters)) {
+  if(!is.null(clusters) & !is.list(clusters)) {
     if(length(clusters) != nrow(obj$X)) stop("Clusters must be a vector the same length as X")
     clusters <- lapply(unique(clusters), function(clust) which(clusters == clust))
   }
@@ -126,6 +127,9 @@ inference.krls2 <- function(obj,
   
   if (derivative==TRUE) {
     
+    obj$binaryindicator=matrix(FALSE,1,d)
+    colnames(obj$binaryindicator) <- colnames(X)
+    
     derivatives <- matrix(NA, ncol=d, nrow=n,
                           dimnames=list(NULL, colnames(X)))
     var.avgderivatives <- matrix(NA,1,d)
@@ -175,6 +179,9 @@ inference.krls2 <- function(obj,
       attr(avgderivatives,"scaled:scale")<- NULL
       var.avgderivatives <- (y.init.sd/X.init.sd)^2*var.avgderivatives
       attr(var.avgderivatives,"scaled:scale")<- NULL
+      
+      vcov.c <- vcov.c * (y.init.sd^2)
+      
     } else {
       derivatives <- scale(derivatives, center=F, scale = X.init.sd)
       avgderivatives <- t(colMeans(derivatives))
@@ -188,18 +195,33 @@ inference.krls2 <- function(obj,
     var.avgderivatives=NULL
   }
   
+  
+  
   ###----------------------------------------
   ## Returning results
   ###----------------------------------------
   
-  z <- list(vcov.cb0 = vcov.cb0,
-            vcov.c = vcov.c,
-            score = score,
-            hessian = hessian,
+  colnames(derivatives) <- colnames(obj$X)
+  colnames(avgderivatives) <- colnames(obj$X)
+  names(var.avgderivatives) <- colnames(obj$X)
+  
+  
+  z <- c(obj,
+         list(vcov.c = vcov.c,
             derivatives = derivatives,
             avgderivatives = avgderivatives,
-            var.avgderivatives = var.avgderivatives
+            var.avgderivatives = var.avgderivatives)
   )
+  
+  class(z) <- "krls2"
+  
+  z <- fdskrls(z)
+  
+  if(returnmoreinf) {
+    z$vcov.cb0 = vcov.cb0
+    z$score = score
+    z$hessian = hessian
+  }
   
   return(z)
 }

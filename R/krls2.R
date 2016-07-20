@@ -289,110 +289,6 @@ krls <- function(# Data arguments
   return(z)
 }
 
-## The Kernel Regularized Logit target function to be minimized
-## Parameters:
-##   'par' - the parameters to be optimized, contains C and beta0, the unpenalized constant
-##           because demeaning the data here does not make sense.
-##   'K' - the Kernel matrix
-##   'y' - the outcome variable
-##   'lambda' - the regularizing parameter
-## Values:
-##   'r' - The penalized log-likelihood given 'y' and 'K'
-#' @export
-krlogit.fn <- function(par, K, y, lambda = 0.5) {
-  
-  coef <- par[1:ncol(K)]
-  beta0 <- par[ncol(K)+1]
-  
-  Kc <- crossprod(K, coef)
-
-  r <- sum(y * log(1 + exp( -(beta0 +  Kc))) + (1 - y) * log(1 + exp(beta0 + Kc))) +
-    lambda*crossprod(Kc, coef)
-  return(r)
-}
-
-## This has the wrong norm
-#' @export
-krlogit.fn.trunc <- function(par, K, Utrunc, y, lambda = 0.5) {
-  
-  coef <- par[1:ncol(K)]
-  beta0 <- par[ncol(K)+1]
-  
-  Kc <- crossprod(t(K), coef)
-  
-  r <- sum(y * log(1 + exp( -(beta0 +  Kc))) + (1 - y) * log(1 + exp(beta0 + Kc))) +
-    lambda*tcrossprod(coef, Utrunc)%*%Kc
-  return(r)
-}
-  
-## The analytic gradient. Pretty sure this is correct, was previously confirmed
-## with the numDeriv package
-#' @export
-krlogit.gr <- function(par, K, y, lambda){
-  
-  coef <- par[1:ncol(K)]
-  beta0 <- par[ncol(K)+1]
-  
-  Kc <- crossprod(K, coef)
-  
-  dc <- -crossprod(K, y - 1 / (1 + exp(-(beta0 + Kc)))) +
-    2*lambda * Kc
-  db0 <- -sum(y - 1 / (1 + exp(-(beta0 + Kc))))
-  
-  return(c(dc, db0))
-}
-
-## this has the wrong norm
-#' @export
-krlogit.gr.trunc <- function(par, K, Utrunc, y, lambda){
-  
-  coef <- par[1:ncol(K)]
-  beta0 <- par[ncol(K)+1]
-  
-  Kc <- crossprod(t(K), coef)
-  
-  dc <- -crossprod(K, y - 1 / (1 + exp(-(beta0 + Kc)))) +
-    2*lambda*crossprod(Utrunc, Kc)
-  db0 <- -sum(y - 1 / (1 + exp(-(beta0 + Kc))))
-  
-  return(c(dc, db0))
-}
-
-#' @export
-krlogit.hess.trunc <- function(par, Utrunc, D, y, lambda) {
-  
-  coef <- par[1:ncol(Utrunc)]
-  beta0 <- par[ncol(Utrunc)+1]
-  
-  Ud <- Utrunc %*% coef
-  
-  meat <- exp(-Ud - beta0) / (1 + exp(-Ud - beta0))^2
-  
-  dcdc <- mult_diag(t(Utrunc), meat) %*% Utrunc + diag(2 * lambda / D)
-  dcdb <- crossprod(Utrunc, meat)
-  dbdb <- sum(meat)
-
-  print(dcdc[1:3, 1:3])
-  
-  ret = matrix(nrow = length(par), ncol = length(par))
-  ret[1:length(coef), 1:length(coef)] <- dcdc
-  ret[length(par), 1:length(coef)] <- dcdb
-  ret[1:length(coef), length(par)] <- dcdb
-  ret[length(par), length(par)] <- dbdb
-  
-  print(ret[1:3, 1:3])
-  
-  return(ret)
-}
-
-#krlogit.hess <- function(par, K, y, lambda){
-#  cb <- crossprod(K, (exp(-K%*%chat - beta0)/(1 + exp(-K%*%chat - beta0))^2))
-#  bb <- sum(exp(-K%*%chat - beta0)/(1 + exp(-K%*%chat - beta0))^2)
-#  cc <- can't get this to match what optim returns, see krlogit_testingmath
-  
-
-
-
 ## Optimize C in 'krlogit.fn' given the data and lambda
 ## Parameters:
 ##   'par' - starting parameters
@@ -442,7 +338,7 @@ solveForC <- function(par= NULL,
 
 ## a predict function for class 'krlogit'
 #' @export
-predict.krls2 <- function(object, newdata, ...) {
+predict.krls2 <- function(object, newdata, se.fit = FALSE, ...) {
   if (class(object) != "krls2") {
     warning("Object not of class 'krls2'")
     UseMethod("predict")
@@ -462,23 +358,29 @@ predict.krls2 <- function(object, newdata, ...) {
   
   if(object$loss == "logistic") {
     yfitted <- logistic(K = newdataK, coeff = object$coeffs, beta0 = object$beta0hat)
+    vcov.fit <- se.fit <- NULL
   } else if (object$loss == "leastsquares") {
-    yfitted <- ((newdataK %*% object$coeffs)* apply(object$y,2,sd))+mean(object$y)
+   
+    yfitted <- newdataK %*% object$coeffs
+    
+    # ses for fitted   
+    if(se.fit){
+      # transform to variance of c's on standarized scale
+      vcov.c.raw <-  object$vcov.c * as.vector((1/var(object$y)))
+      vcov.fitted <- tcrossprod(newdataK%*%vcov.c.raw,newdataK)          
+      vcov.fit <- (apply(object$y,2,sd)^2)*vcov.fitted
+      se.fit <- matrix(sqrt(diag(vcov.fit)),ncol=1)
+    } else {
+      vcov.fit <- se.fit <- NULL
+    }
+    
+    # bring back to original scale
+    yfitted <- (yfitted * apply(object$y,2,sd))+mean(object$y)
+    
   }
   return(list(fit = yfitted,
-              #se.fit = se.fit, vcov.fit = vcov.fit, newdata = newdata, 
+              se.fit = se.fit, vcov.fit = vcov.fit,# newdata = newdata, 
               newdataK = newdataK))
-    #if (se.fit) {
-    #  vcov.c.raw <- object$vcov.c * as.vector((1/var(object$y)))
-    #  vcov.fitted <- tcrossprod(newdataK %*% vcov.c.raw, newdataK)
-    #  vcov.fit <- (apply(object$y, 2, sd)^2) * vcov.fitted
-    #  se.fit <- matrix(sqrt(diag(vcov.fit)), ncol = 1)
-    #}
-    #else {
-    #  vcov.fit <- se.fit <- NULL
-    #}
-    #yfitted <- (yfitted * apply(object$y, 2, sd)) + mean(object$y)
-  
 }
 
 ## The logistic function that takes values for coeff, b0, and a K or Ktilde
