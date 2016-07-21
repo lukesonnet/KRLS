@@ -137,7 +137,7 @@ inference.krls2 <- function(obj,
     if(obj$loss == "leastsquares") {
       tau <- rep(2, n)
     } else if (obj$loss == "logistic") {
-      tau <- yfitted*(1-yfitted)
+      tau <- 2 * yfitted*(1-yfitted)
     }
     
     #construct coefhat=c for no truncation and coefhat = Utrunc*c
