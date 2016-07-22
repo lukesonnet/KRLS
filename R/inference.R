@@ -63,7 +63,9 @@ inference.krls2 <- function(obj,
   score <- NULL
   hessian <- NULL
   vcov.cb0 <- NULL
+  vcov.cb0.trunc <- NULL
   
+    
   if (vcov) {
     
     if (obj$loss == "leastsquares") {
@@ -122,8 +124,9 @@ inference.krls2 <- function(obj,
           vcov.cb0 <- vcov.cb0 %*% B %*% vcov.cb0
           
         }
+        vcov.cb0.trunc <- vcov.cb0
         vcov.c <- tcrossprod(UDinv%*%vcov.cb0[1:length(obj$chat), 1:length(obj$chat)], UDinv)
-        ## todo: return var b0
+        ## Just work with truncation later
       } else {vcov.cb0 = NULL}
       
     }
@@ -217,6 +220,7 @@ inference.krls2 <- function(obj,
   
   z <- c(obj,
          list(vcov.c = vcov.c,
+              vcov.cb0.trunc = vcov.cb0.trunc,
             derivatives = derivatives,
             avgderivatives = avgderivatives,
             var.avgderivatives = var.avgderivatives)
@@ -227,7 +231,6 @@ inference.krls2 <- function(obj,
   z <- fdskrls(z)
   
   if(returnmoreinf) {
-    z$vcov.cb0 = vcov.cb0
     z$score = score
     z$hessian = hessian
   }

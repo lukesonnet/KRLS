@@ -32,6 +32,11 @@ krlogit_gr_trunc <- function(par, Utrunc, D, y, lambda) {
 }
 
 #' @export
+partial_logit <- function(K, coef, beta0) {
+    .Call('KRLS2_partial_logit', PACKAGE = 'KRLS2', K, coef, beta0)
+}
+
+#' @export
 krlogit_hess_trunc <- function(par, Utrunc, D, y, lambda) {
     .Call('KRLS2_krlogit_hess_trunc', PACKAGE = 'KRLS2', par, Utrunc, D, y, lambda)
 }

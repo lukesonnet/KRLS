@@ -56,6 +56,7 @@ arma::vec krls_gr(
   
 }
 
+// Hessian used for sandwich estimator for KRLS
 //' @export
 // [[Rcpp::export]]
 arma::mat krls_hess_sample(const arma::mat& K,
@@ -108,6 +109,19 @@ arma::vec krlogit_gr_trunc(const arma::vec& par,
   return ret;
 }
 
+// Generates (exp(-Kc - b)) / (1+exp(-Kc-b))^2 used for the krlogit hessian
+// and for for predicted value SEs and first difference SEs
+// Should work with either truncated data or full data
+//' @export
+// [[Rcpp::export]]
+arma::vec partial_logit(const arma::mat& K,
+                        const arma::vec& coef,
+                        const double& beta0) {
+  arma::vec ret = exp(-K * coef - beta0) / pow((1 + exp(-K * coef - beta0)), 2);
+  
+  return ret;
+}
+
 //' @export
 // [[Rcpp::export]]
 arma::mat krlogit_hess_trunc(const arma::vec& par,
@@ -118,7 +132,7 @@ arma::mat krlogit_hess_trunc(const arma::vec& par,
   
   arma::vec coef = par.subvec(0, par.n_elem - 2);
   double beta0 = par(par.n_elem-1);
-  arma::vec meat = exp(-Utrunc * coef - beta0) / pow((1 + exp(-Utrunc * coef - beta0)), 2);
+  arma::vec meat = partial_logit(Utrunc, coef, beta0);
 
   arma::mat ret(par.n_elem, par.n_elem);
 

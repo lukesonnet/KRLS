@@ -86,6 +86,19 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// partial_logit
+arma::vec partial_logit(const arma::mat& K, const arma::vec& coef, const double& beta0);
+RcppExport SEXP KRLS2_partial_logit(SEXP KSEXP, SEXP coefSEXP, SEXP beta0SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< const arma::mat& >::type K(KSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type coef(coefSEXP);
+    Rcpp::traits::input_parameter< const double& >::type beta0(beta0SEXP);
+    __result = Rcpp::wrap(partial_logit(K, coef, beta0));
+    return __result;
+END_RCPP
+}
 // krlogit_hess_trunc
 arma::mat krlogit_hess_trunc(const arma::vec& par, const arma::mat& Utrunc, const arma::vec& D, const arma::vec& y, const double& lambda);
 RcppExport SEXP KRLS2_krlogit_hess_trunc(SEXP parSEXP, SEXP UtruncSEXP, SEXP DSEXP, SEXP ySEXP, SEXP lambdaSEXP) {

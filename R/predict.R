@@ -13,6 +13,10 @@ predict.krls2 <- function(object, newdata, se.fit = FALSE, ...) {
     return(invisible(NULL))
   }
   
+  if(is.null(object$vcov.c) & se.fit)
+    stop("se.fit requires the vcov.c. Use summary object with predict if you want stand error for the fits")
+    # todo: we should probably call inference here if they want it?
+  
   newdata <- as.matrix(newdata)
   if (ncol(object$X) != ncol(newdata)) {
     stop("ncol(newdata) differs from ncol(X) from fitted krls object")
@@ -26,7 +30,21 @@ predict.krls2 <- function(object, newdata, se.fit = FALSE, ...) {
   
   if(object$loss == "logistic") {
     yfitted <- logistic(K = newdataK, coeff = object$coeffs, beta0 = object$beta0hat)
-    vcov.fit <- se.fit <- NULL
+    
+    if(se.fit){
+      # use truncation so that we can use vcov.cb0.trunc because vcov.c does not have uncertainty of b0. Could change this and return vcov.c padded with UDinv %*% vcov.cb0[1:nrow(UDinv), ncol(vcov.cb0)] instead
+      newUtrunc <- newdataK %*% mult_diag(object$Utrunc, 1/object$D)
+  
+      # todo: could move to cpp if slow
+      partiallogit <- partial_logit(newUtrunc, object$chat, object$beta0hat)
+      derivlogit <- cbind(mult_diag(newUtrunc, partiallogit),
+                          partiallogit)
+      vcov.fit <- tcrossprod(derivlogit %*% object$vcov.cb0.trunc, derivlogit)       
+      se.fit <- matrix(sqrt(diag(vcov.fit)),ncol=1)
+    } else {
+      vcov.fit <- se.fit <- NULL
+    }
+    
   } else if (object$loss == "leastsquares") {
     
     yfitted <- newdataK %*% object$coeffs
