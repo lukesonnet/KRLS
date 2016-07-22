@@ -1,4 +1,13 @@
-# This file contains functions that generate the variance covariance matrix
+## This file contains functions that generate the variance covariance matrices
+## derivatives, hessians and more
+## Functions:
+##            inference.krls2
+##            fdskrls
+## Also in CPP:
+##            See krlogit_fn, krlogit_fn_trunc, krlogit_hess_trunc etc...
+##            Krlogit.fn, krlogit.hess.trunc, etc. are deprecated in
+##            favor of these alternatives and can be found in deprecated/deprecated.R
+
 #' @export
 inference.krls2 <- function(obj,
                             sandwich = ifelse(obj$loss == "leastsquares", F, T),
@@ -225,3 +234,76 @@ inference.krls2 <- function(obj,
   
   return(z)
 }
+
+# Chad's pwmfxR function which is mostly cribbed from above
+pwmfxR <- function() {
+  rows <- cbind(rep(1:n, each = n), 1:n)
+  distances <- X[rows[,1],] - X[ rows[,2],] 
+  
+  for(k in 1:d){
+    print(paste("Computing derivatives, variable", k))
+    if(d==1){
+      distk <-  matrix(distances,n,n,byrow=TRUE)
+    } else {
+      distk <-  matrix(distances[,k],n,n,byrow=TRUE) 
+    }
+    L <-  distk*Kdat$K  #Kfull rather than K here as truncation handled through coefs
+    derivatives[,k] <- tau*(-1/sigma)*(L%*%coefhat)
+    if(truncate==FALSE) {
+      var.avgderivatives = NULL
+    } else {
+      var.avgderivatives[1,k] <- 1/(sigma * n)^2 * sum(crossprod(tau^2, crossprod(L,vcov.c%*%L)))
+    }
+  }
+}
+
+# First differences
+#' @export
+fdskrls <- 
+  function(object,...){ 
+    d <- ncol(object$X)
+    n <- nrow(object$X)
+    lengthunique    <- function(x){length(unique(x))}
+    
+    fdderivatives           =object$derivatives
+    fdavgderivatives        =object$avgderivatives
+    fdvar.var.avgderivatives=object$var.avgderivatives    
+    
+    # vector with positions of binary variables
+    binaryindicator <-which(apply(object$X,2,lengthunique)==2)    
+    if(length(binaryindicator)==0){
+      # no binary vars in X; return derivs as is  
+    } else {
+      print("found binary")
+      # compute marginal differences from min to max 
+      est  <- se <- matrix(NA,nrow=1,ncol=length(binaryindicator))
+      diffsstore <- matrix(NA,nrow=n,ncol=length(binaryindicator))
+      for(i in 1:length(binaryindicator)){
+        X1 <- X0 <- object$X
+        # test data with D=Max
+        X1[,binaryindicator[i]] <- max(X1[,binaryindicator[i]])
+        # test data with D=Min
+        X0[,binaryindicator[i]] <- min(X0[,binaryindicator[i]])
+        Xall      <- rbind(X1,X0)
+        # contrast vector
+        h         <- matrix(rep(c(1/n,-(1/n)),each=n),ncol=1)
+        # fitted values
+        pout      <- predict(object,newdata=Xall,se.fit=TRUE)
+        # store FD estimates
+        est[1,i] <- t(h)%*%pout$fit        
+        # SE (multiply by sqrt2 to correct for using data twice )
+        se[1,i] <- as.vector(sqrt(t(h)%*%pout$vcov.fit%*%h))*sqrt(2)
+        # all
+        diffs <- pout$fit[1:n]-pout$fit[(n+1):(2*n)]          
+        diffsstore[,i] <- diffs 
+      }        
+      # sub in first differences
+      object$derivatives[,binaryindicator] <- diffsstore
+      object$avgderivatives[,binaryindicator] <- est
+      object$var.avgderivatives[binaryindicator] <- se^2
+      object$binaryindicator[,binaryindicator] <- TRUE
+    }  
+    
+    return(invisible(object))
+    
+  }

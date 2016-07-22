@@ -1,4 +1,10 @@
 ## This file contains functions that build kernel matrices and truncate them
+## Functions:
+##            generateK
+##            Ktrunc
+##            newKernel (although new_gauss_kern in cpp is used in some places)
+## Also see in the cpp:
+##
 
 ## This function generates the kernel matrix and truncated kernel matrix object
 #' @export
@@ -114,18 +120,6 @@ Ktrunc <- function(X=NULL, K=NULL, sigma=NULL, epsilon=NULL, lastkeeper=NULL, fu
     list(Utrunc=eigobj$vectors[, 1:lastkeeper, drop = F],
          eigvals=eigobj$values[1:lastkeeper, drop = F])
   )
-}
-
-
-## Computes the Gaussian kernel matrix from the data matrix X
-## Parameters:
-##   'X' - the data matrix
-##   'sigma' - the kernel bandwitch, recommended by HH2013 to be ncol(X)
-## Values:
-##   'K' - the Gaussian kernel matrix
-#' @export
-gaussKernel <- function(X=NULL, sigma=NULL) {
-  return( exp(-1*as.matrix(dist(X)^2)/(2*sigma)) )
 }
 
 
