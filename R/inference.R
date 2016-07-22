@@ -297,8 +297,9 @@ fdskrls <-
           # SE (multiply by sqrt2 to correct for using data twice )
           se[1,i] <- as.vector(sqrt(t(h)%*%pout$vcov.fit%*%h))*sqrt(2)
         } else {
-          deriv.avgfd.logit <- colMeans(pout$deriv.logit[1:n, ] - pout$deriv.logit[(n+1):(2*n), ])
-          vcov.avgfd <- tcrossprod(deriv.avgfd.logit %*% object$vcov.cb0.trunc, deriv.avgfd.logit)       
+          #deriv.avgfd.logit <- colMeans(pout$deriv.logit[1:n, ] - pout$deriv.logit[(n+1):(2*n), ])
+          deriv.avgfd.logit <- crossprod(h, pout$deriv.logit)
+          vcov.avgfd <- tcrossprod(deriv.avgfd.logit %*% object$vcov.cb0.trunc, deriv.avgfd.logit)
           se[i,1] <- as.vector(sqrt(vcov.avgfd)) *sqrt(2)
         }
         # all
