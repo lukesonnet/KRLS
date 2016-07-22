@@ -81,9 +81,9 @@ lambdasearch <- function(y,
     } else {
       
       lambdaMSE <- NULL
-      for(i in 1:length(lambdarange)){
+      for(i in 1:length(hyperctrl$lambdarange)){
         lambdaMSE[i] <- lambdasigma.fn(par = log(hyperctrl$lambdarange[i]), X=X.init,
-                                       y=y, folds=hyperfolds, folds=length(hyperctrl$chunks),
+                                       y=y, folds=length(hyperctrl$chunks),
                                        chunks = hyperctrl$chunks, truncate=control$truncate,
                                        epsilon=control$epsilon, lastkeeper=control$lastkeeper,
                                        sigma = sigma)
