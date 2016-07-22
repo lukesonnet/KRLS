@@ -37,12 +37,12 @@ predict.krls2 <- function(object, newdata, se.fit = FALSE, ...) {
   
       # todo: could move to cpp if slow
       partiallogit <- partial_logit(newUtrunc, object$chat, object$beta0hat)
-      derivlogit <- cbind(mult_diag(newUtrunc, partiallogit),
+      deriv.logit <- cbind(mult_diag(newUtrunc, partiallogit),
                           partiallogit)
-      vcov.fit <- tcrossprod(derivlogit %*% object$vcov.cb0.trunc, derivlogit)       
+      vcov.fit <- tcrossprod(deriv.logit %*% object$vcov.cb0.trunc, deriv.logit)       
       se.fit <- matrix(sqrt(diag(vcov.fit)),ncol=1)
     } else {
-      vcov.fit <- se.fit <- NULL
+      vcov.fit <- se.fit <- deriv.logit <- NULL
     }
     
   } else if (object$loss == "leastsquares") {
@@ -64,9 +64,15 @@ predict.krls2 <- function(object, newdata, se.fit = FALSE, ...) {
     yfitted <- (yfitted * apply(object$y,2,sd))+mean(object$y)
     
   }
-  return(list(fit = yfitted,
-              se.fit = se.fit, vcov.fit = vcov.fit,# newdata = newdata, 
-              newdataK = newdataK))
+  fit <- list(fit = yfitted,
+              se.fit = se.fit, vcov.fit = vcov.fit,
+              newdataK = newdataK)
+  
+  if(object$loss == "logistic") {
+    fit$deriv.logit <- deriv.logit
+  }
+  
+  return(fit)
 }
 
 ## The logistic function that takes values for coeff, b0, and a K or Ktilde

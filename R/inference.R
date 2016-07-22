@@ -271,7 +271,6 @@ fdskrls <-
     fdderivatives           =object$derivatives
     fdavgderivatives        =object$avgderivatives
     fdvar.var.avgderivatives=object$var.avgderivatives    
-    
     # vector with positions of binary variables
     binaryindicator <-which(apply(object$X,2,lengthunique)==2)    
     if(length(binaryindicator)==0){
@@ -294,19 +293,25 @@ fdskrls <-
         pout      <- predict(object,newdata=Xall,se.fit=TRUE)
         # store FD estimates
         est[1,i] <- t(h)%*%pout$fit        
-        # SE (multiply by sqrt2 to correct for using data twice )
-        se[1,i] <- as.vector(sqrt(t(h)%*%pout$vcov.fit%*%h))*sqrt(2)
+        if(object$loss == "leastsquares") {
+          # SE (multiply by sqrt2 to correct for using data twice )
+          se[1,i] <- as.vector(sqrt(t(h)%*%pout$vcov.fit%*%h))*sqrt(2)
+        } else {
+          deriv.avgfd.logit <- colMeans(pout$deriv.logit[1:n, ] - pout$deriv.logit[(n+1):(2*n), ])
+          vcov.avgfd <- tcrossprod(deriv.avgfd.logit %*% object$vcov.cb0.trunc, deriv.avgfd.logit)       
+          se[i,1] <- as.vector(sqrt(vcov.avgfd)) *sqrt(2)
+        }
         # all
         diffs <- pout$fit[1:n]-pout$fit[(n+1):(2*n)]          
         diffsstore[,i] <- diffs 
-      }        
+      }
       # sub in first differences
       object$derivatives[,binaryindicator] <- diffsstore
       object$avgderivatives[,binaryindicator] <- est
       object$var.avgderivatives[binaryindicator] <- se^2
       object$binaryindicator[,binaryindicator] <- TRUE
-    }  
+    }
     
-    return(invisible(object))
+  return(invisible(object))
     
-  }
+}
