@@ -243,8 +243,10 @@ Rcpp::List solve_for_c_ls_trunc(const arma::vec& y,
   arma::mat Ginv = 1 / (1 + lambda / D);
   
   arma::vec coeffs = mult_diag(Utrunc.t() * y, Ginv);
-  // arma::vec tempLoss = (y - Utrunc * coeffs) / diagvec(arma::eye(y.n_elem, y.n_elem) - mult_diag(Utrunc, Ginv) * Utrunc.t());
-  arma::vec tempLoss = y - (Utrunc * coeffs - diagvec(mult_diag(Utrunc, Ginv) * Utrunc.t()) % y) / diagvec(arma::eye(y.n_elem, y.n_elem) - mult_diag(Utrunc, Ginv) * Utrunc.t());
+  //arma::vec tempLoss = y - (Utrunc * coeffs - diagvec(mult_diag(Utrunc, Ginv) * Utrunc.t()) % y) / diagvec(arma::eye(y.n_elem, y.n_elem) - mult_diag(Utrunc, Ginv) * Utrunc.t());
+
+  // This is the same as above
+  arma::vec tempLoss = (y - Utrunc * coeffs) / diagvec(arma::eye(y.n_elem, y.n_elem) - mult_diag(Utrunc, Ginv) * Utrunc.t());
   double Le = as_scalar(tempLoss.t() * tempLoss);
     
   return Rcpp::List::create(Rcpp::Named("coeffs") = coeffs,

@@ -59,10 +59,10 @@ lambdasearch <- function(y,
       #todo: no way this lambdasearch is right. The Looe can't be right, the bounds can't be right... but it works
       #stop("Must specify lambda for truncated least squares for now.")
       lambda <- lambdaline(y=y, D=Kdat$eigvals, Utrunc=Kdat$Utrunc,
-                             Eigenobject=Kdat$eigobj, truncate=control$truncate)#,eigtrunc=eigtrunc,noisy=noisy,L=L,U=U)
+                             Eigenobject=Kdat$eigobj, truncate=control$truncate, noisy = !control$quiet)#,eigtrunc=eigtrunc,noisy=noisy,L=L,U=U)
     } else {
       lambda <- lambdaline(y=y, K=Kdat$K, Eigenobject=Kdat$eigobj,
-                             truncate=control$truncate)#,eigtrunc=eigtrunc,noisy=noisy,L=L,U=U)
+                             truncate=control$truncate, noisy = !control$quiet)#,eigtrunc=eigtrunc,noisy=noisy,L=L,U=U)
     }
   } else {
     
@@ -288,8 +288,10 @@ lambdaline <-
 looloss <-
   function(y=NULL,K=NULL,D=NULL,Utrunc=NULL,lambda=NULL,eigtrunc=NULL,truncate=NULL){
     if (truncate) {
-      return(solve_for_c_ls_trunc(y=y,D=D,Utrunc=Utrunc,lambda=lambda)$Le)
+      Le <- solve_for_c_ls_trunc(y=y,D=D,Utrunc=Utrunc,lambda=lambda)$Le
+      return(Le)
     } else {
-      return(solve_for_c_ls(y=y,K=K,lambda=lambda)$Le)
+      Le <- solve_for_c_ls(y=y,K=K,lambda=lambda)$Le
+      return(Le)
     }
   }

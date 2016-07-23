@@ -41,7 +41,8 @@ krls <- function(# Data arguments
                     # Optimization arguments
                     con = list(maxit=500),
                     printout = TRUE,
-                    returnopt = TRUE){
+                    returnopt = TRUE,
+                    quiet = TRUE){
                     #cpp = TRUE,
                     #sandwich = ifelse(loss == "leastsquares", FALSE, TRUE),
                     #clusters = NULL) {
@@ -109,7 +110,7 @@ krls <- function(# Data arguments
                  truncate=truncate,
                  lastkeeper=lastkeeper,
                  epsilon=epsilon,
-                 quiet=FALSE)
+                 quiet=quiet)
   
   ###----------------------------------------
   ## Preparing to search for hyperparameters
