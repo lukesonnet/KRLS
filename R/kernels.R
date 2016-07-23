@@ -93,7 +93,7 @@ Ktrunc <- function(X=NULL, K=NULL, sigma=NULL, epsilon=NULL, lastkeeper=NULL, fu
       numvectors=numvectorss[j]
       if(!quiet) print(paste("trying",numvectors,"vectors"))
       eigobj <- NULL
-      eigobj <- try({eigs_sym(K, numvectors, which="LM")}, silent = T)
+      eigobj <- suppressWarnings({eigs_sym(K, numvectors, which="LM")})
       
       #for now, letting it throw an error in certain failure cases.
       totalvar=sum(eigobj$values)/nrow(K)
