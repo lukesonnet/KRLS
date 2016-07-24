@@ -132,7 +132,7 @@ Ktrunc <- function(X=NULL, K=NULL, sigma=NULL, epsilon=NULL, lastkeeper=NULL, fu
 ## Values:
 ##   'newK' - The new Kernel to be used for prediction
 #' @export
-newKernel <- function(X, newData, whichkernel = "gaussian") {
+newKernel <- function(X, newData, whichkernel = "gaussian", sigma = NULL) {
   
   # Get values of oldData to scale newData
   Xmeans <- colMeans(X)
@@ -148,7 +148,8 @@ newKernel <- function(X, newData, whichkernel = "gaussian") {
   ## Compute kernel matrix
   K <- NULL
   if(whichkernel=="gaussian"){ 
-    newK <- new_gauss_kern(newData, X, ncol(X))
+    if(is.null(sigma)) {sigma <- ncol(X)}
+    newK <- new_gauss_kern(newData, X, sigma)
   }
   
   if(whichkernel=="linear"){ K <- tcrossprod(rbind(newData, X)) }

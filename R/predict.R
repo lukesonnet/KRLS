@@ -22,7 +22,7 @@ predict.krls2 <- function(object, newdata, se.fit = FALSE, ...) {
     stop("ncol(newdata) differs from ncol(X) from fitted krls object")
   }
   
-  newdataK <- newKernel(X = object$X, newData = newdata, whichkernel = object$kernel)
+  newdataK <- newKernel(X = object$X, newData = newdata, whichkernel = object$kernel, sigma = object$sigma)
   
   #if(object$truncate){
   #  newdataK <- newdataK%*%object$Utrunc

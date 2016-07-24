@@ -184,7 +184,7 @@ inference.krls2 <- function(obj,
     
     ## Rescale quantities of interest
     if (obj$loss == "leastsquares") {
-      avgderivatives <- colMeans(derivatives)
+      avgderivatives <- colMeans(as.matrix(derivatives))
       derivatives <- scale(y.init.sd*derivatives,center=FALSE,scale=X.init.sd)
       attr(derivatives,"scaled:scale")<- NULL
       avgderivatives <- scale(y.init.sd*matrix(avgderivatives, nrow = 1),center=FALSE,scale=X.init.sd)
@@ -196,7 +196,7 @@ inference.krls2 <- function(obj,
       
     } else {
       derivatives <- scale(derivatives, center=F, scale = X.init.sd)
-      avgderivatives <- t(colMeans(derivatives))
+      avgderivatives <- t(colMeans(as.matrix(derivatives)))
       var.avgderivatives <- (1/X.init.sd)^2*var.avgderivatives
     }
     
