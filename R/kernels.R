@@ -18,36 +18,24 @@ generateK <- function(X,
   if(control$whichkernel=="poly3"){ K <- (tcrossprod(X)+1)^3 }
   if(control$whichkernel=="poly4"){ K <- (tcrossprod(X)+1)^4 }
   if(is.null(K)){ stop("No valid Kernel specified") }
-  
-  eigobj <- NULL
-  Utrunc <- NULL
+
   if(control$truncate) {
-    full <- FALSE
-    if (control$loss == "leastsquares") {
-      full <- TRUE
-    }
     truncDat <- Ktrunc(K = K, b=b, lastkeeper=control$lastkeeper, epsilon=control$epsilon,
-                       full = full, quiet = control$quiet)
-    Utrunc <- truncDat$Utrunc
-    eigvals <- truncDat$eigvals
-    if (full) {
-      eigobj <- truncDat$eigobj
-    }
+                       quiet = control$quiet)
+    U <- truncDat$Utrunc
+    D <- truncDat$eigvals
   } else {
-    if (control$loss == "leastsquares") {
-      eigobj <- eigen(K)
-    }
-    Utrunc <- NULL
-    eigvals <- NULL
+    eigobj <- eigen(K)
+    U <- eigobj$vectors
+    D <- eigobj$values
   }
   
   lastkeeper <- NULL
-  lastkeeper <- if(control$truncate) ncol(Utrunc)
+  lastkeeper <- if(control$truncate) ncol(U)
   
   return(list(K = K,
-              Utrunc = Utrunc,
-              eigvals = eigvals,
-              eigobj = eigobj,
+              U = U,
+              D = D,
               lastkeeper = lastkeeper))
 }
 
@@ -55,34 +43,13 @@ generateK <- function(X,
 ## Function that returns truncated versions of the data if given
 ## todo: throws warning whenever n < 500 because it uses eigen, should we suppress?
 #' @export
-Ktrunc <- function(X=NULL, K=NULL, b=NULL, epsilon=NULL, lastkeeper=NULL, full=FALSE, quiet = TRUE){
+Ktrunc <- function(X=NULL, K=NULL, b=NULL, epsilon=NULL, lastkeeper=NULL, quiet = TRUE){
   if(is.null(K)){
     X.sd <- apply(X, 2, sd)
     X.mu <- colMeans(X)
     K <- kern_gauss(scale(X), ifelse(is.null(b), ncol(X), b))
   }
-  
-  ## Todo: maybe later allow for full return of eigs_sym but not full
-  ## eigen decomposition. Might be useful for lambda search for logistic
-  if(full){
-    eigobj <- eigen(K)
-    
-    lastkeeper <- ifelse(is.null(lastkeeper),
-                         min(which(cumsum(eigobj$values)/nrow(K) > (1-epsilon))),
-                         lastkeeper)
-    
-    Ktilde <- mult_diag(eigobj$vectors[, 1:lastkeeper], eigobj$values)
-    
-    if(!quiet) print(paste("lastkeeper=",lastkeeper))
-    
-    return(
-      list(Ktilde=Ktilde,
-           Utrunc=eigobj$vectors[, 1:lastkeeper, drop = F],
-           eigvals=eigobj$values[1:lastkeeper, drop = F],
-           eigobj=eigobj)
-    )
-    
-  }
+
   if(is.null(lastkeeper)){
     #denoms <- c(10, 6, 3, 1) # we could also let people set this to speed up the algorithm
     #CJH: even at 10, with N=5000 it is too big. Let's try this: 
@@ -100,8 +67,7 @@ Ktrunc <- function(X=NULL, K=NULL, b=NULL, epsilon=NULL, lastkeeper=NULL, full=F
       
       if (totalvar>=(1-epsilon)){
         lastkeeper = min(which(cumsum(eigobj$values)/nrow(K) > (1-epsilon)))
-        Ktilde <- mult_diag(eigobj$vectors[, 1:lastkeeper, drop = F], eigobj$values)
-        
+
         if(!quiet) print(paste("lastkeeper=",lastkeeper))
         enoughvar=TRUE
         
@@ -110,10 +76,9 @@ Ktrunc <- function(X=NULL, K=NULL, b=NULL, epsilon=NULL, lastkeeper=NULL, full=F
       # Will eventually add warning here for var < 0.99 at numvector= 300
       # Allow to proceed w/out truncation and SEs or to try full eigen
     } #end while gotenough==FALSE      
-  } else { #end if is.null(lastkeeper)
+  } else { # if !is.null(lastkeeper)
     ## Suppress warning about using all eigenvalues
     eigobj <- suppressWarnings({eigs_sym(K, lastkeeper, which="LM")})
-    Ktilde <- mult_diag(eigobj$vectors, eigobj$values)
   }
   
   return(

@@ -172,8 +172,8 @@ krls <- function(# Data arguments
                       lambdarange = lambdarange,
                       brange = brange,
                       optimb = optimb,
-                      L = L,
-                      U = U)
+                      Lbound = L,
+                      Ubound = U)
   } else {
     chunks <- NULL
   }
@@ -231,20 +231,15 @@ krls <- function(# Data arguments
   ###----------------------------------------
   
   if (loss == "leastsquares") {
-    if (truncate){
-      out <- solve_for_c_ls_trunc(y=y, D = Kdat$eigvals, Utrunc =Kdat$Utrunc, lambda=lambda)
-      chat <- out$coeffs
-    } else {
-      out <- solve_for_c_ls(y=y, K=Kdat$K, lambda=lambda)
-      chat <- out$coeffs
-    }
+    out <- solve_for_c_ls(y=y, U = Kdat$U, D = Kdat$D,lambda=lambda)
+
+    dhat <- out$coeffs
     
     ## getting c_p from d
     coefhat=NULL
-    if(truncate==FALSE){coefhat=chat} else {
-      UDinv = mult_diag(Kdat$Utrunc, 1/Kdat$eigvals)
-      coefhat=UDinv %*% chat
-    }
+    UDinv = mult_diag(Kdat$U, 1/Kdat$D)
+    coefhat=UDinv %*% dhat
+    
     
     yfitted <- Kdat$K%*%coefhat
     yfitted <- yfitted*y.init.sd+y.init.mean
@@ -270,13 +265,12 @@ krls <- function(# Data arguments
   
   z <- list(K=Kdat$K,
 #            Ktilde=tcrossprod(mult_diag(Kdat$Utrunc, Kdat$eigvals), Kdat$Utrunc),
-            Utrunc=Kdat$Utrunc,
-            D=Kdat$eigvals,
-            eigobj=Kdat$eigobj,
+            U=Kdat$U,
+            D=Kdat$D,
             lastkeeper = lastkeeper,
             truncate = truncate,
             coeffs=coefhat,
-            chat=chat,
+            dhat=dhat,
             beta0hat = beta0hat,
             fitted=yfitted,
             X=X.init,
@@ -293,3 +287,4 @@ krls <- function(# Data arguments
 }
 
 
+# check ncol U reliance

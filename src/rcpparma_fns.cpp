@@ -236,18 +236,18 @@ double lambda_search(const double& tol,
 
 //' @export
 // [[Rcpp::export]]
-Rcpp::List solve_for_c_ls_trunc(const arma::vec& y,
-                          const arma::mat& Utrunc,
+Rcpp::List solve_for_c_ls(const arma::vec& y,
+                          const arma::mat& U,
                           const arma::vec& D,
                           const double& lambda) {
 
   arma::vec Ginv = 1 / (1 + lambda / D);
   
-  arma::vec coeffs = Ginv % (Utrunc.t() * y);
+  arma::vec coeffs = Ginv % (U.t() * y);
   // This is the same as above
   //arma::vec tempLoss = (y - Utrunc * coeffs) / diagvec(arma::eye(y.n_elem, y.n_elem) - mult_diag(Utrunc, Ginv) * Utrunc.t()); 
   
-  arma::vec tempLoss = (y - Utrunc * mult_diag(Utrunc, Ginv).t() * y) / diagvec(arma::eye(y.n_elem, y.n_elem) - Utrunc * mult_diag(Utrunc, Ginv).t());
+  arma::vec tempLoss = (y - U * mult_diag(U, Ginv).t() * y) / diagvec(arma::eye(y.n_elem, y.n_elem) - U * mult_diag(U, Ginv).t());
   double Le = as_scalar(tempLoss.t() * tempLoss);
     
   return Rcpp::List::create(Rcpp::Named("coeffs") = coeffs,
@@ -255,8 +255,8 @@ Rcpp::List solve_for_c_ls_trunc(const arma::vec& y,
 }
 
 //' @export
-// [[Rcpp::export]]
-Rcpp::List solve_for_c_ls(const arma::vec& y,
+//  [[Rcpp::export]]
+Rcpp::List solve_for_c_lst(const arma::vec& y,
                           const arma::mat& K,
                           const double& lambda) {
   
@@ -264,7 +264,7 @@ Rcpp::List solve_for_c_ls(const arma::vec& y,
   arma::mat Ginv(nn, nn);
   
   Ginv = arma::inv_sympd(K + lambda * arma::eye(nn, nn));
-  
+
   arma::vec coeffs = Ginv * y;
   arma::vec tempLoss = coeffs / diagvec(Ginv);
   double Le = as_scalar(tempLoss.t() * tempLoss);

@@ -53,15 +53,7 @@ lambdasearch <- function(y,
                          b) {
   
   if (control$loss == "leastsquares") {
-    if(control$truncate) {
-      #todo: no way this lambdasearch is right. The Looe can't be right, the bounds can't be right... but it works
-      #stop("Must specify lambda for truncated least squares for now.")
-      lambda <- lambdaline(y=y, D=Kdat$eigvals, Utrunc=Kdat$Utrunc,
-                             Eigenobject=Kdat$eigobj, truncate=control$truncate, noisy = !control$quiet)#,eigtrunc=eigtrunc,noisy=noisy,L=L,U=U)
-    } else {
-      lambda <- lambdaline(y=y, K=Kdat$K, Eigenobject=Kdat$eigobj,
-                             truncate=control$truncate, noisy = !control$quiet)#,eigtrunc=eigtrunc,noisy=noisy,L=L,U=U)
-    }
+    lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, noisy = !control$quiet)#,eigtrunc=eigtrunc,noisy=noisy,L=L,U=U)
   } else {
     
     if(is.null(hyperctrl$lambdarange)) {
@@ -215,17 +207,13 @@ lambdab.fn <- function(par = NULL,
 ## Lambda search for KRLS
 #' @export
 lambdaline <-
-  function(L=NULL,
-           U=NULL,
+  function(Lbound=NULL,
+           Ubound=NULL,
            y=NULL,
-           K=NULL,
+           U=NULL,
            D=NULL,
-           Utrunc=NULL,
-           Eigenobject=NULL,
            tol=NULL,
-           noisy=FALSE,
-           eigtrunc=NULL,
-           truncate=NULL){
+           noisy=FALSE){
     
     n <- length(y)  
     if(is.null(tol)){
@@ -238,64 +226,64 @@ lambdaline <-
     }
     
     # get upper bound starting value
-    if(is.null(U)){
-      U <- n
+    if(is.null(Ubound)){
+      Ubound <- n
       
-      while(sum(Eigenobject$values / (Eigenobject$values + U)) < 1){
-        U <- U-1    
+      while(sum(D / (D + Ubound)) < 1){
+        Ubound <- Ubound-1    
       }
     } else {
-      stopifnot(is.vector(U),
-                length(U)==1,
-                is.numeric(U),
-                U>0)
+      stopifnot(is.vector(Ubound),
+                length(Ubound)==1,
+                is.numeric(Ubound),
+                Ubound>0)
     }
     
     # get lower bound starting value
-    if(is.null(L)){
-      q <- which.min(abs(Eigenobject$values - (max(Eigenobject$values)/1000)))    
+    if(is.null(Lbound)){
+      q <- which.min(abs(D - (max(D)/1000)))    
       
-      #L <- 0
-      L = .Machine$double.eps  #CJH: to avoid Inf in next statement
+      #Lbound <- 0
+      Lbound = .Machine$double.eps  #CJH: to avoid Inf in next statement
       
-      while(sum(Eigenobject$values / (Eigenobject$values + L)) > q){
-        L <- L+.05    
+      while(sum(D / (D + Lbound)) > q){
+        Lbound <- Lbound+.05    
       }
     }  else {
-      stopifnot(is.vector(L),
-                length(L)==1,
-                is.numeric(L),
-                L>=0)
+      stopifnot(is.vector(Lbound),
+                length(Lbound)==1,
+                is.numeric(Lbound),
+                Lbound>=0)
     }
     # create new search values    
-    X1 <- L + (.381966)*(U-L)
-    X2 <- U - (.381966)*(U-L)
+    X1 <- Lbound + (.381966)*(Ubound-Lbound)
+    X2 <- Ubound - (.381966)*(Ubound-Lbound)
     
     # starting LOO losses
-    S1 <- looloss(lambda=X1,y=y,K=K, D=D, Utrunc=Utrunc,eigtrunc=eigtrunc,truncate=truncate)
-    S2 <- looloss(lambda=X2,y=y,K=K, D=D, Utrunc=Utrunc,eigtrunc=eigtrunc,truncate=truncate)
+    S1 <- looloss(lambda=X1,y=y,U=U, D=D)
+    S2 <- looloss(lambda=X2,y=y,U=U, D=D)
     
-    if(noisy){cat("L:",L,"X1:",X1,"X2:",X2,"U:",U,"S1:",S1,"S2:",S2,"\n") }
+    if(noisy){cat("Lbound:",Lbound,"X1:",X1,"X2:",X2,"Ubound:",Ubound,"S1:",S1,"S2:",S2,"\n") }
     
     while(abs(S1-S2)>tol){ # terminate if difference between S1 and S2 less than tolerance
       
       # update steps and use caching
       if(S1 < S2){
-        U  <- X2
+        Ubound  <- X2
         X2 <- X1
-        X1 <- L + (.381966)*(U-L)
+        X1 <- Lbound + (.381966)*(Ubound-Lbound)
         S2 <- S1
-        S1 <- looloss(lambda=X1,y=y,K=K, D=D, Utrunc=Utrunc,eigtrunc=eigtrunc,truncate=truncate)
+        S1 <- looloss(lambda=X1,y=y,U=U, D=D)
         
       } else { #S2 < S1
-        L  <- X1
+        Lbound  <- X1
         X1 <- X2
-        X2 <- U - (.381966)*(U-L)
+        X2 <- Ubound - (.381966)*(Ubound-Lbound)
         S1 <- S2
-        S2 <- looloss(lambda=X2,y=y,K=K, D=D, Utrunc=Utrunc,eigtrunc=eigtrunc,truncate=truncate)
+        S2 <- looloss(lambda=X2,y=y,U=U, D=D)
       }
       
-      if(noisy){cat("L:",L,"X1:",X1,"X2:",X2,"U:",U,"S1:",S1,"S2:",S2,"\n") }
+      if(noisy){cat("Lbound:",Lbound,"X1:",X1,"X2:",X2,"Ubound:",Ubound,"S1:",S1,"S2:",S2,"\n") }
     }
     out <- ifelse(S1<S2,X1,X2)
     if(noisy){cat("Lambda:",out,"\n")}  
@@ -306,12 +294,6 @@ lambdaline <-
 ## looloss for krls
 #' @export
 looloss <-
-  function(y=NULL,K=NULL,D=NULL,Utrunc=NULL,lambda=NULL,eigtrunc=NULL,truncate=NULL){
-    if (truncate) {
-      Le <- solve_for_c_ls_trunc(y=y,D=D,Utrunc=Utrunc,lambda=lambda)$Le
-      return(Le)
-    } else {
-      Le <- solve_for_c_ls(y=y,K=K,lambda=lambda)$Le
-      return(Le)
-    }
+  function(y=NULL,K=NULL,D=NULL,U=NULL,lambda=NULL){
+      return(solve_for_c_ls(y=y,D=D,U=U,lambda=lambda)$Le)
   }

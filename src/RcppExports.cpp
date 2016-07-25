@@ -181,30 +181,30 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
-// solve_for_c_ls_trunc
-Rcpp::List solve_for_c_ls_trunc(const arma::vec& y, const arma::mat& Utrunc, const arma::vec& D, const double& lambda);
-RcppExport SEXP KRLS2_solve_for_c_ls_trunc(SEXP ySEXP, SEXP UtruncSEXP, SEXP DSEXP, SEXP lambdaSEXP) {
+// solve_for_c_ls
+Rcpp::List solve_for_c_ls(const arma::vec& y, const arma::mat& U, const arma::vec& D, const double& lambda);
+RcppExport SEXP KRLS2_solve_for_c_ls(SEXP ySEXP, SEXP USEXP, SEXP DSEXP, SEXP lambdaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
     Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type Utrunc(UtruncSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type U(USEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type D(DSEXP);
     Rcpp::traits::input_parameter< const double& >::type lambda(lambdaSEXP);
-    __result = Rcpp::wrap(solve_for_c_ls_trunc(y, Utrunc, D, lambda));
+    __result = Rcpp::wrap(solve_for_c_ls(y, U, D, lambda));
     return __result;
 END_RCPP
 }
-// solve_for_c_ls
-Rcpp::List solve_for_c_ls(const arma::vec& y, const arma::mat& K, const double& lambda);
-RcppExport SEXP KRLS2_solve_for_c_ls(SEXP ySEXP, SEXP KSEXP, SEXP lambdaSEXP) {
+// solve_for_c_lst
+Rcpp::List solve_for_c_lst(const arma::vec& y, const arma::mat& K, const double& lambda);
+RcppExport SEXP KRLS2_solve_for_c_lst(SEXP ySEXP, SEXP KSEXP, SEXP lambdaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
     Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type K(KSEXP);
     Rcpp::traits::input_parameter< const double& >::type lambda(lambdaSEXP);
-    __result = Rcpp::wrap(solve_for_c_ls(y, K, lambda));
+    __result = Rcpp::wrap(solve_for_c_lst(y, K, lambda));
     return __result;
 END_RCPP
 }

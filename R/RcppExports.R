@@ -67,13 +67,13 @@ lambda_search <- function(tol, l, u, y, eigvals, eigvecs, eigtrunc) {
 }
 
 #' @export
-solve_for_c_ls_trunc <- function(y, Utrunc, D, lambda) {
-    .Call('KRLS2_solve_for_c_ls_trunc', PACKAGE = 'KRLS2', y, Utrunc, D, lambda)
+solve_for_c_ls <- function(y, U, D, lambda) {
+    .Call('KRLS2_solve_for_c_ls', PACKAGE = 'KRLS2', y, U, D, lambda)
 }
 
 #' @export
-solve_for_c_ls <- function(y, K, lambda) {
-    .Call('KRLS2_solve_for_c_ls', PACKAGE = 'KRLS2', y, K, lambda)
+solve_for_c_lst <- function(y, K, lambda) {
+    .Call('KRLS2_solve_for_c_lst', PACKAGE = 'KRLS2', y, K, lambda)
 }
 
 #' @export
