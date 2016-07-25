@@ -163,9 +163,9 @@ inference.krls2 <- function(obj,
     if(cpp) {
       
       if(!obj$truncate){
-        derivout <- pwmfx(obj$K, X, obj$coeffs, vcov.c, tau, obj$sigma)
+        derivout <- pwmfx(obj$K, X, obj$coeffs, vcov.c, tau, obj$b)
       } else {
-        derivout <- pwmfx(tcrossprod(mult_diag(obj$Utrunc, obj$D), obj$Utrunc), X, obj$coeffs, vcov.c, tau, obj$sigma)
+        derivout <- pwmfx(tcrossprod(mult_diag(obj$Utrunc, obj$D), obj$Utrunc), X, obj$coeffs, vcov.c, tau, obj$b)
       }
       derivatives <- derivout[1:n, ]
       var.avgderivatives <- derivout[n+1, ]
@@ -182,11 +182,11 @@ inference.krls2 <- function(obj,
           distk <-  matrix(distances[,k],n,n,byrow=TRUE) 
         }
         L <-  distk*obj$K  #Kfull rather than K here as truncation handled through coefs
-        derivatives[,k] <- tau*(-1/obj$sigma)*(L%*%obj$coeffs)
+        derivatives[,k] <- tau*(-1/obj$b)*(L%*%obj$coeffs)
         if(obj$truncate==FALSE) {
           var.avgderivatives = NULL
         } else {
-          var.avgderivatives[1,k] <- 1/(obj$sigma * n)^2 * sum(crossprod(tau^2, crossprod(L,vcov.c%*%L)))
+          var.avgderivatives[1,k] <- 1/(obj$b * n)^2 * sum(crossprod(tau^2, crossprod(L,vcov.c%*%L)))
         }
       }
     }
@@ -260,11 +260,11 @@ pwmfxR <- function() {
       distk <-  matrix(distances[,k],n,n,byrow=TRUE) 
     }
     L <-  distk*Kdat$K  #Kfull rather than K here as truncation handled through coefs
-    derivatives[,k] <- tau*(-1/sigma)*(L%*%coefhat)
+    derivatives[,k] <- tau*(-1/b)*(L%*%coefhat)
     if(truncate==FALSE) {
       var.avgderivatives = NULL
     } else {
-      var.avgderivatives[1,k] <- 1/(sigma * n)^2 * sum(crossprod(tau^2, crossprod(L,vcov.c%*%L)))
+      var.avgderivatives[1,k] <- 1/(b * n)^2 * sum(crossprod(tau^2, crossprod(L,vcov.c%*%L)))
     }
   }
 }

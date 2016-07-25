@@ -1,56 +1,56 @@
-## This file contains functions that handle lambda and sigma searches
+## This file contains functions that handle lambda and b searches
 ## Functions:
-##            lambdasigmasearch
-##            sigmasearch
+##            lambdabsearch
+##            bsearch
 ##            lambdasearch
 ##            lambdaline (lambdasearch in the old KRLS)
 ##            looloss
 
-## This function searches for both lambda and sigma
+## This function searches for both lambda and b
 #' @export
-lambdasigmasearch <- function(y,
+lambdabsearch <- function(y,
                               X,
                               hyperctrl,
                               control) {
   
   if(is.null(hyperctrl$lambdarange)) {
-    if (!is.null(hyperctrl$sigmarange)) stop("Grid search for sigma only works with fixed lambda or lambda grid search.")
+    if (!is.null(hyperctrl$brange)) stop("Grid search for b only works with fixed lambda or lambda grid search.")
     
-    fit.hyper <- optim(par=log(c(hyperctrl$lambdastart, 2.2*control$d)), lambdasigma.fn,
+    fit.hyper <- optim(par=log(c(hyperctrl$lambdastart, 2.2*control$d)), lambdab.fn,
                        X=X, y=y, folds=length(hyperctrl$chunks),
                        chunks = hyperctrl$chunks, ctrl = control,
                        vcov = FALSE,
                        control=list(trace = T, abstol = 1e-4), method="BFGS")
     
     lambda <- exp(fit.hyper$par[1])
-    sigma <- exp(fit.hyper$par[2])
+    b <- exp(fit.hyper$par[2])
   } else {
-    if (hyperctrl$optimsigma) stop("Optimizing sigma does not work with a grid search for lambda.")
-    hypergrid <- as.matrix(expand.grid(hyperctrl$lambdarange, hyperctrl$sigmarange))
+    if (hyperctrl$optimb) stop("Optimizing b does not work with a grid search for lambda.")
+    hypergrid <- as.matrix(expand.grid(hyperctrl$lambdarange, hyperctrl$brange))
     hyperMSE <- NULL
     for(i in 1:nrow(hypergrid)){
-      hyperMSE[i] <- lambdasigma.fn(par = log(hypergrid[i, ]), X=X,
+      hyperMSE[i] <- lambdab.fn(par = log(hypergrid[i, ]), X=X,
                                     y=y, folds=length(hyperctrl$chunks),
                                     chunks = hyperctrl$chunks, ctrl = control)
     }
     hyper <- hypergrid[which.min(hyperMSE), ]
     lambda <- hyper[1]
-    sigma <- hyper[2]
+    b <- hyper[2]
   }
   
   return(list(lambda=lambda,
-              sigma = sigma))
+              b = b))
   
 }
 
-## This function governs searching for lambda with a fixed sigma
+## This function governs searching for lambda with a fixed b
 #' @export
 lambdasearch <- function(y,
                          X,
                          Kdat,
                          hyperctrl,
                          control,
-                         sigma) {
+                         b) {
   
   if (control$loss == "leastsquares") {
     if(control$truncate) {
@@ -66,10 +66,10 @@ lambdasearch <- function(y,
     
     if(is.null(hyperctrl$lambdarange)) {
       
-      fit.lambda <- optim(par=log(hyperctrl$lambdastart), lambdasigma.fn,
+      fit.lambda <- optim(par=log(hyperctrl$lambdastart), lambdab.fn,
                           Kdat = Kdat, y=y, folds=length(hyperctrl$chunks),
                           chunks = hyperctrl$chunks, ctrl = control,
-                          sigma = sigma,
+                          b = b,
                           vcov = FALSE,
                           control=list(trace = T, abstol = 1e-4), method="BFGS")
       
@@ -79,10 +79,10 @@ lambdasearch <- function(y,
       
       lambdaMSE <- NULL
       for(i in 1:length(hyperctrl$lambdarange)){
-        lambdaMSE[i] <- lambdasigma.fn(par = log(hyperctrl$lambdarange[i]), Kdat = Kdat,
+        lambdaMSE[i] <- lambdab.fn(par = log(hyperctrl$lambdarange[i]), Kdat = Kdat,
                                        y=y, folds=length(hyperctrl$chunks),
                                        chunks = hyperctrl$chunks, ctrl = control,
-                                       sigma = sigma)
+                                       b = b)
       }
       lambda <- hyperctrl$lambdarange[which.min(lambdaMSE)]
     }
@@ -92,35 +92,35 @@ lambdasearch <- function(y,
   
 }
 
-## This function searches for just sigma
+## This function searches for just b
 #' @export
-sigmasearch <- function(y,
+bsearch <- function(y,
                               X,
                               hyperctrl,
                               control,
                               lambda) {
-  if(is.null(hyperctrl$sigmarange)) {
-    fit.sigma <- optim(par=log(2.2*control$d), lambdasigma.fn,
+  if(is.null(hyperctrl$brange)) {
+    fit.b <- optim(par=log(2.2*control$d), lambdab.fn,
                        X=X, y=y, folds=length(hyperctrl$chunks),
                        chunks = hyperctrl$chunks, ctrl = control, 
                        lambda = lambda,
                        vcov = FALSE,
                        control=list(trace = T, abstol = 1e-4), method="BFGS")
-    sigma <- exp(fit.sigma$par)
+    b <- exp(fit.b$par)
   } else {
-    sigmaMSE <- NULL
-    for(i in 1:length(hyperctrl$sigmarange)){
-      if(hyperctrl$sigmarange[i] < 0) stop("All sigmas must be positive")
-      sigmaMSE[i] <- lambdasigma.fn(par = log(hyperctrl$sigmarange[i]), X=X,
+    bMSE <- NULL
+    for(i in 1:length(hyperctrl$brange)){
+      if(hyperctrl$brange[i] < 0) stop("All bs must be positive")
+      bMSE[i] <- lambdab.fn(par = log(hyperctrl$brange[i]), X=X,
                                     y=y, folds=length(hyperctrl$chunks),
                                     chunks = hyperctrl$chunks, ctrl = control,
-                                    #sigma = sigma,
+                                    #b = b,
                                     lambda = lambda)
-      sigma <- hyperctrl$sigmarange[which.min(sigmaMSE)]
+      b <- hyperctrl$brange[which.min(bMSE)]
     }
   }
 
-  return(sigma)
+  return(b)
   
 }
 
@@ -129,31 +129,31 @@ sigmasearch <- function(y,
 ## This computes the RMSPE using 'folds' cross-validation, fitting a new model
 ## for each subset of the data
 #' @export
-lambdasigma.fn <- function(par = NULL,
+lambdab.fn <- function(par = NULL,
                            y = NULL,
                            X = NULL,
                            Kdat = NULL,
                            folds = NULL,
                            chunks = NULL,
-                           sigma = NULL,
+                           b = NULL,
                            lambda = NULL,
                            vcov = NULL,
                            ctrl = NULL) {
   
-  if(is.null(c(lambda, sigma))) {
+  if(is.null(c(lambda, b))) {
     lambda <- exp(par[1])
-    sigma <- exp(par[2])
+    b <- exp(par[2])
     Kdat <- generateK(X=X,
-                      sigma=sigma,
+                      b=b,
                       control=ctrl)
   } else {
     if (is.null(lambda)) {
       lambda <- exp(par)
     }
-    if (is.null(sigma)) {
-      sigma <- exp(par)
+    if (is.null(b)) {
+      b <- exp(par)
       Kdat <- generateK(X=X,
-                        sigma=sigma,
+                        b=b,
                         control=ctrl)
     }
   }

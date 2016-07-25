@@ -9,10 +9,10 @@
 ## This function generates the kernel matrix and truncated kernel matrix object
 #' @export
 generateK <- function(X,
-                      sigma,
+                      b,
                       control) {
   K <- NULL
-  if(control$whichkernel=="gaussian"){ K <- kern_gauss(X, sigma)}
+  if(control$whichkernel=="gaussian"){ K <- kern_gauss(X, b)}
   if(control$whichkernel=="linear"){ K <- tcrossprod(X) }
   if(control$whichkernel=="poly2"){ K <- (tcrossprod(X)+1)^2 }
   if(control$whichkernel=="poly3"){ K <- (tcrossprod(X)+1)^3 }
@@ -26,7 +26,7 @@ generateK <- function(X,
     if (control$loss == "leastsquares") {
       full <- TRUE
     }
-    truncDat <- Ktrunc(K = K, sigma=sigma, lastkeeper=control$lastkeeper, epsilon=control$epsilon,
+    truncDat <- Ktrunc(K = K, b=b, lastkeeper=control$lastkeeper, epsilon=control$epsilon,
                        full = full, quiet = control$quiet)
     Utrunc <- truncDat$Utrunc
     eigvals <- truncDat$eigvals
@@ -55,11 +55,11 @@ generateK <- function(X,
 ## Function that returns truncated versions of the data if given
 ## todo: throws warning whenever n < 500 because it uses eigen, should we suppress?
 #' @export
-Ktrunc <- function(X=NULL, K=NULL, sigma=NULL, epsilon=NULL, lastkeeper=NULL, full=FALSE, quiet = TRUE){
+Ktrunc <- function(X=NULL, K=NULL, b=NULL, epsilon=NULL, lastkeeper=NULL, full=FALSE, quiet = TRUE){
   if(is.null(K)){
     X.sd <- apply(X, 2, sd)
     X.mu <- colMeans(X)
-    K <- kern_gauss(scale(X), ifelse(is.null(sigma), ncol(X), sigma))
+    K <- kern_gauss(scale(X), ifelse(is.null(b), ncol(X), b))
   }
   
   ## Todo: maybe later allow for full return of eigs_sym but not full
@@ -132,7 +132,7 @@ Ktrunc <- function(X=NULL, K=NULL, sigma=NULL, epsilon=NULL, lastkeeper=NULL, fu
 ## Values:
 ##   'newK' - The new Kernel to be used for prediction
 #' @export
-newKernel <- function(X, newData, whichkernel = "gaussian", sigma = NULL) {
+newKernel <- function(X, newData, whichkernel = "gaussian", b = NULL) {
   
   # Get values of oldData to scale newData
   Xmeans <- colMeans(X)
@@ -148,8 +148,8 @@ newKernel <- function(X, newData, whichkernel = "gaussian", sigma = NULL) {
   ## Compute kernel matrix
   K <- NULL
   if(whichkernel=="gaussian"){ 
-    if(is.null(sigma)) {sigma <- ncol(X)}
-    newK <- new_gauss_kern(newData, X, sigma)
+    if(is.null(b)) {b <- 2 * ncol(X)}
+    newK <- new_gauss_kern(newData, X, b)
   }
   
   if(whichkernel=="linear"){ K <- tcrossprod(rbind(newData, X)) }

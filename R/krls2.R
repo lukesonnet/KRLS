@@ -26,8 +26,8 @@ krls <- function(# Data arguments
                     loss = "leastsquares",
                     # Kernel arguments
                     whichkernel = "gaussian", 
-                    sigma = NULL,
-                    optimsigma = FALSE,
+                    b = NULL,
+                    optimb = FALSE,
                     # Lambda arguments
                     lambda = NULL,
                     hyperfolds = 5,
@@ -118,27 +118,27 @@ krls <- function(# Data arguments
   
   ## Initialize hyper-parameter variables
   lambdarange <- NULL
-  sigmarange <- NULL
+  brange <- NULL
   
-  ## Default sigma to the number of features
-  if(is.null(sigma)){
-    if (!optimsigma) {
-      sigma <- 2*d
+  ## Default b to be 2*the number of features
+  if(is.null(b)){
+    if (!optimb) {
+      b <- 2*d
     } else if (loss == "leastsquares") {
-      message("Warning: Cannot simultaneously search for both lambda and sigma with leastsquares loss.")
-      message(sprintf("Setting sigma to %s", 2*d))
-      sigma <- 2*d
+      message("Warning: Cannot simultaneously search for both lambda and b with leastsquares loss.")
+      message(sprintf("Setting b to %s", 2*d))
+      b <- 2*d
     }
   } else{
-    if(length(sigma) > 1) {
-      sigmarange <- sigma
-      sigma <- NULL
+    if(length(b) > 1) {
+      brange <- b
+      b <- NULL
     } else {
-      stopifnot(is.vector(sigma),
-                is.numeric(sigma),
-                sigma>0)
+      stopifnot(is.vector(b),
+                is.numeric(b),
+                b>0)
     }
-    if(optimsigma) warning("optimsigma ignored when sigma argument is used.")
+    if(optimb) warning("optimb ignored when b argument is used.")
     
   }
   
@@ -164,14 +164,14 @@ krls <- function(# Data arguments
   }
   
   ## set chunks for any ranges
-  if(is.null(lambda) | is.null(sigma)) {
+  if(is.null(lambda) | is.null(b)) {
     chunks <- chunk(sample(n), hyperfolds)
     
     hyperctrl <- list(chunks = chunks,
                       lambdastart = lambdastart,
                       lambdarange = lambdarange,
-                      sigmarange = sigmarange,
-                      optimsigma = optimsigma,
+                      brange = brange,
+                      optimb = optimb,
                       L = L,
                       U = U)
   } else {
@@ -182,12 +182,12 @@ krls <- function(# Data arguments
   ## searching for hyperparameters
   ###----------------------------------------
   
-  ## If sigma ix fixed, compute all of the kernels
-  if(!is.null(sigma)) {
+  ## If b ix fixed, compute all of the kernels
+  if(!is.null(b)) {
     
     ## Compute kernel matrix and truncated objects
     Kdat <- generateK(X=X,
-                      sigma=sigma,
+                      b=b,
                       control=control)
     
     if(is.null(lambda)) {
@@ -196,21 +196,21 @@ krls <- function(# Data arguments
                              Kdat=Kdat,
                              hyperctrl=hyperctrl,
                              control=control,
-                             sigma=sigma)
+                             b=b)
     }
-  } else { # if(is.null(sigma)
+  } else { # if(is.null(b)
     
     if(is.null(lambda)) {
       
-      hyperOut <- lambdasigmasearch(y=y,
+      hyperOut <- lambdabsearch(y=y,
                                     X=X,
                                     hyperctrl=hyperctrl,
                                     control=control)
       lambda <- hyperOut$lambda
-      sigma <- hyperOut$sigma
+      b <- hyperOut$b
       
     } else { # lambda is set
-      sigma <- sigmasearch(y=y,
+      b <- bsearch(y=y,
                            X=X,
                            hyperctrl=hyperctrl,
                            control=control,
@@ -218,13 +218,13 @@ krls <- function(# Data arguments
     }
     
     Kdat <- generateK(X=X,
-                      sigma=sigma,
+                      b=b,
                       control=control)
     
   }
   
   message(sprintf("Lambda selected: %s", lambda))
-  message(sprintf("Sigma selected: %s", sigma))
+  message(sprintf("b selected: %s", b))
   
   ###----------------------------------------
   ## Estimating choice coefficients (solving)
@@ -281,7 +281,7 @@ krls <- function(# Data arguments
             fitted=yfitted,
             X=X.init,
             y=y.init,
-            sigma=sigma,
+            b=b,
             lambda=lambda,
             kernel=whichkernel,
             loss=loss
