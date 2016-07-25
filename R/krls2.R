@@ -123,11 +123,11 @@ krls <- function(# Data arguments
   ## Default sigma to the number of features
   if(is.null(sigma)){
     if (!optimsigma) {
-      sigma <- d
+      sigma <- 2*d
     } else if (loss == "leastsquares") {
       message("Warning: Cannot simultaneously search for both lambda and sigma with leastsquares loss.")
-      message(sprintf("Setting sigma to %s", d))
-      sigma <- d
+      message(sprintf("Setting sigma to %s", 2*d))
+      sigma <- 2*d
     }
   } else{
     if(length(sigma) > 1) {
@@ -192,7 +192,7 @@ krls <- function(# Data arguments
     
     if(is.null(lambda)) {
       lambda <- lambdasearch(y=y,
-                             X.init=X.init,
+                             X=X,
                              Kdat=Kdat,
                              hyperctrl=hyperctrl,
                              control=control,
@@ -203,7 +203,7 @@ krls <- function(# Data arguments
     if(is.null(lambda)) {
       
       hyperOut <- lambdasigmasearch(y=y,
-                                    X.init=X.init,
+                                    X=X,
                                     hyperctrl=hyperctrl,
                                     control=control)
       lambda <- hyperOut$lambda
@@ -211,7 +211,7 @@ krls <- function(# Data arguments
       
     } else { # lambda is set
       sigma <- sigmasearch(y=y,
-                           X.init=X.init,
+                           X=X,
                            hyperctrl=hyperctrl,
                            control=control,
                            lambda=lambda)
@@ -269,6 +269,7 @@ krls <- function(# Data arguments
   }
   
   z <- list(K=Kdat$K,
+#            Ktilde=tcrossprod(mult_diag(Kdat$Utrunc, Kdat$eigvals), Kdat$Utrunc),
             Utrunc=Kdat$Utrunc,
             D=Kdat$eigvals,
             eigobj=Kdat$eigobj,

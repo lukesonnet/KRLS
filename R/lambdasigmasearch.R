@@ -9,7 +9,7 @@
 ## This function searches for both lambda and sigma
 #' @export
 lambdasigmasearch <- function(y,
-                              X.init,
+                              X,
                               hyperctrl,
                               control) {
   
@@ -17,7 +17,7 @@ lambdasigmasearch <- function(y,
     if (!is.null(hyperctrl$sigmarange)) stop("Grid search for sigma only works with fixed lambda or lambda grid search.")
     
     fit.hyper <- optim(par=log(c(hyperctrl$lambdastart, 2.2*control$d)), lambdasigma.fn,
-                       X=X.init, y=y, folds=length(hyperctrl$chunks),
+                       X=X, y=y, folds=length(hyperctrl$chunks),
                        chunks = hyperctrl$chunks, ctrl = control,
                        vcov = FALSE,
                        control=list(trace = T, abstol = 1e-4), method="BFGS")
@@ -29,7 +29,7 @@ lambdasigmasearch <- function(y,
     hypergrid <- as.matrix(expand.grid(hyperctrl$lambdarange, hyperctrl$sigmarange))
     hyperMSE <- NULL
     for(i in 1:nrow(hypergrid)){
-      hyperMSE[i] <- lambdasigma.fn(par = log(hypergrid[i, ]), X=X.init,
+      hyperMSE[i] <- lambdasigma.fn(par = log(hypergrid[i, ]), X=X,
                                     y=y, folds=length(hyperctrl$chunks),
                                     chunks = hyperctrl$chunks, ctrl = control)
     }
@@ -46,7 +46,7 @@ lambdasigmasearch <- function(y,
 ## This function governs searching for lambda with a fixed sigma
 #' @export
 lambdasearch <- function(y,
-                         X.init,
+                         X,
                          Kdat,
                          hyperctrl,
                          control,
@@ -95,13 +95,13 @@ lambdasearch <- function(y,
 ## This function searches for just sigma
 #' @export
 sigmasearch <- function(y,
-                              X.init,
+                              X,
                               hyperctrl,
                               control,
                               lambda) {
   if(is.null(hyperctrl$sigmarange)) {
     fit.sigma <- optim(par=log(2.2*control$d), lambdasigma.fn,
-                       X=X.init, y=y, folds=length(hyperctrl$chunks),
+                       X=X, y=y, folds=length(hyperctrl$chunks),
                        chunks = hyperctrl$chunks, ctrl = control, 
                        lambda = lambda,
                        vcov = FALSE,
@@ -111,7 +111,7 @@ sigmasearch <- function(y,
     sigmaMSE <- NULL
     for(i in 1:length(hyperctrl$sigmarange)){
       if(hyperctrl$sigmarange[i] < 0) stop("All sigmas must be positive")
-      sigmaMSE[i] <- lambdasigma.fn(par = log(hyperctrl$sigmarange[i]), X=X.init,
+      sigmaMSE[i] <- lambdasigma.fn(par = log(hyperctrl$sigmarange[i]), X=X,
                                     y=y, folds=length(hyperctrl$chunks),
                                     chunks = hyperctrl$chunks, ctrl = control,
                                     #sigma = sigma,
@@ -131,7 +131,7 @@ sigmasearch <- function(y,
 #' @export
 lambdasigma.fn <- function(par = NULL,
                            y = NULL,
-                           X.init = NULL,
+                           X = NULL,
                            Kdat = NULL,
                            folds = NULL,
                            chunks = NULL,
@@ -165,32 +165,44 @@ lambdasigma.fn <- function(par = NULL,
     fold <- chunks[[j]]
     if(ctrl$truncate) {
       #cjh added lastkeeper to this, to reuse it rather than re-search
-      K <- NULL
-      Utrunc <- Kdat$Utrunc[-fold, ]
+      KFold <- NULL
+      UtruncFold <- Kdat$Utrunc[-fold, ]
       D <- Kdat$eigvals
     } else {
-      K <- Kdat$K[-fold, -fold]
-      Utrunc <- NULL
+      KFold <- Kdat$K[-fold, -fold]
+      UtruncFold <- NULL
       D <- NULL
     }
     
-    parshat <- solveForC(par = pars, y=y[-fold], K=K, Utrunc=Utrunc, D=D, lambda=lambda)
-    
-    #K <- newKernel(X[-fold, ], newData = X[fold, ])
-    ## Is this transformation right?
+    if(ctrl$loss == "leastsquares") {
+      if(ctrl$truncate) {
+        parshat <- solve_for_c_ls_trunc(y = y[-fold], Utrunc = UtruncFold, D = D, lambda = lambda)
+        yhat <- Kdat$Utrunc[fold, ] %*% parshat$chat
+      } else {
+        print(dim(KFold))
+        print(dim(Kdat$K))
+        print(length(y[-fold]))
+        parshat <- solve_for_c_ls(y = y[-fold], K = KFold, lambda = lambda)
+        yhat <- Kdat$K[fold, -fold] %*% parshat$chat
+      }
 
-    if(ctrl$loss == "logistic") {
+    } else if (ctrl$loss == "logistic") {
+      parshat <- solveForC(par = pars, y=y[-fold], K=KFold, Utrunc=UtruncFold, D=D, lambda=lambda)
+      
       if(ctrl$truncate) {
         yhat <- logistic(Kdat$Utrunc[fold, ], parshat$chat, parshat$beta0hat)
       } else {
         yhat <- logistic(Kdat$K[fold, -fold], parshat$chat, parshat$beta0hat)
       }
+    }
+    
+    #K <- newKernel(X[-fold, ], newData = X[fold, ])
+    ## Is this transformation right?
+
+    if(ctrl$loss == "logistic") {
+
     } else {
-      if(ctrl$truncate) {
-        yhat <- Utrunc[fold, ] %*% parshat$chat
-      } else {
-        yhat <- K[fold, -fold] %*% parshat$chat
-      }
+
     }
     
     mse <- mse + sum((y[fold] - yhat)^2)

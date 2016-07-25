@@ -72,9 +72,14 @@ inference.krls2 <- function(obj,
       if(!sandwich) {
         sigmasq <- as.vector((1/n) * crossprod(y-yfitted))
         
-        vcov.c <- tcrossprod(mult_diag(obj$eigobj$vectors,sigmasq*(obj$eigobj$values+obj$lambda)^-2),obj$eigobj$vectors)
-      } else {
         
+        if(!obj$truncate) {
+          vcov.c <- tcrossprod(mult_diag(obj$eigobj$vectors,sigmasq*(obj$eigobj$values+obj$lambda)^-2),obj$eigobj$vectors)
+        } else {
+          vcov.c <- tcrossprod(mult_diag(obj$Utrunc,sigmasq*(obj$D+obj$lambda)^-2),obj$Utrunc)
+        }
+      } else {
+        ## get reconstructed K
         hessian <- krls_hess_sample(obj$K, obj$lambda)
         
         Ainv <- solve(hessian)
@@ -157,7 +162,11 @@ inference.krls2 <- function(obj,
     
     if(cpp) {
       
-      derivout <- pwmfx(obj$K, X, obj$coeffs, vcov.c, tau, obj$sigma)
+      if(!obj$truncate){
+        derivout <- pwmfx(obj$K, X, obj$coeffs, vcov.c, tau, obj$sigma)
+      } else {
+        derivout <- pwmfx(tcrossprod(mult_diag(obj$Utrunc, obj$D), obj$Utrunc), X, obj$coeffs, vcov.c, tau, obj$sigma)
+      }
       derivatives <- derivout[1:n, ]
       var.avgderivatives <- derivout[n+1, ]
       
