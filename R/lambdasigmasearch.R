@@ -18,8 +18,7 @@ lambdasigmasearch <- function(y,
     
     fit.hyper <- optim(par=log(c(hyperctrl$lambdastart, 2.2*control$d)), lambdasigma.fn,
                        X=X.init, y=y, folds=length(hyperctrl$chunks),
-                       chunks = hyperctrl$chunks, truncate=control$truncate,
-                       epsilon=control$epsilon, lastkeeper=control$lastkeeper,
+                       chunks = hyperctrl$chunks, ctrl = control,
                        vcov = FALSE,
                        control=list(trace = T, abstol = 1e-4), method="BFGS")
     
@@ -32,8 +31,7 @@ lambdasigmasearch <- function(y,
     for(i in 1:nrow(hypergrid)){
       hyperMSE[i] <- lambdasigma.fn(par = log(hypergrid[i, ]), X=X.init,
                                     y=y, folds=length(hyperctrl$chunks),
-                                    chunks = hyperctrl$chunks, truncate=control$truncate,
-                                    epsilon=control$epsilon, lastkeeper=control$lastkeeper)
+                                    chunks = hyperctrl$chunks, ctrl = control)
     }
     hyper <- hypergrid[which.min(hyperMSE), ]
     lambda <- hyper[1]
@@ -69,9 +67,8 @@ lambdasearch <- function(y,
     if(is.null(hyperctrl$lambdarange)) {
       
       fit.lambda <- optim(par=log(hyperctrl$lambdastart), lambdasigma.fn,
-                          X=X.init, y=y, folds=length(hyperctrl$chunks),
-                          chunks = hyperctrl$chunks, truncate=control$truncate,
-                          epsilon=control$epsilon, lastkeeper=control$lastkeeper,
+                          Kdat = Kdat, y=y, folds=length(hyperctrl$chunks),
+                          chunks = hyperctrl$chunks, ctrl = control,
                           sigma = sigma,
                           vcov = FALSE,
                           control=list(trace = T, abstol = 1e-4), method="BFGS")
@@ -82,10 +79,9 @@ lambdasearch <- function(y,
       
       lambdaMSE <- NULL
       for(i in 1:length(hyperctrl$lambdarange)){
-        lambdaMSE[i] <- lambdasigma.fn(par = log(hyperctrl$lambdarange[i]), X=X.init,
+        lambdaMSE[i] <- lambdasigma.fn(par = log(hyperctrl$lambdarange[i]), Kdat = Kdat,
                                        y=y, folds=length(hyperctrl$chunks),
-                                       chunks = hyperctrl$chunks, truncate=control$truncate,
-                                       epsilon=control$epsilon, lastkeeper=control$lastkeeper,
+                                       chunks = hyperctrl$chunks, ctrl = control,
                                        sigma = sigma)
       }
       lambda <- hyperctrl$lambdarange[which.min(lambdaMSE)]
@@ -106,8 +102,7 @@ sigmasearch <- function(y,
   if(is.null(hyperctrl$sigmarange)) {
     fit.sigma <- optim(par=log(2.2*control$d), lambdasigma.fn,
                        X=X.init, y=y, folds=length(hyperctrl$chunks),
-                       chunks = hyperctrl$chunks, truncate=control$truncate,
-                       epsilon=control$epsilon, lastkeeper=control$lastkeeper,
+                       chunks = hyperctrl$chunks, ctrl = control, 
                        lambda = lambda,
                        vcov = FALSE,
                        control=list(trace = T, abstol = 1e-4), method="BFGS")
@@ -118,8 +113,7 @@ sigmasearch <- function(y,
       if(hyperctrl$sigmarange[i] < 0) stop("All sigmas must be positive")
       sigmaMSE[i] <- lambdasigma.fn(par = log(hyperctrl$sigmarange[i]), X=X.init,
                                     y=y, folds=length(hyperctrl$chunks),
-                                    chunks = hyperctrl$chunks, truncate=control$truncate,
-                                    epsilon=control$epsilon, lastkeeper=control$lastkeeper,
+                                    chunks = hyperctrl$chunks, ctrl = control,
                                     #sigma = sigma,
                                     lambda = lambda)
       sigma <- hyperctrl$sigmarange[which.min(sigmaMSE)]
@@ -136,55 +130,69 @@ sigmasearch <- function(y,
 ## for each subset of the data
 #' @export
 lambdasigma.fn <- function(par = NULL,
-                           X = NULL,
                            y = NULL,
+                           X.init = NULL,
+                           Kdat = NULL,
                            folds = NULL,
                            chunks = NULL,
                            sigma = NULL,
                            lambda = NULL,
-                           truncate = NULL,
                            vcov = NULL,
-                           epsilon = NULL,
-                           lastkeeper = NULL) {
+                           ctrl = NULL) {
   
   if(is.null(c(lambda, sigma))) {
     lambda <- exp(par[1])
     sigma <- exp(par[2])
+    Kdat <- generateK(X=X,
+                      sigma=sigma,
+                      control=ctrl)
   } else {
     if (is.null(lambda)) {
       lambda <- exp(par)
     }
     if (is.null(sigma)) {
       sigma <- exp(par)
+      Kdat <- generateK(X=X,
+                        sigma=sigma,
+                        control=ctrl)
     }
   }
+  
+  pars <- rep(0, ifelse(ctrl$truncate, ncol(Kdat$Utrunc), ncol(Kdat$K)) + 1)
   
   mse <- 0
   for(j in 1:folds){
     fold <- chunks[[j]]
-    if(truncate) {
+    if(ctrl$truncate) {
       #cjh added lastkeeper to this, to reuse it rather than re-search
-      truncDat <- Ktrunc(X = X[-fold,], sigma=sigma, epsilon=epsilon,lastkeeper=lastkeeper) 
       K <- NULL
-      Utrunc <- truncDat$Utrunc
-      eigvals <- truncDat$eigvals
+      Utrunc <- Kdat$Utrunc[-fold, ]
+      D <- Kdat$eigvals
     } else {
-      K <- kern_gauss(scale(X[-fold,]), sigma)
+      K <- Kdat$K[-fold, -fold]
       Utrunc <- NULL
-      eigvals <- NULL
+      D <- NULL
     }
     
-    pars <- rep(0, ifelse(truncate, ncol(Utrunc), ncol(K)) + 1)
-    parshat <- solveForC(par = pars, y=y[-fold], K=K, Utrunc=Utrunc, D=eigvals, lambda=lambda)
+    parshat <- solveForC(par = pars, y=y[-fold], K=K, Utrunc=Utrunc, D=D, lambda=lambda)
     
-    K <- newKernel(X[-fold, ], newData = X[fold, ])
+    #K <- newKernel(X[-fold, ], newData = X[fold, ])
     ## Is this transformation right?
-    if(truncate) {
-      coefhat <- mult_diag(Utrunc, 1/eigvals) %*% parshat$chat
+
+    if(ctrl$loss == "logistic") {
+      if(ctrl$truncate) {
+        yhat <- logistic(Kdat$Utrunc[fold, ], parshat$chat, parshat$beta0hat)
+      } else {
+        yhat <- logistic(Kdat$K[fold, -fold], parshat$chat, parshat$beta0hat)
+      }
     } else {
-      coefhat <- parshat$chat
+      if(ctrl$truncate) {
+        yhat <- Utrunc[fold, ] %*% parshat$chat
+      } else {
+        yhat <- K[fold, -fold] %*% parshat$chat
+      }
     }
-    yhat <- logistic(K=K, coefhat, beta0=parshat$beta0hat)
+    
     mse <- mse + sum((y[fold] - yhat)^2)
   }
   rmspe <- sqrt(mse/length(y))
