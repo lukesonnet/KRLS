@@ -122,7 +122,13 @@ krls <- function(# Data arguments
   
   ## Default sigma to the number of features
   if(is.null(sigma)){
-    if (!optimsigma) {sigma <- d}
+    if (!optimsigma) {
+      sigma <- d
+    } else if (loss == "leastsquares") {
+      message("Warning: Cannot simultaneously search for both lambda and sigma with leastsquares loss.")
+      message(sprintf("Setting sigma to %s", d))
+      sigma <- d
+    }
   } else{
     if(length(sigma) > 1) {
       sigmarange <- sigma
@@ -193,11 +199,6 @@ krls <- function(# Data arguments
                              sigma=sigma)
     }
   } else { # if(is.null(sigma)
-    if(loss == "leastsquares") {
-      message("Warning: Cannot simultaneously search for both lambda and sigma with leastsquares loss.")
-      message(sprintf("Setting sigma to %s", d))
-      sigma <- d
-    }
     
     if(is.null(lambda)) {
       
