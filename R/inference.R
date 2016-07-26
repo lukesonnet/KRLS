@@ -75,9 +75,29 @@ inference.krls2 <- function(obj,
         vcov.c <- tcrossprod(mult_diag(obj$U,sigmasq*(obj$D+obj$lambda)^-2),obj$U)
       } else {
         ## get reconstructed K
-        hessian <- krls_hess_sample(obj$K, obj$lambda)
+        if(!obj$truncate){
+          Ktilde <- obj$K
+        }
+        else {
+         Ktilde <- tcrossprod(mult_diag(obj$U, obj$D), obj$U)
+        }
         
+        hessian <- krls_hess_sample(Ktilde, obj$lambda)
         Ainv <- solve(hessian)
+        
+        if(is.null(clusters)) {
+          score <- matrix(nrow = n, ncol = length(c(obj$dhat, obj$beta0hat)))
+          for(i in 1:n) {
+            score[i, ] = krls_gr(obj$K[, i, drop = F], y[i], yfitted[i], yfitted, obj$lambda/n)
+          }
+        } else {
+          score <- matrix(nrow = length(clusters), ncol = length(c(obj$dhat, obj$beta0hat)))
+          for(j in 1:length(clusters)){
+            score[j, ] <-  krls_gr(obj$K[, i, drop = F], y[i], yfitted[i], yfitted, length(clusters[[j]]) * obj$lambda/n)
+          }
+          
+        }
+        
         
         score <- matrix(nrow = n, ncol = length(obj$coeffs))
         B <- matrix(0, nrow = length(obj$coeffs), ncol = length(obj$coeffs))
@@ -87,6 +107,7 @@ inference.krls2 <- function(obj,
           score[i, ] <- krls_gr(obj$K[, i, drop = F], y[i], yfitted[i], yfitted, obj$lambda/n)
           B <- B + tcrossprod(score[i, ])
         }
+        
         
         if(!is.null(clusters)) {
           B <- matrix(0, nrow = length(obj$coeffs), ncol = length(obj$coeffs))
@@ -106,22 +127,22 @@ inference.krls2 <- function(obj,
         hessian <- krlogit_hess_trunc(c(obj$dhat, obj$beta0hat), obj$U, obj$D, y, obj$lambda)
         vcov.cb0 <- solve(hessian)
         
-        score <- matrix(nrow = n, ncol = length(c(obj$dhat, obj$beta0hat)))
-        B <- matrix(0, nrow = length(c(obj$dhat,obj$beta0hat)), ncol = length(c(obj$dhat,obj$beta0hat)))
-        
-        for(i in 1:n) {
-          score[i, ] = t(-1 * krlogit_gr_trunc(c(obj$dhat, obj$beta0hat), obj$U[i, , drop=F], obj$D, y[i, drop = F], obj$lambda/n))
-          B <- B + tcrossprod(score[i, ])
-        }
+ 
         if(sandwich) {
-          if(!is.null(clusters)) {
-            B <- matrix(0, nrow = length(c(obj$dhat,obj$beta0hat)), ncol = length(c(obj$dhat,obj$beta0hat)))
+          if(is.null(clusters)) {
+            score <- matrix(nrow = n, ncol = length(c(obj$dhat, obj$beta0hat)))
+            for(i in 1:n) {
+              score[i, ] = t(-1 * krlogit_gr_trunc(c(obj$dhat, obj$beta0hat), obj$U[i, , drop=F], obj$D, y[i, drop = F], obj$lambda/n))
+            }
+          } else {
+            score <- matrix(nrow = length(clusters), ncol = length(c(obj$dhat, obj$beta0hat)))
             for(j in 1:length(clusters)){
-              B <- B + tcrossprod(apply(score[clusters[[j]], ], 2, sum))
+              score[j, ] <-  t(-1 * krlogit_gr_trunc(c(obj$dhat, obj$beta0hat), obj$U[clusters[[j]], , drop=F], obj$D, y[clusters[[j]], drop = F], length(clusters[[j]]) * obj$lambda/n))
             }
             
           }
-          vcov.cb0 <- vcov.cb0 %*% B %*% vcov.cb0
+          
+          vcov.cb0 <- vcov.cb0 %*% crossprod(score) %*% vcov.cb0
           
         }
         vcov.cb0.trunc <- vcov.cb0

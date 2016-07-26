@@ -147,3 +147,54 @@ Rcpp::List solve_for_c_lst(const arma::vec& y,
                             Rcpp::Named("Le") = Le);
 }
 
+
+
+
+//' @export
+// [[Rcpp::export]]
+
+
+Ainv <- solve(hessian)
+
+score <- matrix(nrow = n, ncol = length(obj$coeffs))
+B <- matrix(0, nrow = length(obj$coeffs), ncol = length(obj$coeffs))
+
+## todo: doing this in cpp or with matrices could be faster
+for(i in 1:n) {
+  score[i, ] <- krls_gr(obj$K[, i, drop = F], y[i], yfitted[i], yfitted, obj$lambda/n)
+  B <- B + tcrossprod(score[i, ])
+}
+
+if(!is.null(clusters)) {
+  B <- matrix(0, nrow = length(obj$coeffs), ncol = length(obj$coeffs))
+  for(j in 1:length(clusters)){
+    B <- B + tcrossprod(apply(score[clusters[[j]], ], 2, sum))
+  }
+}
+vcov.c <- Ainv %*% B %*% Ainv
+arma::mat score(const arma::vec& X,
+                const arma::mat& hess,
+                const arma::mat& K,
+                const arma::vec& y,
+                const arma::vec& yfitted,
+                const double& lambda,
+                const string& loss,
+                const Rcpp::list& clusters) {
+  int n = y.n_elem;
+  
+  arma::mat Ainv = arma::inv_sympd(hess);
+  arma::mat score(n, pars.n_elem);
+  arma::mat B(pars.n_elem, pars.n_elem);
+  
+  if (loss == "leastsquares") {
+    for (int i = 0; j < n; ++i) {
+      score.row(i) = krls_gr(K.col(i), y(i), yfitted(i), yfitted, lambda / n);
+      if(Rf_isNU)
+        B += 
+    }
+  }
+  
+  
+  
+}
+
