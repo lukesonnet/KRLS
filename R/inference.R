@@ -63,8 +63,6 @@ inference.krls2 <- function(obj,
   score <- NULL
   invhessian <- NULL
   vcov.db0 <- NULL
-  vcov.db0.trunc <- NULL
-  
     
   if (vcov) {
     
@@ -110,9 +108,7 @@ inference.krls2 <- function(obj,
         
         UDinv <- mult_diag(obj$U, 1/obj$D)
         
-        hessian <- krlogit_hess_trunc_inv(c(obj$dhat, obj$beta0hat), obj$U, obj$D, y, obj$lambda)
-        vcov.db0 <- solve(hessian)
-        
+        invhessian <- krlogit_hess_trunc_inv(c(obj$dhat, obj$beta0hat), obj$U, obj$D, y, obj$lambda)
  
         if(sandwich) {
           if(is.null(clusters)) {
@@ -128,10 +124,11 @@ inference.krls2 <- function(obj,
             
           }
           
-          vcov.db0 <- vcov.db0 %*% crossprod(score) %*% vcov.db0
+          vcov.db0 <- invhessian %*% crossprod(score) %*% invhessian
           
+        } else {
+          vcov.db0 <- invhessian
         }
-        vcov.db0.trunc <- vcov.db0
         vcov.c <- tcrossprod(UDinv%*%vcov.db0[1:length(obj$dhat), 1:length(obj$dhat)], UDinv)
         ## Just work with truncation later
       } else {vcov.db0 = NULL}
@@ -231,7 +228,7 @@ inference.krls2 <- function(obj,
   
   z <- c(obj,
          list(vcov.c = vcov.c,
-              vcov.db0.trunc = vcov.db0.trunc,
+              vcov.db0 = vcov.db0,
             derivatives = derivatives,
             avgderivatives = avgderivatives,
             var.avgderivatives = var.avgderivatives)
@@ -310,7 +307,7 @@ fdskrls <-
         } else {
           #deriv.avgfd.logit <- colMeans(pout$deriv.logit[1:n, ] - pout$deriv.logit[(n+1):(2*n), ])
           deriv.avgfd.logit <- crossprod(h, pout$deriv.logit)
-          vcov.avgfd <- tcrossprod(deriv.avgfd.logit %*% object$vcov.db0.trunc, deriv.avgfd.logit)
+          vcov.avgfd <- tcrossprod(deriv.avgfd.logit %*% object$vcov.db0, deriv.avgfd.logit)
           se[i,1] <- as.vector(sqrt(vcov.avgfd)) *sqrt(2)
         }
         # all
