@@ -68,9 +68,8 @@ arma::vec krls_gr_trunc(
     const double& lambda) {
   
   arma::vec score = -2 * (U.t() * (y - fitted) + lambda * (dhat / D)); 
-  
+
   return score;
-  
 }
 
 // Hessian used for sandwich estimator for KRLS

@@ -92,13 +92,12 @@ inference.krls2 <- function(obj,
             score[i, ] = krls_gr_trunc(obj$U[i, , drop = F], obj$D, y[i], yfitted[i], obj$dhat, obj$lambda/n)
           }
         } else {
-          score <- matrix(nrow = length(clusters), ncol = length(obj$beta0hat))
+          score <- matrix(nrow = length(clusters), ncol = length(obj$dhat))
           for(j in 1:length(clusters)){
             score[j, ] = krls_gr_trunc(obj$U[clusters[[j]], , drop = F], obj$D, y[clusters[[j]]], yfitted[clusters[[j]]], obj$dhat, length(clusters[[j]]) * obj$lambda/n)
           }
           
         }
-        
         
         vcov.d <- invhessian %*% crossprod(score) %*% invhessian
         vcov.c <- tcrossprod(UDinv%*%vcov.d, UDinv)
