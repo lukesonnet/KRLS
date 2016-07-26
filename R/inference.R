@@ -72,12 +72,7 @@ inference.krls2 <- function(obj,
       if(!sandwich) {
         sigmasq <- as.vector((1/n) * crossprod(y-yfitted))
         
-        
-        if(!obj$truncate) {
-          vcov.c <- tcrossprod(mult_diag(obj$eigobj$vectors,sigmasq*(obj$eigobj$values+obj$lambda)^-2),obj$eigobj$vectors)
-        } else {
-          vcov.c <- tcrossprod(mult_diag(obj$Utrunc,sigmasq*(obj$D+obj$lambda)^-2),obj$Utrunc)
-        }
+        vcov.c <- tcrossprod(mult_diag(obj$U,sigmasq*(obj$D+obj$lambda)^-2),obj$U)
       } else {
         ## get reconstructed K
         hessian <- krls_hess_sample(obj$K, obj$lambda)
@@ -106,21 +101,21 @@ inference.krls2 <- function(obj,
       ## Vcov of d
       if (vcov & obj$truncate) {
         
-        UDinv <- mult_diag(obj$Utrunc, 1/obj$D)
+        UDinv <- mult_diag(obj$U, 1/obj$D)
         
-        hessian <- krlogit_hess_trunc(c(obj$chat, obj$beta0hat), obj$Utrunc, obj$D, y, obj$lambda)
+        hessian <- krlogit_hess_trunc(c(obj$dhat, obj$beta0hat), obj$U, obj$D, y, obj$lambda)
         vcov.cb0 <- solve(hessian)
         
-        score <- matrix(nrow = n, ncol = length(c(obj$chat, obj$beta0hat)))
-        B <- matrix(0, nrow = length(c(obj$chat,obj$beta0hat)), ncol = length(c(obj$chat,obj$beta0hat)))
+        score <- matrix(nrow = n, ncol = length(c(obj$dhat, obj$beta0hat)))
+        B <- matrix(0, nrow = length(c(obj$dhat,obj$beta0hat)), ncol = length(c(obj$dhat,obj$beta0hat)))
         
         for(i in 1:n) {
-          score[i, ] = t(-1 * krlogit_gr_trunc(c(obj$chat, obj$beta0hat), obj$Utrunc[i, , drop=F], obj$D, y[i, drop = F], obj$lambda/n))
+          score[i, ] = t(-1 * krlogit_gr_trunc(c(obj$dhat, obj$beta0hat), obj$U[i, , drop=F], obj$D, y[i, drop = F], obj$lambda/n))
           B <- B + tcrossprod(score[i, ])
         }
         if(sandwich) {
           if(!is.null(clusters)) {
-            B <- matrix(0, nrow = length(c(obj$chat,obj$beta0hat)), ncol = length(c(obj$chat,obj$beta0hat)))
+            B <- matrix(0, nrow = length(c(obj$dhat,obj$beta0hat)), ncol = length(c(obj$dhat,obj$beta0hat)))
             for(j in 1:length(clusters)){
               B <- B + tcrossprod(apply(score[clusters[[j]], ], 2, sum))
             }
@@ -130,7 +125,7 @@ inference.krls2 <- function(obj,
           
         }
         vcov.cb0.trunc <- vcov.cb0
-        vcov.c <- tcrossprod(UDinv%*%vcov.cb0[1:length(obj$chat), 1:length(obj$chat)], UDinv)
+        vcov.c <- tcrossprod(UDinv%*%vcov.cb0[1:length(obj$dhat), 1:length(obj$dhat)], UDinv)
         ## Just work with truncation later
       } else {vcov.cb0 = NULL}
       
@@ -157,7 +152,7 @@ inference.krls2 <- function(obj,
       tau <- 2 * yfitted*(1-yfitted)
     }
     
-    #construct coefhat=c for no truncation and coefhat = Utrunc*c
+    #construct coefhat=c for no truncation and coefhat = U*c
     #to take the truncation into the coefficients. 
     
     if(cpp) {
@@ -165,7 +160,7 @@ inference.krls2 <- function(obj,
       if(!obj$truncate){
         derivout <- pwmfx(obj$K, X, obj$coeffs, vcov.c, tau, obj$b)
       } else {
-        derivout <- pwmfx(tcrossprod(mult_diag(obj$Utrunc, obj$D), obj$Utrunc), X, obj$coeffs, vcov.c, tau, obj$b)
+        derivout <- pwmfx(tcrossprod(mult_diag(obj$U, obj$D), obj$U), X, obj$coeffs, vcov.c, tau, obj$b)
       }
       derivatives <- derivout[1:n, ]
       var.avgderivatives <- derivout[n+1, ]
@@ -285,7 +280,6 @@ fdskrls <-
     if(length(binaryindicator)==0){
       # no binary vars in X; return derivs as is  
     } else {
-      print("found binary")
       # compute marginal differences from min to max 
       est  <- se <- matrix(NA,nrow=1,ncol=length(binaryindicator))
       diffsstore <- matrix(NA,nrow=n,ncol=length(binaryindicator))
@@ -300,6 +294,7 @@ fdskrls <-
         h         <- matrix(rep(c(1/n,-(1/n)),each=n),ncol=1)
         # fitted values
         pout      <- predict(object,newdata=Xall,se.fit=TRUE)
+        
         # store FD estimates
         est[1,i] <- t(h)%*%pout$fit        
         if(object$loss == "leastsquares") {

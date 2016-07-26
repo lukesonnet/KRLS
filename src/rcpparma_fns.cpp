@@ -73,14 +73,14 @@ arma::mat krls_hess_sample(const arma::mat& K,
 //' @export
 // [[Rcpp::export]]
 double krlogit_fn_trunc(const arma::vec& par,
-                        const arma::mat& Utrunc,
+                        const arma::mat& U,
                         const arma::vec& D,
                         const arma::vec& y,
                         const double& lambda) {
   
   arma::vec coef = par.subvec(0, par.n_elem - 2);
   double beta0 = par(par.n_elem-1);
-  arma::mat Ud = Utrunc * coef;
+  arma::mat Ud = U * coef;
   
   double ret = accu(y % log(1 + exp(-(beta0 + Ud))) + 
                     (1 - y) % log(1 + exp(beta0 + Ud))) + 
@@ -93,18 +93,18 @@ double krlogit_fn_trunc(const arma::vec& par,
 //' @export
 // [[Rcpp::export]]
 arma::vec krlogit_gr_trunc(const arma::vec& par,
-                        const arma::mat& Utrunc,
+                        const arma::mat& U,
                         const arma::vec& D,
                         const arma::vec& y,
                         const double& lambda) {
   
   arma::vec coef = par.subvec(0, par.n_elem - 2);
   double beta0 = par(par.n_elem-1);
-  arma::vec resid = y - (1 / (1 + exp(-Utrunc * coef - beta0)));
+  arma::vec resid = y - (1 / (1 + exp(-U * coef - beta0)));
   
   arma::vec ret(par.n_elem);
   
-  ret.subvec(0, par.n_elem - 2) = -Utrunc.t() * resid + 2 * (lambda / D) % coef;
+  ret.subvec(0, par.n_elem - 2) = -U.t() * resid + 2 * (lambda / D) % coef;
   ret(par.n_elem - 1) = -accu(resid);
   
   return ret;
@@ -126,20 +126,20 @@ arma::vec partial_logit(const arma::mat& K,
 //' @export
 // [[Rcpp::export]]
 arma::mat krlogit_hess_trunc(const arma::vec& par,
-                           const arma::mat& Utrunc,
+                           const arma::mat& U,
                            const arma::vec& D,
                            const arma::vec& y,
                            const double& lambda) {
   
   arma::vec coef = par.subvec(0, par.n_elem - 2);
   double beta0 = par(par.n_elem-1);
-  arma::vec meat = partial_logit(Utrunc, coef, beta0);
+  arma::vec meat = partial_logit(U, coef, beta0);
 
   arma::mat ret(par.n_elem, par.n_elem);
 
-  arma::mat dcdc = mult_diag(Utrunc.t(), meat) * Utrunc + diagmat(2 * (lambda / D));
+  arma::mat dcdc = mult_diag(U.t(), meat) * U + diagmat(2 * (lambda / D));
   
-  arma::vec dcdb = Utrunc.t() * meat;
+  arma::vec dcdb = U.t() * meat;
   
   double dbdb = accu(meat);
   
@@ -236,40 +236,21 @@ double lambda_search(const double& tol,
 
 //' @export
 // [[Rcpp::export]]
-Rcpp::List solve_for_c_ls(const arma::vec& y,
+Rcpp::List solve_for_d_ls(const arma::vec& y,
                           const arma::mat& U,
                           const arma::vec& D,
                           const double& lambda) {
 
   arma::vec Ginv = 1 / (1 + lambda / D);
   
-  arma::vec coeffs = Ginv % (U.t() * y);
+  arma::vec dhat = Ginv % (U.t() * y);
   // This is the same as above
-  //arma::vec tempLoss = (y - Utrunc * coeffs) / diagvec(arma::eye(y.n_elem, y.n_elem) - mult_diag(Utrunc, Ginv) * Utrunc.t()); 
+  //arma::vec tempLoss = (y - U * coeffs) / diagvec(arma::eye(y.n_elem, y.n_elem) - mult_diag(U, Ginv) * U.t()); 
   
   arma::vec tempLoss = (y - U * mult_diag(U, Ginv).t() * y) / diagvec(arma::eye(y.n_elem, y.n_elem) - U * mult_diag(U, Ginv).t());
   double Le = as_scalar(tempLoss.t() * tempLoss);
     
-  return Rcpp::List::create(Rcpp::Named("coeffs") = coeffs,
-                            Rcpp::Named("Le") = Le);
-}
-
-//' @export
-//  [[Rcpp::export]]
-Rcpp::List solve_for_c_lst(const arma::vec& y,
-                          const arma::mat& K,
-                          const double& lambda) {
-  
-  int nn =  y.n_elem;
-  arma::mat Ginv(nn, nn);
-  
-  Ginv = arma::inv_sympd(K + lambda * arma::eye(nn, nn));
-
-  arma::vec coeffs = Ginv * y;
-  arma::vec tempLoss = coeffs / diagvec(Ginv);
-  double Le = as_scalar(tempLoss.t() * tempLoss);
-  
-  return Rcpp::List::create(Rcpp::Named("coeffs") = coeffs,
+  return Rcpp::List::create(Rcpp::Named("dhat") = dhat,
                             Rcpp::Named("Le") = Le);
 }
 

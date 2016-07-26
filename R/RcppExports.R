@@ -22,13 +22,13 @@ krls_hess_sample <- function(K, lambda) {
 }
 
 #' @export
-krlogit_fn_trunc <- function(par, Utrunc, D, y, lambda) {
-    .Call('KRLS2_krlogit_fn_trunc', PACKAGE = 'KRLS2', par, Utrunc, D, y, lambda)
+krlogit_fn_trunc <- function(par, U, D, y, lambda) {
+    .Call('KRLS2_krlogit_fn_trunc', PACKAGE = 'KRLS2', par, U, D, y, lambda)
 }
 
 #' @export
-krlogit_gr_trunc <- function(par, Utrunc, D, y, lambda) {
-    .Call('KRLS2_krlogit_gr_trunc', PACKAGE = 'KRLS2', par, Utrunc, D, y, lambda)
+krlogit_gr_trunc <- function(par, U, D, y, lambda) {
+    .Call('KRLS2_krlogit_gr_trunc', PACKAGE = 'KRLS2', par, U, D, y, lambda)
 }
 
 #' @export
@@ -37,8 +37,8 @@ partial_logit <- function(K, coef, beta0) {
 }
 
 #' @export
-krlogit_hess_trunc <- function(par, Utrunc, D, y, lambda) {
-    .Call('KRLS2_krlogit_hess_trunc', PACKAGE = 'KRLS2', par, Utrunc, D, y, lambda)
+krlogit_hess_trunc <- function(par, U, D, y, lambda) {
+    .Call('KRLS2_krlogit_hess_trunc', PACKAGE = 'KRLS2', par, U, D, y, lambda)
 }
 
 #' @export
@@ -67,13 +67,8 @@ lambda_search <- function(tol, l, u, y, eigvals, eigvecs, eigtrunc) {
 }
 
 #' @export
-solve_for_c_ls <- function(y, U, D, lambda) {
-    .Call('KRLS2_solve_for_c_ls', PACKAGE = 'KRLS2', y, U, D, lambda)
-}
-
-#' @export
-solve_for_c_lst <- function(y, K, lambda) {
-    .Call('KRLS2_solve_for_c_lst', PACKAGE = 'KRLS2', y, K, lambda)
+solve_for_d_ls <- function(y, U, D, lambda) {
+    .Call('KRLS2_solve_for_d_ls', PACKAGE = 'KRLS2', y, U, D, lambda)
 }
 
 #' @export

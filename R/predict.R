@@ -22,10 +22,10 @@ predict.krls2 <- function(object, newdata, se.fit = FALSE, ...) {
     stop("ncol(newdata) differs from ncol(X) from fitted krls object")
   }
   
-  newdataK <- newKernel(X = object$X, newData = newdata, whichkernel = object$kernel, sigma = object$sigma)
+  newdataK <- newKernel(X = object$X, newData = newdata, whichkernel = object$kernel, b = object$b)
   
   #if(object$truncate){
-  #  newdataK <- newdataK%*%object$Utrunc
+  #  newdataK <- newdataK%*%object$U
   #}
   
   if(object$loss == "logistic") {
@@ -33,11 +33,11 @@ predict.krls2 <- function(object, newdata, se.fit = FALSE, ...) {
     
     if(se.fit){
       # use truncation so that we can use vcov.cb0.trunc because vcov.c does not have uncertainty of b0. Could change this and return vcov.c padded with UDinv %*% vcov.cb0[1:nrow(UDinv), ncol(vcov.cb0)] instead
-      newUtrunc <- newdataK %*% mult_diag(object$Utrunc, 1/object$D)
-  
+      newU <- newdataK %*% mult_diag(object$U, 1/object$D)
+
       # todo: could move to cpp if slow
-      partiallogit <- partial_logit(newUtrunc, object$chat, object$beta0hat)
-      deriv.logit <- cbind(mult_diag(newUtrunc, partiallogit),
+      partiallogit <- partial_logit(newU, object$dhat, object$beta0hat)
+      deriv.logit <- cbind(mult_diag(newU, partiallogit),
                           partiallogit)
       vcov.fit <- tcrossprod(deriv.logit %*% object$vcov.cb0.trunc, deriv.logit)       
       se.fit <- matrix(sqrt(diag(vcov.fit)),ncol=1)

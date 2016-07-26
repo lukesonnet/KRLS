@@ -150,51 +150,25 @@ lambdab.fn <- function(par = NULL,
     }
   }
   
-  pars <- rep(0, ifelse(ctrl$truncate, ncol(Kdat$Utrunc), ncol(Kdat$K)) + 1)
-  
+  pars <- rep(0, ncol(Kdat$U) + 1)
+
   mse <- 0
   for(j in 1:folds){
     fold <- chunks[[j]]
-    if(ctrl$truncate) {
-      #cjh added lastkeeper to this, to reuse it rather than re-search
-      KFold <- NULL
-      UtruncFold <- Kdat$Utrunc[-fold, ]
-      D <- Kdat$eigvals
-    } else {
-      KFold <- Kdat$K[-fold, -fold]
-      UtruncFold <- NULL
-      D <- NULL
-    }
+    UFold <- Kdat$U[-fold, ]
+
+    out <- getDhat(par = pars,
+                   y=y[-fold],
+                   U=UFold,
+                   D=Kdat$D,
+                   lambda=lambda,
+                   ctrl = ctrl)
     
     if(ctrl$loss == "leastsquares") {
-      if(ctrl$truncate) {
-        parshat <- solve_for_c_ls_trunc(y = y[-fold], Utrunc = UtruncFold, D = D, lambda = lambda)
-        yhat <- Kdat$Utrunc[fold, ] %*% parshat$chat
-      } else {
-        print(dim(KFold))
-        print(dim(Kdat$K))
-        print(length(y[-fold]))
-        parshat <- solve_for_c_ls(y = y[-fold], K = KFold, lambda = lambda)
-        yhat <- Kdat$K[fold, -fold] %*% parshat$chat
-      }
+      yhat <- Kdat$U[fold, ] %*% out$dhat
 
     } else if (ctrl$loss == "logistic") {
-      parshat <- solveForC(par = pars, y=y[-fold], K=KFold, Utrunc=UtruncFold, D=D, lambda=lambda)
-      
-      if(ctrl$truncate) {
-        yhat <- logistic(Kdat$Utrunc[fold, ], parshat$chat, parshat$beta0hat)
-      } else {
-        yhat <- logistic(Kdat$K[fold, -fold], parshat$chat, parshat$beta0hat)
-      }
-    }
-    
-    #K <- newKernel(X[-fold, ], newData = X[fold, ])
-    ## Is this transformation right?
-
-    if(ctrl$loss == "logistic") {
-
-    } else {
-
+      yhat <- logistic(Kdat$U[fold, ], out$dhat, out$beta0hat)
     }
     
     mse <- mse + sum((y[fold] - yhat)^2)
@@ -295,5 +269,5 @@ lambdaline <-
 #' @export
 looloss <-
   function(y=NULL,K=NULL,D=NULL,U=NULL,lambda=NULL){
-      return(solve_for_c_ls(y=y,D=D,U=U,lambda=lambda)$Le)
+      return(solve_for_d_ls(y=y,D=D,U=U,lambda=lambda)$Le)
   }

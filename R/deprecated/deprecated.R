@@ -125,3 +125,25 @@ multdiag <- function(X,d){
   }
   return(R)
 }
+
+
+
+//' @export
+//  [[Rcpp::export]]
+Rcpp::List solve_for_c_lst(const arma::vec& y,
+                          const arma::mat& K,
+                          const double& lambda) {
+  
+  int nn =  y.n_elem;
+  arma::mat Ginv(nn, nn);
+  
+  Ginv = arma::inv_sympd(K + lambda * arma::eye(nn, nn));
+
+  arma::vec coeffs = Ginv * y;
+  arma::vec tempLoss = coeffs / diagvec(Ginv);
+  double Le = as_scalar(tempLoss.t() * tempLoss);
+  
+  return Rcpp::List::create(Rcpp::Named("coeffs") = coeffs,
+                            Rcpp::Named("Le") = Le);
+}
+

@@ -110,7 +110,8 @@ krls <- function(# Data arguments
                  truncate=truncate,
                  lastkeeper=lastkeeper,
                  epsilon=epsilon,
-                 quiet=quiet)
+                 quiet=quiet,
+                 returnopt=returnopt)
   
   ###----------------------------------------
   ## Preparing to search for hyperparameters
@@ -229,49 +230,40 @@ krls <- function(# Data arguments
   ###----------------------------------------
   ## Estimating choice coefficients (solving)
   ###----------------------------------------
-  
-  if (loss == "leastsquares") {
-    out <- solve_for_c_ls(y=y, U = Kdat$U, D = Kdat$D,lambda=lambda)
 
-    dhat <- out$coeffs
-    
-    ## getting c_p from d
-    coefhat=NULL
-    UDinv = mult_diag(Kdat$U, 1/Kdat$D)
-    coefhat=UDinv %*% dhat
-    
-    
+  out <- getDhat(y = y,
+                 U = Kdat$U,
+                 D = Kdat$D,
+                 lambda = lambda,
+                 con = con,
+                 ctrl = control)
+  
+  UDinv <- mult_diag(Kdat$U, 1/Kdat$D)
+
+  coefhat <- UDinv %*% out$dhat
+  
+  # todo: replace with internal predict dispatcher that takes getDhat object
+  if (loss == "leastsquares") {
+
     yfitted <- Kdat$K%*%coefhat
     yfitted <- yfitted*y.init.sd+y.init.mean
-    
-    beta0hat <- NULL
-    
+  
   } else {
-    out <- solveForC(y=y, K=Kdat$K, Utrunc=Kdat$Utrunc, D=Kdat$eigvals, lambda=lambda, con=con, printout = printout, returnopt = returnopt)
-    chat <- out$chat
-    beta0hat <- out$beta0hat
+    
     opt <- if(returnopt) out$opt else NULL
     
-    ## getting c_p from d
-    coefhat=NULL
-    if(truncate==FALSE){coefhat=chat} else {
-      UDinv = mult_diag(Kdat$Utrunc, 1/Kdat$eigvals)
-      coefhat=UDinv %*% chat
-    }
-    
-    yfitted <- logistic(K=Kdat$K, coeff=coefhat, beta0 = beta0hat)
+    yfitted <- logistic(K=Kdat$K, coeff=coefhat, beta0 = out$beta0hat)
     
   }
   
   z <- list(K=Kdat$K,
-#            Ktilde=tcrossprod(mult_diag(Kdat$Utrunc, Kdat$eigvals), Kdat$Utrunc),
             U=Kdat$U,
             D=Kdat$D,
             lastkeeper = lastkeeper,
             truncate = truncate,
             coeffs=coefhat,
-            dhat=dhat,
-            beta0hat = beta0hat,
+            dhat=out$dhat,
+            beta0hat = out$beta0hat,
             fitted=yfitted,
             X=X.init,
             y=y.init,

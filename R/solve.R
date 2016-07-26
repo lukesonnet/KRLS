@@ -2,6 +2,33 @@
 ## Functions:
 ##            solveForC (used for krlogit; see solve_for_c_ls* in the cpp for krls)
 
+#' @export
+getDhat <- function(par = NULL,
+                    y,
+                    U,
+                    D,
+                    lambda,
+                    con = list(),
+                    ctrl) {
+  
+  if(ctrl$loss == "leastsquares") {
+    out <- solve_for_d_ls(y=y, U=U, D=D, lambda=lambda)
+  } else if(ctrl$loss == "logistic") {
+    out <- solveForDOptim(par = par,
+                   y = y,
+                   U = U,
+                   D = D,
+                   lambda = lambda,
+                   con = con,
+                   printout = !ctrl$quiet,
+                   returnopt = ctrl$returnopt)
+  } else {
+    stop("Loss must be either 'leastsquares' or 'logistic'.")
+  }
+  
+  return(out)
+}
+
 ## Optimize C in 'krlogit.fn' given the data and lambda
 ## Parameters:
 ##   'par' - starting parameters
@@ -13,28 +40,24 @@
 ##     'chat' - the estimated values for c, a vector of length n
 ##     'fullopt' - the full object that optim returns, for diagnostic purposes
 #' @export
-solveForC <- function(par= NULL,
+solveForDOptim <- function(par= NULL,
                       y = NULL,
-                      K = NULL,
-                      Utrunc = NULL,
+                      U = NULL,
                       D = NULL,
                       lambda = NULL,
                       con = list(),
                       printout = FALSE,
                       returnopt = TRUE) {
   
-  ncoeffs <- ifelse(is.null(D), ncol(K), ncol(Utrunc))
-  par <- rep(0, ncoeffs + 1)
-  
-  if(is.null(D)){
-    opt <- optim(par, krlogit.fn, gr=krlogit.gr, K=K, y=y, lambda=lambda,
-                 method="BFGS", control=con)
-  } else {
-    opt <- optim(par, krlogit_fn_trunc, gr=krlogit_gr_trunc, Utrunc=Utrunc, D = D, y=y, lambda=lambda,
-                 method="BFGS", control=con)
+  ncoeffs <- ncol(U)
+  if(is.null(par)) {
+    par <- rep(0, ncoeffs + 1)
   }
   
-  chat <- opt$par[1:ncoeffs]
+  opt <- optim(par, krlogit_fn_trunc, gr=krlogit_gr_trunc, U=U, D = D, y=y, lambda=lambda,
+               method="BFGS", control=con)
+  
+  dhat <- opt$par[1:ncoeffs]
   beta0hat <- opt$par[ncoeffs+1]
   
   if (!returnopt) opt <- NULL
@@ -43,7 +66,7 @@ solveForC <- function(par= NULL,
     print(paste("Converged? ", as.logical(1 - opt$convergence)))
   }
   
-  return(list(chat = chat,
+  return(list(dhat = dhat,
               beta0hat = beta0hat,
               opt = opt))
 }
