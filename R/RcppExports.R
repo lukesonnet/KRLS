@@ -17,8 +17,18 @@ krls_gr <- function(K, y, fitted, fittedFull, lambda) {
 }
 
 #' @export
-krls_hess_sample <- function(K, lambda) {
-    .Call('KRLS2_krls_hess_sample', PACKAGE = 'KRLS2', K, lambda)
+krls_gr_trunc <- function(U, D, y, fitted, dhat, lambda) {
+    .Call('KRLS2_krls_gr_trunc', PACKAGE = 'KRLS2', U, D, y, fitted, dhat, lambda)
+}
+
+#' @export
+krls_hess_inv <- function(K, lambda) {
+    .Call('KRLS2_krls_hess_inv', PACKAGE = 'KRLS2', K, lambda)
+}
+
+#' @export
+krls_hess_trunc_inv <- function(U, D, lambda) {
+    .Call('KRLS2_krls_hess_trunc_inv', PACKAGE = 'KRLS2', U, D, lambda)
 }
 
 #' @export
@@ -37,8 +47,8 @@ partial_logit <- function(K, coef, beta0) {
 }
 
 #' @export
-krlogit_hess_trunc <- function(par, U, D, y, lambda) {
-    .Call('KRLS2_krlogit_hess_trunc', PACKAGE = 'KRLS2', par, U, D, y, lambda)
+krlogit_hess_trunc_inv <- function(par, U, D, y, lambda) {
+    .Call('KRLS2_krlogit_hess_trunc_inv', PACKAGE = 'KRLS2', par, U, D, y, lambda)
 }
 
 #' @export

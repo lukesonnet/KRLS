@@ -61,7 +61,7 @@ inference.krls2 <- function(obj,
   
   vcov.c <- NULL
   score <- NULL
-  hessian <- NULL
+  invhessian <- NULL
   vcov.cb0 <- NULL
   vcov.cb0.trunc <- NULL
   
@@ -76,46 +76,33 @@ inference.krls2 <- function(obj,
       } else {
         ## get reconstructed K
         if(!obj$truncate){
-          Ktilde <- obj$K
+          stop("Sandwich estimators only available with truncated KRLS.")
+          invhessian <- krls_hess_inv(obj$K, obj$lambda)
         }
         else {
-         Ktilde <- tcrossprod(mult_diag(obj$U, obj$D), obj$U)
+          UDinv <- mult_diag(obj$U, 1/obj$D)
+          invhessian <- krls_hess_trunc_inv(obj$U, obj$D, obj$lambda)
         }
         
-        hessian <- krls_hess_sample(Ktilde, obj$lambda)
-        Ainv <- solve(hessian)
+
         
         if(is.null(clusters)) {
-          score <- matrix(nrow = n, ncol = length(c(obj$dhat, obj$beta0hat)))
+          score <- matrix(nrow = n, ncol = length(obj$dhat))
           for(i in 1:n) {
-            score[i, ] = krls_gr(obj$K[, i, drop = F], y[i], yfitted[i], yfitted, obj$lambda/n)
+            score[i, ] = krls_gr_trunc(obj$U[i, , drop = F], obj$D, y[i], yfitted[i], obj$dhat, obj$lambda/n)
           }
         } else {
-          score <- matrix(nrow = length(clusters), ncol = length(c(obj$dhat, obj$beta0hat)))
+          score <- matrix(nrow = length(clusters), ncol = length(obj$beta0hat))
           for(j in 1:length(clusters)){
-            score[j, ] <-  krls_gr(obj$K[, i, drop = F], y[i], yfitted[i], yfitted, length(clusters[[j]]) * obj$lambda/n)
+            score[j, ] = krls_gr_trunc(obj$U[clusters[[j]], , drop = F], obj$D, y[clusters[[j]]], yfitted[clusters[[j]]], obj$dhat, length(clusters[[j]]) * obj$lambda/n)
           }
           
         }
         
         
-        score <- matrix(nrow = n, ncol = length(obj$coeffs))
-        B <- matrix(0, nrow = length(obj$coeffs), ncol = length(obj$coeffs))
+        vcov.d <- invhessian %*% crossprod(score) %*% invhessian
+        vcov.c <- tcrossprod(UDinv%*%vcov.d, UDinv)
         
-        ## todo: doing this in cpp or with matrices could be faster
-        for(i in 1:n) {
-          score[i, ] <- krls_gr(obj$K[, i, drop = F], y[i], yfitted[i], yfitted, obj$lambda/n)
-          B <- B + tcrossprod(score[i, ])
-        }
-        
-        
-        if(!is.null(clusters)) {
-          B <- matrix(0, nrow = length(obj$coeffs), ncol = length(obj$coeffs))
-          for(j in 1:length(clusters)){
-            B <- B + tcrossprod(apply(score[clusters[[j]], ], 2, sum))
-          }
-        }
-        vcov.c <- Ainv %*% B %*% Ainv
       }
       
     } else {
@@ -124,7 +111,7 @@ inference.krls2 <- function(obj,
         
         UDinv <- mult_diag(obj$U, 1/obj$D)
         
-        hessian <- krlogit_hess_trunc(c(obj$dhat, obj$beta0hat), obj$U, obj$D, y, obj$lambda)
+        hessian <- krlogit_hess_trunc_inv(c(obj$dhat, obj$beta0hat), obj$U, obj$D, y, obj$lambda)
         vcov.cb0 <- solve(hessian)
         
  
@@ -257,7 +244,7 @@ inference.krls2 <- function(obj,
   
   if(returnmoreinf) {
     z$score = score
-    z$hessian = hessian
+    z$invhessian = invhessian
   }
   
   return(z)
