@@ -102,7 +102,7 @@ inference.krls2 <- function(obj,
         
       }
       
-    } else {
+    } else { # if loss == 'logistic'
       ## Vcov of d
       if (vcov & obj$truncate) {
         
@@ -308,7 +308,7 @@ fdskrls <-
           #deriv.avgfd.logit <- colMeans(pout$deriv.logit[1:n, ] - pout$deriv.logit[(n+1):(2*n), ])
           deriv.avgfd.logit <- crossprod(h, pout$deriv.logit)
           vcov.avgfd <- tcrossprod(deriv.avgfd.logit %*% object$vcov.db0, deriv.avgfd.logit)
-          se[i,1] <- as.vector(sqrt(vcov.avgfd)) *sqrt(2)
+          se[1,i] <- as.vector(sqrt(vcov.avgfd)) *sqrt(2)
         }
         # all
         diffs <- pout$fit[1:n]-pout$fit[(n+1):(2*n)]          
