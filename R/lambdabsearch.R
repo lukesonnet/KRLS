@@ -161,6 +161,7 @@ lambdab.fn <- function(par = NULL,
                    y=y[-fold],
                    U=UFold,
                    D=Kdat$D,
+                   w=ctrl$w[-fold],
                    lambda=lambda,
                    ctrl = ctrl)
     

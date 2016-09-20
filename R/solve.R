@@ -7,6 +7,7 @@ getDhat <- function(par = NULL,
                     y,
                     U,
                     D,
+                    w,
                     lambda,
                     con = list(),
                     ctrl) {
@@ -18,6 +19,7 @@ getDhat <- function(par = NULL,
                    y = y,
                    U = U,
                    D = D,
+                   w = w,
                    lambda = lambda,
                    con = con,
                    printout = !ctrl$quiet,
@@ -44,6 +46,7 @@ solveForDOptim <- function(par= NULL,
                       y = NULL,
                       U = NULL,
                       D = NULL,
+                      w = NULL,
                       lambda = NULL,
                       con = list(),
                       printout = FALSE,
@@ -54,7 +57,7 @@ solveForDOptim <- function(par= NULL,
     par <- rep(0, ncoeffs + 1)
   }
   
-  opt <- optim(par, krlogit_fn_trunc, gr=krlogit_gr_trunc, U=U, D = D, y=y, lambda=lambda,
+  opt <- optim(par, krlogit_fn_trunc, gr=krlogit_gr_trunc, U=U, D = D, y=y, w=w, lambda=lambda,
                method="BFGS", control=con)
   
   dhat <- opt$par[1:ncoeffs]

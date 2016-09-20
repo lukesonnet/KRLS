@@ -2,7 +2,6 @@
 # Roxygen Commands
 #----------
 
-#' @import methods
 #' @import rARPACK
 NULL
 #' @useDynLib KRLS2
@@ -22,6 +21,7 @@ NULL
 krls <- function(# Data arguments
                     X,
                     y,
+                    w = NULL, # weights
                     # Family
                     loss = "leastsquares",
                     # Kernel arguments
@@ -103,8 +103,18 @@ krls <- function(# Data arguments
     }
   }
   
+  ## todo: it might be faster to have different versions with and without weights
+  ## because it saves a bunch of pointless multiplications. However this will
+  ## increase the amount of code.
+  if (is.null(w)) {
+    w <- rep(1, n)
+  } else if (length(w) != n) {
+    stop("w is not the same length as y")
+  }
+  
   ## Carry vars in list
-  control = list(d=d,
+  control = list(w=w,
+                 d=d,
                  loss=loss,
                  whichkernel=whichkernel,
                  truncate=truncate,
@@ -182,7 +192,7 @@ krls <- function(# Data arguments
   ###----------------------------------------
   ## searching for hyperparameters
   ###----------------------------------------
-  
+
   ## If b ix fixed, compute all of the kernels
   if(!is.null(b)) {
     
@@ -234,6 +244,7 @@ krls <- function(# Data arguments
   out <- getDhat(y = y,
                  U = Kdat$U,
                  D = Kdat$D,
+                 w = control$w,
                  lambda = lambda,
                  con = con,
                  ctrl = control)
@@ -259,6 +270,7 @@ krls <- function(# Data arguments
   z <- list(K=Kdat$K,
             U=Kdat$U,
             D=Kdat$D,
+            w=control$w,
             lastkeeper = lastkeeper,
             truncate = truncate,
             coeffs=coefhat,

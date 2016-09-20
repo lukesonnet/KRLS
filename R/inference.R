@@ -11,6 +11,7 @@
 #' @export
 inference.krls2 <- function(obj,
                             sandwich = ifelse(obj$loss == "leastsquares", F, T),
+                            robust = FALSE,
                             clusters = NULL,
                             returnmoreinf = FALSE,
                             vcov = TRUE,
@@ -32,6 +33,8 @@ inference.krls2 <- function(obj,
   if(!is.null(clusters) & !is.list(clusters)) {
     if(length(clusters) != nrow(obj$X)) stop("Clusters must be a vector the same length as X")
     clusters <- lapply(unique(clusters), function(clust) which(clusters == clust))
+  } else if(is.null(clusters) & robust) {
+    clusters <- as.list(1:nrow(obj$X))
   }
   
   ## Scale data
@@ -75,14 +78,14 @@ inference.krls2 <- function(obj,
         ## get reconstructed K
         if(!obj$truncate){
           stop("Sandwich estimators only available with truncated KRLS.")
-          invhessian <- krls_hess_inv(obj$K, obj$lambda)
+          #invhessian <- krls_hess_inv(obj$K, obj$lambda)
         }
         else {
           UDinv <- mult_diag(obj$U, 1/obj$D)
           invhessian <- krls_hess_trunc_inv(obj$U, obj$D, obj$lambda)
         }
         
-
+        ## todo: should we implement straight up hessian inversion? no... then we should force sandwich when logistic
         
         if(is.null(clusters)) {
           score <- matrix(nrow = n, ncol = length(obj$dhat))
@@ -114,12 +117,12 @@ inference.krls2 <- function(obj,
           if(is.null(clusters)) {
             score <- matrix(nrow = n, ncol = length(c(obj$dhat, obj$beta0hat)))
             for(i in 1:n) {
-              score[i, ] = t(-1 * krlogit_gr_trunc(c(obj$dhat, obj$beta0hat), obj$U[i, , drop=F], obj$D, y[i, drop = F], obj$lambda/n))
+              score[i, ] = t(-1 * krlogit_gr_trunc(c(obj$dhat, obj$beta0hat), obj$U[i, , drop=F], obj$D, y[i, drop = F], obj$w[i], obj$lambda/n))
             }
           } else {
             score <- matrix(nrow = length(clusters), ncol = length(c(obj$dhat, obj$beta0hat)))
             for(j in 1:length(clusters)){
-              score[j, ] <-  t(-1 * krlogit_gr_trunc(c(obj$dhat, obj$beta0hat), obj$U[clusters[[j]], , drop=F], obj$D, y[clusters[[j]], drop = F], length(clusters[[j]]) * obj$lambda/n))
+              score[j, ] <-  t(-1 * krlogit_gr_trunc(c(obj$dhat, obj$beta0hat), obj$U[clusters[[j]], , drop=F], obj$D, y[clusters[[j]], drop = F], obj$w[clusters[[j]]], length(clusters[[j]]) * obj$lambda/n))
             }
             
           }

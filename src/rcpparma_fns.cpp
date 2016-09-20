@@ -104,15 +104,16 @@ double krlogit_fn_trunc(const arma::vec& par,
                         const arma::mat& U,
                         const arma::vec& D,
                         const arma::vec& y,
+                        const arma::vec& w,
                         const double& lambda) {
   
   arma::vec coef = par.subvec(0, par.n_elem - 2);
   double beta0 = par(par.n_elem-1);
   arma::mat Ud = U * coef;
   
-  double ret = accu(y % log(1 + exp(-(beta0 + Ud))) + 
-                    (1 - y) % log(1 + exp(beta0 + Ud))) + 
-               lambda * arma::as_scalar(coef.t()  * ((1.0/D) % coef));
+  double ret = accu(w % (y % log(1 + exp(-(beta0 + Ud))) + 
+                        (1 - y) % log(1 + exp(beta0 + Ud)))) + 
+               accu(w) * lambda * arma::as_scalar(coef.t()  * ((1.0/D) % coef));
   
   return ret;
   
@@ -124,6 +125,7 @@ arma::vec krlogit_gr_trunc(const arma::vec& par,
                         const arma::mat& U,
                         const arma::vec& D,
                         const arma::vec& y,
+                        const arma::vec& w,
                         const double& lambda) {
   
   arma::vec coef = par.subvec(0, par.n_elem - 2);
@@ -132,8 +134,8 @@ arma::vec krlogit_gr_trunc(const arma::vec& par,
   
   arma::vec ret(par.n_elem);
   
-  ret.subvec(0, par.n_elem - 2) = -U.t() * resid + 2 * (lambda / D) % coef;
-  ret(par.n_elem - 1) = -accu(resid);
+  ret.subvec(0, par.n_elem - 2) = -U.t() * (w % resid) + 2 * accu(w) * (lambda / D) % coef;
+  ret(par.n_elem - 1) = -accu(w % resid);
   
   return ret;
 }
