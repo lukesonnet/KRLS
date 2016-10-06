@@ -90,7 +90,7 @@ krls <- function(# Data arguments
     stop("at least one column in X is a constant, please remove the constant(s)")
   }
   X <- scale(X, center = TRUE, scale = X.init.sd)    
-  
+
   if (loss == "leastsquares") {
     
     y.init.sd <- apply(y.init,2,sd)
@@ -110,8 +110,8 @@ krls <- function(# Data arguments
     w <- rep(1, n)
   } else if (length(w) != n) {
     stop("w is not the same length as y")
+    w <- n * (w / sum(w))
   }
-  
   ## Carry vars in list
   control = list(w=w,
                  d=d,
@@ -248,7 +248,7 @@ krls <- function(# Data arguments
                  lambda = lambda,
                  con = con,
                  ctrl = control)
-  
+
   UDinv <- mult_diag(Kdat$U, 1/Kdat$D)
 
   coefhat <- UDinv %*% out$dhat
@@ -271,7 +271,7 @@ krls <- function(# Data arguments
             U=Kdat$U,
             D=Kdat$D,
             w=control$w,
-            lastkeeper = lastkeeper,
+            lastkeeper = Kdat$lastkeeper,
             truncate = truncate,
             coeffs=coefhat,
             dhat=out$dhat,

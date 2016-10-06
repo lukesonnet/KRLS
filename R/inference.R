@@ -111,7 +111,7 @@ inference.krls2 <- function(obj,
         
         UDinv <- mult_diag(obj$U, 1/obj$D)
         
-        invhessian <- krlogit_hess_trunc_inv(c(obj$dhat, obj$beta0hat), obj$U, obj$D, y, obj$lambda)
+        invhessian <- krlogit_hess_trunc_inv(c(obj$dhat, obj$beta0hat), obj$U, obj$D, y, obj$w, obj$lambda)
  
         if(sandwich) {
           if(is.null(clusters)) {
