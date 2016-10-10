@@ -13,7 +13,11 @@ getDhat <- function(par = NULL,
                     ctrl) {
   
   if(ctrl$loss == "leastsquares") {
-    out <- solve_for_d_ls(y=y, U=U, D=D, lambda=lambda)
+    if(ctrl$weight) {
+      out <- solve_for_d_ls_w(y=y, U=U, D=D, w=w, lambda=lambda)
+    } else {
+      out <- solve_for_d_ls(y=y, U=U, D=D, lambda=lambda)
+    }
   } else if(ctrl$loss == "logistic") {
     out <- solveForDOptim(par = par,
                    y = y,

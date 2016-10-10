@@ -32,7 +32,7 @@ generateK <- function(X,
   
   lastkeeper <- NULL
   lastkeeper <- if(control$truncate) ncol(U)
-  
+
   return(list(K = K,
               U = U,
               D = D,

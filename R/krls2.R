@@ -106,14 +106,20 @@ krls <- function(# Data arguments
   ## todo: it might be faster to have different versions with and without weights
   ## because it saves a bunch of pointless multiplications. However this will
   ## increase the amount of code.
-  if (is.null(w)) {
+  if (is.null(w)){ #| all(w==1)) {
     w <- rep(1, n)
+    weight = F
   } else if (length(w) != n) {
     stop("w is not the same length as y")
+  } else {
+    if(loss=="leastsquares" & !truncate)
+      stop("For now, weighted KRLS only works with truncation")
     w <- n * (w / sum(w))
+    weight = T
   }
   ## Carry vars in list
   control = list(w=w,
+                 weight=weight,
                  d=d,
                  loss=loss,
                  whichkernel=whichkernel,

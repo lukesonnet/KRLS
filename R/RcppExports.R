@@ -12,13 +12,13 @@ eigsym <- function(x) {
 }
 
 #' @export
-krls_gr_trunc <- function(U, D, y, fitted, dhat, lambda) {
-    .Call('KRLS2_krls_gr_trunc', PACKAGE = 'KRLS2', U, D, y, fitted, dhat, lambda)
+krls_gr_trunc <- function(U, D, y, w, fitted, dhat, lambda) {
+    .Call('KRLS2_krls_gr_trunc', PACKAGE = 'KRLS2', U, D, y, w, fitted, dhat, lambda)
 }
 
 #' @export
-krls_hess_trunc_inv <- function(U, D, lambda) {
-    .Call('KRLS2_krls_hess_trunc_inv', PACKAGE = 'KRLS2', U, D, lambda)
+krls_hess_trunc_inv <- function(U, D, w, lambda) {
+    .Call('KRLS2_krls_hess_trunc_inv', PACKAGE = 'KRLS2', U, D, w, lambda)
 }
 
 #' @export
@@ -69,6 +69,11 @@ lambda_search <- function(tol, l, u, y, eigvals, eigvecs, eigtrunc) {
 #' @export
 solve_for_d_ls <- function(y, U, D, lambda) {
     .Call('KRLS2_solve_for_d_ls', PACKAGE = 'KRLS2', y, U, D, lambda)
+}
+
+#' @export
+solve_for_d_ls_w <- function(y, U, D, w, lambda) {
+    .Call('KRLS2_solve_for_d_ls_w', PACKAGE = 'KRLS2', y, U, D, w, lambda)
 }
 
 #' @export

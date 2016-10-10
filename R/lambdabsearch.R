@@ -53,7 +53,12 @@ lambdasearch <- function(y,
                          b) {
   
   if (control$loss == "leastsquares") {
-    lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, noisy = !control$quiet)#,eigtrunc=eigtrunc,noisy=noisy,L=L,U=U)
+    if(control$weight){
+      print('here')
+      lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, w=control$w, noisy = !control$quiet)
+    } else {
+      lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, noisy = !control$quiet)
+    }
   } else {
     
     if(is.null(hyperctrl$lambdarange)) {
@@ -187,6 +192,7 @@ lambdaline <-
            y=NULL,
            U=NULL,
            D=NULL,
+           w=NULL,
            tol=NULL,
            noisy=FALSE){
     
@@ -235,8 +241,8 @@ lambdaline <-
     X2 <- Ubound - (.381966)*(Ubound-Lbound)
     
     # starting LOO losses
-    S1 <- looloss(lambda=X1,y=y,U=U, D=D)
-    S2 <- looloss(lambda=X2,y=y,U=U, D=D)
+    S1 <- looloss(lambda=X1,y=y,U=U, D=D,w=w)
+    S2 <- looloss(lambda=X2,y=y,U=U, D=D,w=w)
     
     if(noisy){cat("Lbound:",Lbound,"X1:",X1,"X2:",X2,"Ubound:",Ubound,"S1:",S1,"S2:",S2,"\n") }
     
@@ -248,14 +254,14 @@ lambdaline <-
         X2 <- X1
         X1 <- Lbound + (.381966)*(Ubound-Lbound)
         S2 <- S1
-        S1 <- looloss(lambda=X1,y=y,U=U, D=D)
+        S1 <- looloss(lambda=X1,y=y,U=U, D=D,w=w)
         
       } else { #S2 < S1
         Lbound  <- X1
         X1 <- X2
         X2 <- Ubound - (.381966)*(Ubound-Lbound)
         S1 <- S2
-        S2 <- looloss(lambda=X2,y=y,U=U, D=D)
+        S2 <- looloss(lambda=X2,y=y,U=U, D=D,w=w)
       }
       
       if(noisy){cat("Lbound:",Lbound,"X1:",X1,"X2:",X2,"Ubound:",Ubound,"S1:",S1,"S2:",S2,"\n") }
@@ -269,6 +275,10 @@ lambdaline <-
 ## looloss for krls
 #' @export
 looloss <-
-  function(y=NULL,K=NULL,D=NULL,U=NULL,lambda=NULL){
-      return(solve_for_d_ls(y=y,D=D,U=U,lambda=lambda)$Le)
+  function(y=NULL,K=NULL,D=NULL,U=NULL,w=NULL,lambda=NULL){
+      if(is.null(w)) {
+        Le <- solve_for_d_ls(y=y,D=D,U=U,lambda=lambda)$Le
+      } else {
+        Le <- solve_for_d_ls_w(y=y,D=D,U=U,w=w,lambda=lambda)$Le
+      }
   }
