@@ -59,7 +59,7 @@ summary.krls2 <- function(object,
                      
   object$sumavgderiv <- avgcoefficients
   object$qderiv <- qderiv
-      
-  return(invisible(object))
+
+  return(invisible(as.list(object)))
 }
 

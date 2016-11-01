@@ -30,6 +30,12 @@ inference.krls2 <- function(obj,
     stop("Derivatives only available for binary models with truncation")
   }
   
+  if(length(unique(obj$w)==1)){
+    weight = F
+  } else{
+    weight = T
+  }
+  
   if(!is.null(clusters) & !is.list(clusters)) {
     if(length(clusters) != nrow(obj$X)) stop("Clusters must be a vector the same length as X")
     clusters <- lapply(unique(clusters), function(clust) which(clusters == clust))
@@ -73,7 +79,11 @@ inference.krls2 <- function(obj,
       if(!sandwich) {
         sigmasq <- as.vector((1/n) * crossprod(y-yfitted))
         
-        vcov.c <- tcrossprod(mult_diag(obj$U,sigmasq*(obj$D+obj$lambda)^-2),obj$U)
+        if(weight){
+          #woof
+        } else {
+          vcov.c <- tcrossprod(mult_diag(obj$U,sigmasq*(obj$D+obj$lambda)^-2),obj$U)
+        }
       } else {
         ## get reconstructed K
         if(!obj$truncate){
@@ -229,7 +239,7 @@ inference.krls2 <- function(obj,
   names(var.avgderivatives) <- colnames(obj$X)
   
   
-  z <- c(obj,
+  z <- append(obj,
          list(vcov.c = vcov.c,
               vcov.db0 = vcov.db0,
             derivatives = derivatives,
