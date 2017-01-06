@@ -53,7 +53,7 @@ Ktrunc <- function(X=NULL, K=NULL, b=NULL, epsilon=NULL, lastkeeper=NULL, quiet 
   if(is.null(lastkeeper)){
     #denoms <- c(10, 6, 3, 1) # we could also let people set this to speed up the algorithm
     #CJH: even at 10, with N=5000 it is too big. Let's try this: 
-    if (nrow(K) <= 500) numvectorss=nrow(K) else numvectorss=c(50, 100, 200, 300,500,1000)
+    if (nrow(K) <= 500) numvectorss=nrow(K) else numvectorss=c(50, 100, 200, 300,500, min(c(nrow(K), 1000)))
     enoughvar=FALSE
     j=1
     while (enoughvar==FALSE){
