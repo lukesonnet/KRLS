@@ -1,12 +1,33 @@
 #----------
 # Roxygen Commands
 #----------
-
+#' Main function of KRLS  
+#' @description This is the primary fitting function. 
+#' By default it uses squared loss
+#' (loss="leastsquares") as one would for a 
+#' continuous outcome, but now also implements
+#' logistic regression with the loss="logistic" option. 
+#' It also allows faster computation and larger
+#' training sets than prior versions by an option 
+#' to approximate the kernel matrix with 
+#' lower dimensional approximation using the 
+#' truncate argument.
+#' 
+#' The workflow for using KRLS mimics that 
+#' of lm and similar functions:
+#' a krls object of class KRLS2 is fitted in one step, 
+#' then can later be examined using summary(). 
+#' The krls object contains all the information 
+#' that may be needed at summary time, 
+#' including information required to estimate 
+#' pointwise partial derivatives, their average
+#' for each covariate, standard errors, etc. 
+#' via the summary() function. See summary.krls2().
+#' 
 #' @import rARPACK
-NULL
 #' @useDynLib KRLS2
 #' @importFrom Rcpp sourceCpp
-NULL
+
 
 #############
 # Functions #
