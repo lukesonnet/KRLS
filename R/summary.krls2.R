@@ -1,9 +1,16 @@
+#' Summary function for KRLS2 objects. 
+#' 
+#' @description Main method for examining results of krls,
+#' much as one would use summary.lm for lm objects. Like its lm analog,
+#' it provides a summary akin to a regression table: average marginal 
+#' effects for each input variables, together with standard errors.
+#' 
 #' @export
 summary.krls2 <- function(object,
                           probs = c(.25, .5, .75),
                           ...) {
   if( class(object)!= "krls2" ) {
-    warning("Object not of class 'krlogit'")
+    warning("Object not of class 'krls2'")
     UseMethod("summary")
     return(invisible(NULL))
   }
