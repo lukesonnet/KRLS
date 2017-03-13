@@ -8,7 +8,7 @@ summary.krls2(object, probs = c(0.25, 0.5, 0.75), ...)
 }
 \description{
 Main method for examining results of krls,
-much as one would use summary.lm for lm objects. Like its *lm* analog,
+much as one would use summary.lm for lm objects. Like its lm analog,
 it provides a summary akin to a regression table: average marginal 
 effects for each input variables, together with standard errors.
 }

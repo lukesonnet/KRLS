@@ -8,29 +8,42 @@ krls(X, y, w = NULL, loss = "leastsquares", whichkernel = "gaussian",
   b = NULL, optimb = FALSE, lambda = NULL, hyperfolds = 5,
   lambdastart = 0.5, L = NULL, U = NULL, truncate = FALSE,
   lastkeeper = NULL, epsilon = 0.01, con = list(maxit = 500),
-  printout = TRUE, returnopt = TRUE, quiet = TRUE)
+  printout = TRUE, returnopt = TRUE, quiet = TRUE, sigma = NULL)
 }
 \description{
-This is the primary fitting function. 
+This is the primary fitting function.
 By default it uses squared loss
-(loss="leastsquares") as one would for a 
+(loss="leastsquares") as one would for a
 continuous outcome, but now also implements
-logistic regression with the loss="logistic" option. 
+logistic regression with the loss="logistic" option.
 It also allows faster computation and larger
-training sets than prior versions by an option 
-to approximate the kernel matrix with 
-lower dimensional approximation using the 
+training sets than prior versions by an option
+to approximate the kernel matrix with
+lower dimensional approximation using the
 truncate argument.
 
-The workflow for using KRLS mimics that 
+The workflow for using KRLS mimics that
 of lm and similar functions:
-a krls object of class KRLS2 is fitted in one step, 
-then can later be examined using summary(). 
-The krls object contains all the information 
-that may be needed at summary time, 
-including information required to estimate 
+a krls object of class KRLS2 is fitted in one step,
+then can later be examined using summary().
+The krls object contains all the information
+that may be needed at summary time,
+including information required to estimate
 pointwise partial derivatives, their average
-for each covariate, standard errors, etc. 
+for each covariate, standard errors, etc.
 via the summary() function. See summary.krls2().
+
+Function implements Kernel-Based Regularized Least Squares (KRLS), a machine learning method described in Hainmueller and Hazlett (2014) that allows users to solve regression and classification problems without manual specification search and strong functional form assumptions. KRLS finds the best fitting function by minimizing a Tikhonov regularization problem with a squared loss, using Gaussian Kernels as radial basis functions. KRLS reduces misspecification bias since it learns the functional form from the data. Yet, it nevertheless allows for interpretability and inference in ways similar to ordinary regression models. In particular, KRLS provides closed-form estimates for the predicted values, variances, and the pointwise partial derivatives that characterize the marginal effects of each independent variable at each data point in the covariate space. The distribution of pointwise marginal effects can be used to examine effect heterogeneity and or interactions.
+
+ @param X \emph{N} by \emph{D} data numeric matrix that contains the values of \emph{D} predictor variables for \eqn{i=1,\ldots,N} observations. The matrix may not contain missing values or constants. Note that no intercept is required for the least squares or logistic loss. In the case of least squares, the function operates on demeaned data and subtracting the mean of \emph{y} is equivalent to including an (unpenalized) intercept into the model. In the case of logistic loss, we automatically estimate an unpenalized intercept in the linear component of the model.
+ @param y \var{N} by \var{1} data numeric matrix or vector that contains the values of the response variable for all observations. This vector may not contain missing values, and in the case of logistic loss should be a vector of \var{0}s and \var{1}s.
+ @param w \var{N} by \var{1} data numeric matrix or vector that contains the weights that should applied to each observation. These need not sum to one.
+ @param loss String vector that specifies the loss function. For KRLS, use \code{leastsquares} and for KRLogit, use \code{logistic}.
+ @param whichkernel String vector that specifies which kernel should be used. Must be one of \code{gaussian}, \code{linear}, \code{poly1}, \code{poly2}, \code{poly3}, or \code{poly4} (see details). Default is \code{gaussian}.
+ @param b A positive scalar (formerly \code{sigma}) that specifies the bandwidth of the Gaussian kernel (see \code{\link{gausskernel}} for details). By default, the bandwidth is set equal to \var{2D} (twice the number of dimensions) which typically yields a reasonable scaling of the distances between observations in the standardized data that is used for the fitting.
+ @param optimb A boolean that if \code{TRUE} will numerically estimate \code{b} using cross validation error instead of setting \code{b} to the default.
+ @param lambda A positive scalar that specifies the \eqn{\lambda}{lambda} parameter for the regularizer (see details). It governs the tradeoff between model fit and complexity. By default, this parameter is chosen by minimizing the sum of the squared leave-one-out errors for KRLS and by minimizing the sum of squared cross-validation errors for KRLogit, with the number of folds set by \code{hyperfolds}. When using logistic loss, \code{lambda} can also be a numeric vector of positive scalars in which case a linesearch over these values will be used to choose \code{lambda}.
+ @param hyperfolds A positive scalar that sets the number of folds used in selecting \code{lambda} via cross-validation error.
+ @param lambdastart A positive scalar that specifices the starting value for a numerical optimization of \code{lambda}. Only is used when \code{lambda} is \code{NULL} and with logistic loss.
 }
 
