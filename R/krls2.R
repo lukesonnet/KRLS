@@ -47,9 +47,53 @@
 #'  @param whichkernel String vector that specifies which kernel should be used. Must be one of \code{gaussian}, \code{linear}, \code{poly1}, \code{poly2}, \code{poly3}, or \code{poly4} (see details). Default is \code{gaussian}.
 #'  @param b A positive scalar (formerly \code{sigma}) that specifies the bandwidth of the Gaussian kernel (see \code{\link{gausskernel}} for details). By default, the bandwidth is set equal to \var{2D} (twice the number of dimensions) which typically yields a reasonable scaling of the distances between observations in the standardized data that is used for the fitting.
 #'  @param optimb A boolean that if \code{TRUE} will numerically estimate \code{b} using cross validation error instead of setting \code{b} to the default.
-#'  @param lambda A positive scalar that specifies the \eqn{\lambda}{lambda} parameter for the regularizer (see details). It governs the tradeoff between model fit and complexity. By default, this parameter is chosen by minimizing the sum of the squared leave-one-out errors for KRLS and by minimizing the sum of squared cross-validation errors for KRLogit, with the number of folds set by \code{hyperfolds}. When using logistic loss, \code{lambda} can also be a numeric vector of positive scalars in which case a linesearch over these values will be used to choose \code{lambda}.
+#'  @param lambda A positive scalar that specifies the \eqn{\lambda}{lambda} parameter for the regularizer (see details). It governs the tradeoff between model fit and complexity. By default, this parameter is chosen by minimizing the sum of the squared leave-one-out errors for KRLS and by minimizing the sum of squared cross-validation errors for KRLogit, with the number of folds set by \code{hyperfolds}. When using logistic loss, \code{lambda} can also be a numeric vector of positive scalars in which case a line search over these values will be used to choose \code{lambda}.
 #'  @param hyperfolds A positive scalar that sets the number of folds used in selecting \code{lambda} via cross-validation error.
 #'  @param lambdastart A positive scalar that specifices the starting value for a numerical optimization of \code{lambda}. Only is used when \code{lambda} is \code{NULL} and with logistic loss.
+#'  @param L Non-negative scalar that determines the lower bound of the search window for the leave-one-out optimization to find \eqn{\lambda}{lambda} with least squares loss. Default is \code{NULL} which means that the lower bound is found by using an algorithm outlined in \code{\link{lambdaline}}. Ignored with logistic loss.
+#'  @param U Positive scalar that determines the upper bound of the search window for the leave-one-out optimization to find \eqn{\lambda}{lambda} with least squares loss. Default is \code{NULL} which means that the upper bound is found by using an algorithm outlined in \code{\link{lambdaline}}. Ignored with logistic loss.
+#'  @param tol Positive scalar that determines the tolerance used in the optimization routine used to find \eqn{\lambda}{lambda} with least squares loss. Default is \code{NULL} which means that convergence is achieved when the difference in the sum of squared leave-one-out errors between the \var{i} and the \var{i+1} iteration is less than \var{N * 10^-3}. Ignored with logistic loss.
+#'  @param truncate A boolean that defaults to \code{FALSE}. If \code{TRUE} truncates the kernel matrix, keeping as many eigenvectors as needed so that 1-\code{epsilon} of the total variance in the kernel matrix is retained.
+#'  @param epsilon Scalar between 0 and 1 that determines the total variaces that can be lost in the truncation caused by \code{truncate=TRUE}.
+#'  @param con A list of control arguments passed to optimization for the numerical optimization of the kernel regularized logistic loss function.
+#'  @param returnopt A boolean that defaults to \code{FALSE}. If \code{TRUE}, returns the result of the \code{optim} method called to optimize the kernel regularized logistic loss function.
+#'  @param quiet A boolean that defaults to \code{TRUE} and determines whether to suppress printing in the method.
+#' @details
+#' \code{krls} implements the Kernel-based Regularized Least Squares (KRLS) estimator as described in Hainmueller and Hazlett (2014). Please consult this reference for any details.
+
+#' Kernel-based Regularized Least Squares (KRLS) arises as a Tikhonov minimization problem with a squared loss. Assume we have data of the from \eqn{y_i,\,x_i}{y_i, x_i} where \var{i} indexes observations, \eqn{y_i \in R}{y_i in R} is the outcome and \eqn{x_i \in R^D}{x_i in R^D} is a \var{D}-dimensional vector of predictor values. Then KRLS searches over a space of functions \eqn{H} and chooses the best fitting function \eqn{f} according to the rule:
+#'
+#' \deqn{argmin_{f \in H} \sum_i^N (y_i - f(x_i))^2 + \lambda ||f||_{H^2}}{%
+#'       argmin_{f in H} sum_i^N (y_i - f(x_i))^2 + lambda || f ||_H^2}
+#'
+#' where \eqn{(y_i - f(x_i))^2} is a loss function that computes how `wrong' the function is at each observation \var{i} and \eqn{|| f ||_{H^2}}{|| f ||_H^2} is the regularizer that measures the complexity of the function according to the \eqn{L_2} norm \eqn{||f||^2 = \int f(x)^2 dx}{||f||^2 = int f(x)^2 dx}. \eqn{\lambda}{lambda} is the scalar regularization parameter that governs the tradeoff between model fit and complexity. By default, \eqn{\lambda}{lambda} is chosen by minimizing the sum of the squared leave-one-out errors, but it can also be specified by the user in the \code{lambda} argument to implement other approaches.
+#'
+#' Under fairly general conditions, the function that minimizes the regularized loss within the hypothesis space established by the choice of a (positive semidefinite) kernel function \eqn{k(x_i,x_j)} is of the form
+#'
+#' \deqn{f(x_j)= \sum_i^N c_i k(x_i,x_j)}{%
+#'       f(x_j)= sum_i^N c_i k(x_i,x_j)}
+#'
+#' where the kernel function \eqn{k(x_i,x_j)} measures the distance between two observations \eqn{x_i} and \eqn{x_j} and \eqn{c_i} is the choice coefficient for each observation \eqn{i}. Let \eqn{K} be the \eqn{N} by \eqn{N} kernel matrix with all pairwise distances \eqn{K_ij=k(x_i,x_j)} and \eqn{c} be the  \eqn{N} by \eqn{1} vector of choice coefficients for all observations then in matrix notation the space is \eqn{y=Kc}.
+#'
+#' Accordingly, the \code{krls} function solves the following minimization problem
+#'
+#' \deqn{argmin_{f \in H} \sum_i^n (y - Kc)'(y-Kc)+ \lambda c'Kc}{%
+#'       argmin_{f in H} sum_i^n (y - Kc)'(y-Kc)+ lambda c'Kc}
+#'
+#' which is convex in \eqn{c} and solved by \eqn{c=(K +\lambda I)^-1 y}{c=(K +lambda I)^-1 y} where \eqn{I} is the identity matrix. Note that this linear solution provides a flexible fitted response surface that typically reduces misspecification bias because it can learn a wide range of nonlinear and or nonadditive functions of the predictors. In an extension, Hazlett and Sonnet consier a logistic loss function, details of which are forthcoming.
+#'
+#' If \code{vcov=TRUE} is specified, \code{krls} also computes the variance-covariance matrix for the choice coefficients \eqn{c} and fitted values \eqn{y=Kc} based on a variance estimator developed in Hainmueller and Hazlett (2014). Note that both matrices are \var{N} by \var{N} and therefore this results in increased memory and computing time.
+#'
+#' By default, \code{krls} uses the Gaussian Kernel (\code{whichkernel = "gaussian"}) given by
+#'
+#' \deqn{k(x_i,x_j)=exp(\frac{-|| x_i - x_j ||^2}{\sigma^2})}{%
+#'       k(x_i,x_j)=exp(-|| x_i - x_j ||^2 / sigma^2)}
+#'
+#' where \eqn{||x_i - x_j||} is the Euclidean distance. The kernel bandwidth \eqn{\sigma^2}{sigma^2} is set to \eqn{D}, the number of dimensions, by default, but the user can also specify other values using the \code{sigma} argument to implement other approaches.
+#'
+#' If \code{binary=TRUE} is also specified, the function will identify binary predictors and return first differences for these predictors instead of partial derivatives. First differences are computed going from the minimum to the maximum value of each binary predictor. Note that first differences are more appropriate to summarize the effects for binary predictors (see Hainmueller and Hazlett (2014) for details).
+#'
+#' A few other kernels are also implemented, but derivatives are currently not supported for these: "linear": \eqn{k(x_i,x_j)=x_i'x_j}, "poly1", "poly2", "poly3", "poly4" are polynomial kernels based on  \eqn{k(x_i,x_j)=(x_i'x_j +1)^p} where \eqn{p} is the order.
 #' @export
 krls <- function(# Data arguments
                     X,
@@ -67,16 +111,17 @@ krls <- function(# Data arguments
                     lambdastart = 0.5,
                     L = NULL,
                     U = NULL,
+                    tol = NULL,
                     # Truncation arguments
                     truncate = FALSE,
                     lastkeeper = NULL,
                     epsilon = 0.01,
                     # Optimization arguments
                     con = list(maxit=500),
-                    printout = TRUE,
                     returnopt = TRUE,
                     quiet = TRUE,
-                    sigma = NULL){
+                    sigma = NULL # to provide legacy support for old code, simply is interpreted as 'b' if 'b' is NULL; ignored otherwise
+                    ){
                     #cpp = TRUE,
                     #sandwich = ifelse(loss == "leastsquares", FALSE, TRUE),
                     #clusters = NULL) {
@@ -120,16 +165,16 @@ krls <- function(# Data arguments
   ## Scale data
   X.init <- X
   X.init.sd <- apply(X.init, 2, sd)
-  if (sum(X.init.sd == 0)){
+  if (sum(X.init.sd == 0)) {
     stop("at least one column in X is a constant, please remove the constant(s)")
   }
   X <- scale(X, center = TRUE, scale = X.init.sd)
 
   if (loss == "leastsquares") {
 
-    y.init.sd <- apply(y.init,2,sd)
+    y.init.sd <- apply(y.init, 2, sd)
     y.init.mean <- mean(y.init)
-    y <- scale(y,center=y.init.mean,scale=y.init.sd)
+    y <- scale(y, center=y.init.mean, scale=y.init.sd)
 
   } else if (loss == "logistic") {
     if (!all(y %in% c(0,1))) {
@@ -229,7 +274,8 @@ krls <- function(# Data arguments
                       brange = brange,
                       optimb = optimb,
                       Lbound = L,
-                      Ubound = U)
+                      Ubound = U,
+                      tol = tol)
   } else {
     chunks <- NULL
   }
@@ -259,18 +305,18 @@ krls <- function(# Data arguments
     if(is.null(lambda)) {
 
       hyperOut <- lambdabsearch(y=y,
-                                    X=X,
-                                    hyperctrl=hyperctrl,
-                                    control=control)
+                                X=X,
+                                hyperctrl=hyperctrl,
+                                control=control)
       lambda <- hyperOut$lambda
       b <- hyperOut$b
 
     } else { # lambda is set
       b <- bsearch(y=y,
-                           X=X,
-                           hyperctrl=hyperctrl,
-                           control=control,
-                           lambda=lambda)
+                   X=X,
+                   hyperctrl=hyperctrl,
+                   control=control,
+                   lambda=lambda)
     }
 
     Kdat <- generateK(X=X,

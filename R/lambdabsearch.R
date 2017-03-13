@@ -9,19 +9,19 @@
 ## This function searches for both lambda and b
 #' @export
 lambdabsearch <- function(y,
-                              X,
-                              hyperctrl,
-                              control) {
-  
+                          X,
+                          hyperctrl,
+                          control) {
+
   if(is.null(hyperctrl$lambdarange)) {
     if (!is.null(hyperctrl$brange)) stop("Grid search for b only works with fixed lambda or lambda grid search.")
-    
+
     fit.hyper <- optim(par=log(c(hyperctrl$lambdastart, 2.2*control$d)), lambdab.fn,
                        X=X, y=y, folds=length(hyperctrl$chunks),
                        chunks = hyperctrl$chunks, ctrl = control,
                        vcov = FALSE,
                        control=list(trace = T, abstol = 1e-4), method="BFGS")
-    
+
     lambda <- exp(fit.hyper$par[1])
     b <- exp(fit.hyper$par[2])
   } else {
@@ -37,10 +37,10 @@ lambdabsearch <- function(y,
     lambda <- hyper[1]
     b <- hyper[2]
   }
-  
+
   return(list(lambda=lambda,
               b = b))
-  
+
 }
 
 ## This function governs searching for lambda with a fixed b
@@ -51,29 +51,29 @@ lambdasearch <- function(y,
                          hyperctrl,
                          control,
                          b) {
-  
+
   if (control$loss == "leastsquares") {
     if(control$weight){
       print('here')
-      lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, w=control$w, noisy = !control$quiet)
+      lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, w=control$w, tol=hyperctrl$tol, noisy = !control$quiet)
     } else {
-      lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, noisy = !control$quiet)
+      lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, tol=hyperctrl$tol, noisy = !control$quiet)
     }
   } else {
-    
+
     if(is.null(hyperctrl$lambdarange)) {
-      
+
       fit.lambda <- optim(par=log(hyperctrl$lambdastart), lambdab.fn,
                           Kdat = Kdat, y=y, folds=length(hyperctrl$chunks),
                           chunks = hyperctrl$chunks, ctrl = control,
                           b = b,
                           vcov = FALSE,
                           control=list(trace = T, abstol = 1e-4), method="BFGS")
-      
+
       lambda <- exp(fit.lambda$par)
-      
+
     } else {
-      
+
       lambdaMSE <- NULL
       for(i in 1:length(hyperctrl$lambdarange)){
         lambdaMSE[i] <- lambdab.fn(par = log(hyperctrl$lambdarange[i]), Kdat = Kdat,
@@ -84,9 +84,9 @@ lambdasearch <- function(y,
       lambda <- hyperctrl$lambdarange[which.min(lambdaMSE)]
     }
   }
-  
+
   return(lambda)
-  
+
 }
 
 ## This function searches for just b
@@ -99,7 +99,7 @@ bsearch <- function(y,
   if(is.null(hyperctrl$brange)) {
     fit.b <- optim(par=log(2.2*control$d), lambdab.fn,
                        X=X, y=y, folds=length(hyperctrl$chunks),
-                       chunks = hyperctrl$chunks, ctrl = control, 
+                       chunks = hyperctrl$chunks, ctrl = control,
                        lambda = lambda,
                        vcov = FALSE,
                        control=list(trace = T, abstol = 1e-4), method="BFGS")
@@ -118,7 +118,7 @@ bsearch <- function(y,
   }
 
   return(b)
-  
+
 }
 
 # todo: Unless the folds are much smaller, lastkeeper will probably be the same
@@ -136,7 +136,7 @@ lambdab.fn <- function(par = NULL,
                            lambda = NULL,
                            vcov = NULL,
                            ctrl = NULL) {
-  
+
   if(is.null(c(lambda, b))) {
     lambda <- exp(par[1])
     b <- exp(par[2])
@@ -154,7 +154,7 @@ lambdab.fn <- function(par = NULL,
                         control=ctrl)
     }
   }
-  
+
   pars <- rep(0, ncol(Kdat$U) + 1)
 
   mse <- 0
@@ -169,18 +169,18 @@ lambdab.fn <- function(par = NULL,
                    w=ctrl$w[-fold],
                    lambda=lambda,
                    ctrl = ctrl)
-    
+
     if(ctrl$loss == "leastsquares") {
       yhat <- Kdat$U[fold, ] %*% out$dhat
 
     } else if (ctrl$loss == "logistic") {
       yhat <- logistic(Kdat$U[fold, ], out$dhat, out$beta0hat)
     }
-    
+
     mse <- mse + sum((y[fold] - yhat)^2)
   }
   rmspe <- sqrt(mse/length(y))
-  
+
   return(rmspe)
 }
 
@@ -195,23 +195,23 @@ lambdaline <-
            w=NULL,
            tol=NULL,
            noisy=FALSE){
-    
-    n <- length(y)  
+
+    n <- length(y)
     if(is.null(tol)){
       tol <- 10^-3 * n
     } else {
       stopifnot(is.vector(tol),
                 length(tol)==1,
                 is.numeric(tol),
-                tol>0)    
+                tol>0)
     }
-    
+
     # get upper bound starting value
     if(is.null(Ubound)){
       Ubound <- n
-      
+
       while(sum(D / (D + Ubound)) < 1){
-        Ubound <- Ubound-1    
+        Ubound <- Ubound-1
       }
     } else {
       stopifnot(is.vector(Ubound),
@@ -219,16 +219,16 @@ lambdaline <-
                 is.numeric(Ubound),
                 Ubound>0)
     }
-    
+
     # get lower bound starting value
     if(is.null(Lbound)){
-      q <- which.min(abs(D - (max(D)/1000)))    
-      
+      q <- which.min(abs(D - (max(D)/1000)))
+
       #Lbound <- 0
       Lbound = .Machine$double.eps  #CJH: to avoid Inf in next statement
-      
+
       while(sum(D / (D + Lbound)) > q){
-        Lbound <- Lbound+.05    
+        Lbound <- Lbound+.05
       }
     }  else {
       stopifnot(is.vector(Lbound),
@@ -236,18 +236,18 @@ lambdaline <-
                 is.numeric(Lbound),
                 Lbound>=0)
     }
-    # create new search values    
+    # create new search values
     X1 <- Lbound + (.381966)*(Ubound-Lbound)
     X2 <- Ubound - (.381966)*(Ubound-Lbound)
-    
+
     # starting LOO losses
     S1 <- looloss(lambda=X1,y=y,U=U, D=D,w=w)
     S2 <- looloss(lambda=X2,y=y,U=U, D=D,w=w)
-    
+
     if(noisy){cat("Lbound:",Lbound,"X1:",X1,"X2:",X2,"Ubound:",Ubound,"S1:",S1,"S2:",S2,"\n") }
-    
+
     while(abs(S1-S2)>tol){ # terminate if difference between S1 and S2 less than tolerance
-      
+
       # update steps and use caching
       if(S1 < S2){
         Ubound  <- X2
@@ -255,7 +255,7 @@ lambdaline <-
         X1 <- Lbound + (.381966)*(Ubound-Lbound)
         S2 <- S1
         S1 <- looloss(lambda=X1,y=y,U=U, D=D,w=w)
-        
+
       } else { #S2 < S1
         Lbound  <- X1
         X1 <- X2
@@ -263,11 +263,11 @@ lambdaline <-
         S1 <- S2
         S2 <- looloss(lambda=X2,y=y,U=U, D=D,w=w)
       }
-      
+
       if(noisy){cat("Lbound:",Lbound,"X1:",X1,"X2:",X2,"Ubound:",Ubound,"S1:",S1,"S2:",S2,"\n") }
     }
     out <- ifelse(S1<S2,X1,X2)
-    if(noisy){cat("Lambda:",out,"\n")}  
+    if(noisy){cat("Lambda:",out,"\n")}
     return(invisible(out))
   }
 
