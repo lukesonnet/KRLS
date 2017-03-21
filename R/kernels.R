@@ -93,7 +93,7 @@ Ktrunc <- function(X=NULL, K=NULL, b=NULL, epsilon=NULL, lastkeeper=NULL, packag
     if(package == 'RSpectra') {
       eigobj <- suppressWarnings({eigs_sym(K, lastkeeper, which="LM")})
     } else {
-      eigobj <- trlan.eigen(K, lastkeeper, lambda = eigobj$d, U = eigobj$U)
+      eigobj <- trlan.eigen(K, lastkeeper, lambda = eigobj$d, U = eigobj$u)
     }
   }
   
