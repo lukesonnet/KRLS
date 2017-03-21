@@ -13,7 +13,8 @@ Description: Package implements Kernel-based Regularized Least Squares (KRLS), a
     functions. For further details see Hainmueller and Hazlett (2014).
 Imports:
     Rcpp (>= 0.12.5),
-    RSpectra
+    RSpectra,
+    svd
 LinkingTo: Rcpp, RcppArmadillo
 License: GPL (>= 2)
 Suggests:

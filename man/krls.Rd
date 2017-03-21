@@ -7,10 +7,12 @@
 krls(X, y, w = NULL, loss = "leastsquares", whichkernel = "gaussian",
   b = NULL, optimb = FALSE, lambda = NULL, hyperfolds = 5,
   lambdastart = 0.5, L = NULL, U = NULL, tol = NULL, truncate = FALSE,
-  lastkeeper = NULL, epsilon = 0.01, con = list(maxit = 500),
-  returnopt = TRUE, quiet = TRUE, sigma = NULL)
+  lastkeeper = NULL, epsilon = 0.01, package = "RSpectra",
+  con = list(maxit = 500), returnopt = TRUE, quiet = TRUE, sigma = NULL)
 }
 \arguments{
+\item{X}{\emph{N} by \emph{D} data numeric matrix that contains the values of \emph{D} predictor variables for \eqn{i=1,\ldots,N} observations. The matrix may not contain missing values or constants. Note that no intercept is required for the least squares or logistic loss. In the case of least squares, the function operates on demeaned data and subtracting the mean of \emph{y} is equivalent to including an (unpenalized) intercept into the model. In the case of logistic loss, we automatically estimate an unpenalized intercept in the linear component of the model.}
+
 \item{y}{\var{N} by \var{1} data numeric matrix or vector that contains the values of the response variable for all observations. This vector may not contain missing values, and in the case of logistic loss should be a vector of \var{0}s and \var{1}s.}
 
 \item{w}{\var{N} by \var{1} data numeric matrix or vector that contains the weights that should applied to each observation. These need not sum to one.}
@@ -69,8 +71,6 @@ for each covariate, standard errors, etc.
 via the summary() function. See summary.krls2().
 
 Function implements Kernel-Based Regularized Least Squares (KRLS), a machine learning method described in Hainmueller and Hazlett (2014) that allows users to solve regression and classification problems without manual specification search and strong functional form assumptions. KRLS finds the best fitting function by minimizing a Tikhonov regularization problem with a squared loss, using Gaussian Kernels as radial basis functions. KRLS reduces misspecification bias since it learns the functional form from the data. Yet, it nevertheless allows for interpretability and inference in ways similar to ordinary regression models. In particular, KRLS provides closed-form estimates for the predicted values, variances, and the pointwise partial derivatives that characterize the marginal effects of each independent variable at each data point in the covariate space. The distribution of pointwise marginal effects can be used to examine effect heterogeneity and or interactions.
-
- @param X \emph{N} by \emph{D} data numeric matrix that contains the values of \emph{D} predictor variables for \eqn{i=1,\ldots,N} observations. The matrix may not contain missing values or constants. Note that no intercept is required for the least squares or logistic loss. In the case of least squares, the function operates on demeaned data and subtracting the mean of \emph{y} is equivalent to including an (unpenalized) intercept into the model. In the case of logistic loss, we automatically estimate an unpenalized intercept in the linear component of the model.
 }
 \details{
 \code{krls} implements the Kernel-based Regularized Least Squares (KRLS) estimator as described in Hainmueller and Hazlett (2014). Please consult this reference for any details.
