@@ -66,7 +66,7 @@ Ktrunc <- function(X=NULL, K=NULL, b=NULL, epsilon=NULL, lastkeeper=NULL, packag
         #for now, letting it throw an error in certain failure cases.
         totalvar=sum(eigobj$values)/nrow(K)
       } else {
-        eigobj <- trlan.eigen(K, numvectors, lambda = eigobj$d, U = eigobj$U)
+        eigobj <- trlan.eigen(K, numvectors, lambda = eigobj$d, U = eigobj$u)
         #for now, letting it throw an error in certain failure cases.
         totalvar=sum(eigobj$d)/nrow(K)
       }
