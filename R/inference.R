@@ -18,16 +18,19 @@ inference.krls2 <- function(obj,
                             derivative = TRUE,
                             cpp = TRUE) {
   
-  if(derivative & !vcov) {
-    stop("Derivatives require vcov = T")
+  if(!obj$truncate & obj$loss == "logistic") {
+    warning("Standard errors and uncertainty only available for binary models with truncation")
+    vcov <- FALSE
   }
   
   if(!sandwich & !is.null(clusters)) {
     stop("Clusters require using sandwich == T")
   }
   
-  if(!obj$truncate & obj$loss == "logistic") {
-    stop("Derivatives only available for binary models with truncation")
+  if((robust | !is.null(clusters)) & !vcov) {
+    stop("Standard errors only available if vcov = TRUE")
+  } else if (!vcov) {
+    warning("Standard errors only available if vcov = TRUE")
   }
   
   if(length(unique(obj$w)==1)){
@@ -161,7 +164,7 @@ inference.krls2 <- function(obj,
     
     derivatives <- matrix(NA, ncol=d, nrow=n,
                           dimnames=list(NULL, colnames(X)))
-    var.avgderivatives <- matrix(NA,1,d)
+    var.avgderivatives <- rep(NA, d)
     
     if(obj$loss == "leastsquares") {
       tau <- rep(2, n)
@@ -174,15 +177,26 @@ inference.krls2 <- function(obj,
     
     if(cpp) {
       
-      if(!obj$truncate){
-        derivout <- pwmfx(obj$K, X, obj$coeffs, vcov.c, tau, obj$b)
+      if(vcov) {
+        if(!obj$truncate){
+          derivout <- pwmfx(obj$K, X, obj$coeffs, vcov.c, tau, obj$b)
+        } else {
+          derivout <- pwmfx(tcrossprod(mult_diag(obj$U, obj$D), obj$U), X, obj$coeffs, vcov.c, tau, obj$b)
+        }
+        derivatives <- derivout[1:n, ]
+        var.avgderivatives <- derivout[n+1, ]
       } else {
-        derivout <- pwmfx(tcrossprod(mult_diag(obj$U, obj$D), obj$U), X, obj$coeffs, vcov.c, tau, obj$b)
+        if(!obj$truncate){
+          derivatives <- pwmfx_novar(obj$K, X, obj$coeffs, tau, obj$b)
+        } else {
+          derivatives <- pwmfx_novar(tcrossprod(mult_diag(obj$U, obj$D), obj$U), X, obj$coeffs, tau, obj$b)
+        }
       }
-      derivatives <- derivout[1:n, ]
-      var.avgderivatives <- derivout[n+1, ]
       
     } else {
+      if (!vcov) {
+        stop('R based derivatives only available if vcov = TRUE')
+      }
       rows <- cbind(rep(1:n, each = n), 1:n)
       distances <- X[rows[,1],] - X[ rows[,2],] 
       
@@ -213,7 +227,9 @@ inference.krls2 <- function(obj,
       var.avgderivatives <- (y.init.sd/X.init.sd)^2*var.avgderivatives
       attr(var.avgderivatives,"scaled:scale")<- NULL
       
-      vcov.c <- vcov.c * (y.init.sd^2)
+      if(!is.null(vcov.c)) {
+        vcov.c <- vcov.c * (y.init.sd^2)
+      }
       
     } else {
       derivatives <- scale(derivatives, center=F, scale = X.init.sd)
@@ -227,8 +243,6 @@ inference.krls2 <- function(obj,
     avgderivatives=NULL
     var.avgderivatives=NULL
   }
-  
-  
   
   ###----------------------------------------
   ## Returning results
@@ -248,9 +262,9 @@ inference.krls2 <- function(obj,
   )
   
   class(z) <- "krls2"
-  
+
   z <- fdskrls(z)
-  
+
   if(returnmoreinf) {
     z$score = score
     z$invhessian = invhessian
@@ -310,19 +324,24 @@ fdskrls <-
         # contrast vector
         h         <- matrix(rep(c(1/n,-(1/n)),each=n),ncol=1)
         # fitted values
-        pout      <- predict(object,newdata=Xall,se.fit=TRUE)
+        if(is.null(object$vcov.c)) {
+          pout      <- predict(object,newdata=Xall,se.fit=FALSE)
+        } else {
+          pout      <- predict(object,newdata=Xall,se.fit=TRUE)
+          if(object$loss == "leastsquares") {
+            # SE (multiply by sqrt2 to correct for using data twice )
+            se[1,i] <- as.vector(sqrt(t(h)%*%pout$vcov.fit%*%h))*sqrt(2)
+          } else {
+            #deriv.avgfd.logit <- colMeans(pout$deriv.logit[1:n, ] - pout$deriv.logit[(n+1):(2*n), ])
+            deriv.avgfd.logit <- crossprod(h, pout$deriv.logit)
+            vcov.avgfd <- tcrossprod(deriv.avgfd.logit %*% object$vcov.db0, deriv.avgfd.logit)
+            se[1,i] <- as.vector(sqrt(vcov.avgfd)) *sqrt(2)
+          }
+        }
         
         # store FD estimates
         est[1,i] <- t(h)%*%pout$fit        
-        if(object$loss == "leastsquares") {
-          # SE (multiply by sqrt2 to correct for using data twice )
-          se[1,i] <- as.vector(sqrt(t(h)%*%pout$vcov.fit%*%h))*sqrt(2)
-        } else {
-          #deriv.avgfd.logit <- colMeans(pout$deriv.logit[1:n, ] - pout$deriv.logit[(n+1):(2*n), ])
-          deriv.avgfd.logit <- crossprod(h, pout$deriv.logit)
-          vcov.avgfd <- tcrossprod(deriv.avgfd.logit %*% object$vcov.db0, deriv.avgfd.logit)
-          se[1,i] <- as.vector(sqrt(vcov.avgfd)) *sqrt(2)
-        }
+
         # all
         diffs <- pout$fit[1:n]-pout$fit[(n+1):(2*n)]          
         diffsstore[,i] <- diffs 

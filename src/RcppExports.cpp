@@ -233,3 +233,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// pwmfx_novar
+arma::mat pwmfx_novar(const arma::mat& k, const arma::mat& x, const arma::vec& coefhat, const arma::vec& p, const double& b);
+RcppExport SEXP KRLS2_pwmfx_novar(SEXP kSEXP, SEXP xSEXP, SEXP coefhatSEXP, SEXP pSEXP, SEXP bSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type k(kSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type coefhat(coefhatSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type p(pSEXP);
+    Rcpp::traits::input_parameter< const double& >::type b(bSEXP);
+    rcpp_result_gen = Rcpp::wrap(pwmfx_novar(k, x, coefhat, p, b));
+    return rcpp_result_gen;
+END_RCPP
+}

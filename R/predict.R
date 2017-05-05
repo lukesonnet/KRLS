@@ -23,7 +23,7 @@ predict.krls2 <- function(object, newdata, se.fit = FALSE, ...) {
   }
   
   newdataK <- newKernel(X = object$X, newData = newdata, whichkernel = object$kernel, b = object$b)
-  
+
   #if(object$truncate){
   #  newdataK <- newdataK%*%object$U
   #}

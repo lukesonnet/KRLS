@@ -291,7 +291,7 @@ arma::mat pwmfx(const arma::mat& k,
                 const arma::vec& p,
                 const double& b)
 {
-  //for now until we can easily return list
+
   double n = x.n_rows;
   arma::mat out(n + 1, x.n_cols);
   arma::mat distmat(n, n);
@@ -311,7 +311,35 @@ arma::mat pwmfx(const arma::mat& k,
     }
     distk = k % distmat;
     out(n, j) = 1 / pow(b * n, 2) * accu(p2.t() * distk.t() * vcovc * distk);
-    
+  }
+  
+  return out;
+}
+
+
+// Compute pointwise marginal effects but not var avg pwmfx
+//' @export
+// [[Rcpp::export]]
+arma::mat pwmfx_novar(const arma::mat& k,
+                      const arma::mat& x,
+                      const arma::vec& coefhat,
+                      const arma::vec& p,
+                      const double& b)
+{
+  
+  double n = x.n_rows;
+  arma::mat out(n, x.n_cols);
+  double val;
+  
+  for (int j = 0; j < x.n_cols; ++j) {
+    for (int i = 0; i < n; ++i) {
+      val = 0;
+      for (int i2 = 0; i2 < n; ++i2) {
+        val += coefhat(i2) * k(i, i2) * (x(i, j) - x(i2, j));
+      }
+      
+      out(i, j) = - (p(i) / b)  * val;
+    }
   }
   
   return out;

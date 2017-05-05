@@ -81,3 +81,8 @@ pwmfx <- function(k, x, coefhat, vcovc, p, b) {
     .Call('KRLS2_pwmfx', PACKAGE = 'KRLS2', k, x, coefhat, vcovc, p, b)
 }
 
+#' @export
+pwmfx_novar <- function(k, x, coefhat, p, b) {
+    .Call('KRLS2_pwmfx_novar', PACKAGE = 'KRLS2', k, x, coefhat, p, b)
+}
+

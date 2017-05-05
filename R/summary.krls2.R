@@ -28,7 +28,6 @@ summary.krls2 <- function(object,
   if(is.null(object$derivatives)){
     object <- inference.krls2(object, ...)
   } 
-
   # average marginal effects  
   est     <- t(object$avgderivatives)
   se     <- sqrt((object$var.avgderivatives))
@@ -46,7 +45,7 @@ summary.krls2 <- function(object,
   cat("Average Marginal Effects:\n")
   print(avgcoefficients,...)
   if(sum(object$binaryindicator)>0){
-  cat("\n(*) average dy/dx is for discrete change of dummy variable from min to max (i.e. usually 0 to 1))\n\n")
+    cat("\n(*) average dy/dx is for discrete change of dummy variable from min to max (i.e. usually 0 to 1))\n\n")
   }
         
   # quantiles of derivatives
