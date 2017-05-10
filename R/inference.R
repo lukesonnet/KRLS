@@ -18,9 +18,13 @@ inference.krls2 <- function(obj,
                             derivative = TRUE,
                             cpp = TRUE) {
   
-  if(!obj$truncate & obj$loss == "logistic") {
-    warning("Standard errors and uncertainty only available for binary models with truncation")
-    vcov <- FALSE
+  if(!obj$truncate) {
+    if(obj$loss == 'logistic') {
+      warning("Standard errors and uncertainty only available for binary models with truncation")
+      vcov <- FALSE
+    } else if (sandwich & obj$loss == "leastsquares") {
+      stop("Sandwich estimators only available with truncated KRLS.")
+    }
   }
   
   if(!sandwich & !is.null(clusters)) {
@@ -81,41 +85,49 @@ inference.krls2 <- function(obj,
     if (obj$loss == "leastsquares") {
       if(!sandwich) {
         sigmasq <- as.vector((1/n) * crossprod(y-yfitted))
-        
-        if(weight){
-          #woof
-        } else {
-          vcov.c <- tcrossprod(mult_diag(obj$U,sigmasq*(obj$D+obj$lambda)^-2),obj$U)
-        }
+      }
+      
+      if(!weight & !sandwich) {
+        vcov.c <- tcrossprod(mult_diag(obj$U,sigmasq*(obj$D+obj$lambda)^-2),obj$U)
       } else {
-        ## get reconstructed K
-        if(!obj$truncate){
-          stop("Sandwich estimators only available with truncated KRLS.")
-          #invhessian <- krls_hess_inv(obj$K, obj$lambda)
-        }
-        else {
-          UDinv <- mult_diag(obj$U, 1/obj$D)
-          invhessian <- krls_hess_trunc_inv(obj$U, obj$D, obj$lambda)
-        }
         
-        ## todo: should we implement straight up hessian inversion? no... then we should force sandwich when logistic
+        UDinv <- mult_diag(obj$U, 1/obj$D)
+        invhessian <- krls_hess_trunc_inv(obj$U, obj$D, obj$w, obj$lambda)
         
-        if(is.null(clusters)) {
-          score <- matrix(nrow = n, ncol = length(obj$dhat))
-          for(i in 1:n) {
-            score[i, ] = krls_gr_trunc(obj$U[i, , drop = F], obj$D, y[i], yfitted[i], obj$dhat, obj$lambda/n)
-          }
-        } else {
-          score <- matrix(nrow = length(clusters), ncol = length(obj$dhat))
-          for(j in 1:length(clusters)){
-            score[j, ] = krls_gr_trunc(obj$U[clusters[[j]], , drop = F], obj$D, y[clusters[[j]]], yfitted[clusters[[j]]], obj$dhat, length(clusters[[j]]) * obj$lambda/n)
+        if(weight & !sandwich) {
+          
+          vcov.d <- invhessian %*% crossprod(mult_diag(obj$U, sigmasq*obj$w^2), obj$U) %*% invhessian
+          
+        } else if (sandwich) {
+          if(is.null(clusters)) {
+            score <- matrix(nrow = n, ncol = length(obj$dhat))
+            for(i in 1:n) {
+              score[i, ] = krls_gr_trunc(obj$U[i, , drop = F],
+                                         obj$D,
+                                         y[i],
+                                         obj$w[i],
+                                         yfitted[i], 
+                                         obj$dhat,
+                                         obj$lambda/n)
+            }
+          } else {
+            score <- matrix(nrow = length(clusters), ncol = length(obj$dhat))
+            for(j in 1:length(clusters)){
+              score[j, ] = krls_gr_trunc(obj$U[clusters[[j]], , drop = F],
+                                         obj$D,
+                                         y[clusters[[j]]],
+                                         obj$w[clusters[[j]]],
+                                         yfitted[clusters[[j]]],
+                                         obj$dhat,
+                                         length(clusters[[j]]) * obj$lambda/n)
+            }
+            
           }
           
+          vcov.d <- invhessian %*% crossprod(score) %*% invhessian
         }
         
-        vcov.d <- invhessian %*% crossprod(score) %*% invhessian
         vcov.c <- tcrossprod(UDinv%*%vcov.d, UDinv)
-        
       }
       
     } else { # if loss == 'logistic'
