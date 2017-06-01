@@ -61,8 +61,16 @@ solveForDOptim <- function(par= NULL,
     par <- rep(0, ncoeffs + 1)
   }
   
-  opt <- optim(par, krlogit_fn_trunc, gr=krlogit_gr_trunc, U=U, D = D, y=y, w=w, lambda=lambda,
-               method="BFGS", control=con)
+  opt <- optim(par,
+               fn=krlogit_fn_trunc,
+               gr=krlogit_gr_trunc,
+               U=U,
+               D=D,
+               y=y,
+               w=w,
+               lambda=lambda,
+               method="BFGS",
+               control=con)
   
   dhat <- opt$par[1:ncoeffs]
   beta0hat <- opt$par[ncoeffs+1]

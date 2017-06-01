@@ -63,14 +63,21 @@ lambdasearch <- function(y,
 
     if(is.null(hyperctrl$lambdarange)) {
 
-      fit.lambda <- optim(par=log(hyperctrl$lambdastart), lambdab.fn,
+      start_val <- ifelse(is.null(control$lambdapenalty), log(hyperctrl$lambdastart), hyperctrl$lambdastart)
+      
+      fit.lambda <- optim(par=start_val, lambdab.fn,
                           Kdat = Kdat, y=y, folds=length(hyperctrl$chunks),
                           chunks = hyperctrl$chunks, ctrl = control,
                           b = b,
                           vcov = FALSE,
-                          control=list(trace = T, abstol = 1e-4), method="BFGS")
-
-      lambda <- exp(fit.lambda$par)
+                          control=list(trace = T, abstol = 1e-4, REPORT = 1), method="Nelder-Mead")
+      if(!control$quiet) {
+        print(fit.lambda)
+      }
+      
+      lambda <- ifelse(is.null(control$lambdapenalty),
+                       exp(fit.lambda$par),
+                       fit.lambda$par)
 
     } else {
 
@@ -138,14 +145,14 @@ lambdab.fn <- function(par = NULL,
                            ctrl = NULL) {
 
   if(is.null(c(lambda, b))) {
-    lambda <- exp(par[1])
+    lambda <- ifelse(is.null(ctrl$lambdapenalty), exp(par[1]), par[1])
     b <- exp(par[2])
     Kdat <- generateK(X=X,
                       b=b,
                       control=ctrl)
   } else {
     if (is.null(lambda)) {
-      lambda <- exp(par)
+      lambda <- ifelse(is.null(ctrl$lambdapenalty), exp(par[1]), par[1])
     }
     if (is.null(b)) {
       b <- exp(par)
@@ -154,7 +161,7 @@ lambdab.fn <- function(par = NULL,
                         control=ctrl)
     }
   }
-
+  
   pars <- rep(0, ncol(Kdat$U) + 1)
 
   mse <- 0
@@ -162,6 +169,7 @@ lambdab.fn <- function(par = NULL,
     fold <- chunks[[j]]
     UFold <- Kdat$U[-fold, ]
 
+    suppressWarnings({suppressMessages({invisible(capture.output({
     out <- getDhat(par = pars,
                    y=y[-fold],
                    U=UFold,
@@ -169,7 +177,8 @@ lambdab.fn <- function(par = NULL,
                    w=ctrl$w[-fold],
                    lambda=lambda,
                    ctrl = ctrl)
-
+    }))})})
+    
     if(ctrl$loss == "leastsquares") {
       yhat <- Kdat$U[fold, ] %*% out$dhat
 
@@ -181,6 +190,8 @@ lambdab.fn <- function(par = NULL,
   }
   rmspe <- sqrt(mse/length(y))
 
+  rmspe <- ifelse(lambda <= 1e-12, rmspe + 1e12 * (1e-12 - lambda)^2, rmspe)
+  
   return(rmspe)
 }
 

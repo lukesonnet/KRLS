@@ -122,8 +122,8 @@ krls <- function(# Data arguments
                     con = list(maxit=500),
                     returnopt = TRUE,
                     quiet = TRUE,
-                    sigma = NULL # to provide legacy support for old code, simply is interpreted as 'b' if 'b' is NULL; ignored otherwise
-                    ){
+                    sigma = NULL, # to provide legacy support for old code, simply is interpreted as 'b' if 'b' is NULL; ignored otherwise
+                    ...){
                     #cpp = TRUE,
                     #sandwich = ifelse(loss == "leastsquares", FALSE, TRUE),
                     #clusters = NULL) {
@@ -209,7 +209,8 @@ krls <- function(# Data arguments
                  epsilon=epsilon,
                  quiet=quiet,
                  returnopt=returnopt,
-                 package=package)
+                 package=package,
+                 ...)
 
   ###----------------------------------------
   ## Preparing to search for hyperparameters
