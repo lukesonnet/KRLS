@@ -384,6 +384,3 @@ krls <- function(# Data arguments
 
   return(z)
 }
-
-
-# check ncol U reliance
