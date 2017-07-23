@@ -4,7 +4,7 @@
 ##            logistic
 
 
-## a predict function for class 'krlogit'
+## a predict function for class 'krls2'
 #' @export
 predict.krls2 <- function(object, newdata, se.fit = FALSE, ...) {
   if (class(object) != "krls2") {
