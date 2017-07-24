@@ -107,7 +107,7 @@ krls <- function(# Data arguments
                     # Lambda arguments
                     lambda = NULL,
                     hyperfolds = 5,
-                    lambdastart = 0.5,
+                    lambdastart = 10^(-6)/length(y),
                     L = NULL,
                     U = NULL,
                     tol = NULL,
