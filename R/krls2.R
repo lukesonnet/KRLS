@@ -111,6 +111,7 @@ krls <- function(# Data arguments
                     L = NULL,
                     U = NULL,
                     tol = NULL,
+                    lambdaline = TRUE,
                     # Truncation arguments
                     truncate = FALSE,
                     lastkeeper = NULL,
@@ -120,11 +121,11 @@ krls <- function(# Data arguments
                     con = list(maxit=500),
                     returnopt = TRUE,
                     quiet = TRUE,
-                    sigma = NULL, # to provide legacy support for old code, simply is interpreted as 'b' if 'b' is NULL; ignored otherwise
+                    sigma = NULL, # to provide legacy support for old code,
+                                  # simply is interpreted as 'b' if 'b' is NULL;
+                                  # ignored otherwise
                     ...){
-                    #cpp = TRUE,
-                    #sandwich = ifelse(loss == "leastsquares", FALSE, TRUE),
-                    #clusters = NULL) {
+                    #cpp = TRUE) {
 
   ###----------------------------------------
   ## Input validation and housekeeping
@@ -159,7 +160,7 @@ krls <- function(# Data arguments
 
   # column names in case there are none
   if (is.null(colnames(X))) {
-    colnames(X) <- paste("x",1:d,sep="")
+    colnames(X) <- paste("x", 1:d, sep="")
   }
 
   ## Scale data
@@ -185,17 +186,19 @@ krls <- function(# Data arguments
   ## todo: it might be faster to have different versions with and without weights
   ## because it saves a bunch of pointless multiplications. However this will
   ## increase the amount of code.
-  if (is.null(w)){ #| all(w==1)) {
+  if (is.null(w)) { 
     w <- rep(1, n)
     weight = F
   } else if (length(w) != n) {
     stop("w is not the same length as y")
   } else {
-    if(loss=="leastsquares" & !truncate)
+    if(loss=="leastsquares" & !truncate) {
       stop("For now, weighted KRLS only works with truncation")
-    w <- n * (w / sum(w))
+    }
+    w <- n * (w / sum(w)) # rescale w to sum to 1
     weight = T
   }
+  
   ## Carry vars in list
   control = list(w=w,
                  weight=weight,
@@ -219,12 +222,12 @@ krls <- function(# Data arguments
   brange <- NULL
 
   ## Legacy support for KRLS code with fixed sigma
-  if(!is.null(sigma) & is.null(b)) {
+  if (!is.null(sigma) & is.null(b)) {
     b <- sigma
   }
 
   ## Default b to be 2*the number of features
-  if(is.null(b)){
+  if (is.null(b)) {
     if (!optimb) {
       b <- 2*d
     } else if (loss == "leastsquares") {
@@ -232,7 +235,7 @@ krls <- function(# Data arguments
       message(sprintf("Setting b to %s", 2*d))
       b <- 2*d
     }
-  } else{
+  } else {
     if(length(b) > 1) {
       brange <- b
       b <- NULL
@@ -273,6 +276,7 @@ krls <- function(# Data arguments
     hyperctrl <- list(chunks = chunks,
                       lambdastart = lambdastart,
                       lambdarange = lambdarange,
+                      lambdaline = lambdaline,
                       brange = brange,
                       optimb = optimb,
                       Lbound = L,
@@ -349,8 +353,8 @@ krls <- function(# Data arguments
   # todo: replace with internal predict dispatcher that takes getDhat object
   if (loss == "leastsquares") {
 
-    yfitted <- Kdat$K%*%coefhat
-    yfitted <- yfitted*y.init.sd+y.init.mean
+    yfitted <- Kdat$K %*% coefhat
+    yfitted <- yfitted * y.init.sd + y.init.mean
 
   } else {
 
@@ -360,27 +364,25 @@ krls <- function(# Data arguments
 
   }
 
-  z <- list(K=Kdat$K,
-            U=Kdat$U,
-            D=Kdat$D,
-            w=control$w,
+  z <- list(K = Kdat$K,
+            U = Kdat$U,
+            D = Kdat$D,
+            w = control$w,
             lastkeeper = Kdat$lastkeeper,
             truncate = truncate,
-            coeffs=coefhat,
-            dhat=out$dhat,
+            coeffs = coefhat,
+            dhat = out$dhat,
             beta0hat = out$beta0hat,
-            fitted=yfitted,
-            X=X.init,
-            y=y.init,
-            b=b,
-            lambda=lambda,
-            kernel=whichkernel,
-            loss=loss
+            fitted = yfitted,
+            X = X.init,
+            y = y.init,
+            b = b,
+            lambda = lambda,
+            kernel = whichkernel,
+            loss = loss
   )
 
   class(z) <- "krls2"
 
   return(z)
 }
-
-# test comment

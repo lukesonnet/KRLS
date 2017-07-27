@@ -248,3 +248,29 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+
+static const R_CallMethodDef CallEntries[] = {
+    {"KRLS2_mult_diag", (DL_FUNC) &KRLS2_mult_diag, 2},
+    {"KRLS2_eigsym", (DL_FUNC) &KRLS2_eigsym, 1},
+    {"KRLS2_krls_gr_trunc", (DL_FUNC) &KRLS2_krls_gr_trunc, 7},
+    {"KRLS2_krls_hess_trunc_inv", (DL_FUNC) &KRLS2_krls_hess_trunc_inv, 4},
+    {"KRLS2_krlogit_fn_trunc", (DL_FUNC) &KRLS2_krlogit_fn_trunc, 6},
+    {"KRLS2_krlogit_gr_trunc", (DL_FUNC) &KRLS2_krlogit_gr_trunc, 6},
+    {"KRLS2_partial_logit", (DL_FUNC) &KRLS2_partial_logit, 3},
+    {"KRLS2_krlogit_hess_trunc_inv", (DL_FUNC) &KRLS2_krlogit_hess_trunc_inv, 6},
+    {"KRLS2_euc_dist", (DL_FUNC) &KRLS2_euc_dist, 2},
+    {"KRLS2_kern_gauss_1d", (DL_FUNC) &KRLS2_kern_gauss_1d, 3},
+    {"KRLS2_kern_gauss", (DL_FUNC) &KRLS2_kern_gauss, 2},
+    {"KRLS2_new_gauss_kern", (DL_FUNC) &KRLS2_new_gauss_kern, 3},
+    {"KRLS2_lambda_search", (DL_FUNC) &KRLS2_lambda_search, 7},
+    {"KRLS2_solve_for_d_ls", (DL_FUNC) &KRLS2_solve_for_d_ls, 4},
+    {"KRLS2_solve_for_d_ls_w", (DL_FUNC) &KRLS2_solve_for_d_ls_w, 5},
+    {"KRLS2_pwmfx", (DL_FUNC) &KRLS2_pwmfx, 6},
+    {"KRLS2_pwmfx_novar", (DL_FUNC) &KRLS2_pwmfx_novar, 5},
+    {NULL, NULL, 0}
+};
+
+RcppExport void R_init_KRLS2(DllInfo *dll) {
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
+}

@@ -63,21 +63,32 @@ lambdasearch <- function(y,
 
     if(is.null(hyperctrl$lambdarange)) {
 
-      start_val <- ifelse(is.null(control$lambdapenalty), log(hyperctrl$lambdastart), hyperctrl$lambdastart)
-      
-      fit.lambda <- optim(par=start_val, lambdab.fn,
-                          Kdat = Kdat, y=y, folds=length(hyperctrl$chunks),
-                          chunks = hyperctrl$chunks, ctrl = control,
-                          b = b,
-                          vcov = FALSE,
-                          control=list(trace = T, abstol = 1e-4, REPORT = 1), method="Nelder-Mead")
-      if(!control$quiet) {
-        print(fit.lambda)
+      if (hyperctrl$lambdaline) {
+        if(control$weight){
+          lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, w=control$w, tol=hyperctrl$tol, noisy = !control$quiet)
+        } else {
+          print('here')
+          lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, tol=hyperctrl$tol, noisy = !control$quiet)
+        }
+      } else {
+        
+        start_val <- ifelse(is.null(control$lambdapenalty), log(hyperctrl$lambdastart), hyperctrl$lambdastart)
+        
+        fit.lambda <- optim(par=start_val, lambdab.fn,
+                            Kdat = Kdat, y=y, folds=length(hyperctrl$chunks),
+                            chunks = hyperctrl$chunks, ctrl = control,
+                            b = b,
+                            vcov = FALSE,
+                            control=list(trace = T, abstol = 1e-4, REPORT = 1), method="Nelder-Mead")
+        if(!control$quiet) {
+          print(fit.lambda)
+        }
+        
+        lambda <- ifelse(is.null(control$lambdapenalty),
+                         exp(fit.lambda$par),
+                         fit.lambda$par)
       }
       
-      lambda <- ifelse(is.null(control$lambdapenalty),
-                       exp(fit.lambda$par),
-                       fit.lambda$par)
 
     } else {
 
