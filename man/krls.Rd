@@ -6,8 +6,8 @@
 \usage{
 krls(X, y, w = NULL, loss = "leastsquares", whichkernel = "gaussian",
   b = NULL, optimb = FALSE, lambda = NULL, hyperfolds = 5,
-  lambdastart = 0.5, L = NULL, U = NULL, tol = NULL,
-  lambdaline = TRUE, truncate = FALSE, lastkeeper = NULL,
+  lambdastart = 10^(-6)/length(y), L = NULL, U = NULL, tol = NULL,
+  lambdaline = FALSE, truncate = FALSE, lastkeeper = NULL,
   epsilon = 0.01, package = "RSpectra", con = list(maxit = 500),
   returnopt = TRUE, quiet = TRUE, sigma = NULL, ...)
 }
@@ -30,7 +30,7 @@ krls(X, y, w = NULL, loss = "leastsquares", whichkernel = "gaussian",
 
 \item{hyperfolds}{A positive scalar that sets the number of folds used in selecting \code{lambda} via cross-validation error.}
 
-\item{lambdastart}{A positive scalar that specifices the starting value for a numerical optimization of \code{lambda}. Only is used when \code{lambda} is \code{NULL} and with logistic loss.}
+\item{lambdastart}{A positive scalar that specifices the starting value for a numerical optimization of \code{lambda}. Only is used when \code{lambda} is \code{NULL} and with logistic loss. Defaults to very small value.}
 
 \item{L}{Non-negative scalar that determines the lower bound of the search window for the leave-one-out optimization to find \eqn{\lambda}{lambda} with least squares loss. Default is \code{NULL} which means that the lower bound is found by using an algorithm outlined in \code{\link{lambdaline}}. Ignored with logistic loss.}
 
