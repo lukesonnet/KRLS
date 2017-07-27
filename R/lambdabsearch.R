@@ -175,7 +175,7 @@ lambdab.fn <- function(par = NULL,
   
   pars <- rep(0, ncol(Kdat$U) + 1)
 
-  mse <- 0
+  loss <- 0
   for(j in 1:folds){
     fold <- chunks[[j]]
     UFold <- Kdat$U[-fold, ]
@@ -189,21 +189,30 @@ lambdab.fn <- function(par = NULL,
                    lambda=lambda,
                    ctrl = ctrl)
     }))})})
-    
     if(ctrl$loss == "leastsquares") {
       yhat <- Kdat$U[fold, ] %*% out$dhat
+      loss <- loss + sum((y[fold] - yhat)^2)
 
     } else if (ctrl$loss == "logistic") {
       yhat <- logistic(Kdat$U[fold, ], out$dhat, out$beta0hat)
+      yhat[yhat==1]=1-1e-6
+      yhat[yhat==0]=0+1e-6
+      loss <- loss - sum(y[fold]*log(yhat)+(1-y[fold])*log(1-yhat))
     }
 
-    mse <- mse + sum((y[fold] - yhat)^2)
   }
-  rmspe <- sqrt(mse/length(y))
-
-  rmspe <- ifelse(lambda <= 1e-12, rmspe + 1e12 * (1e-12 - lambda)^2, rmspe)
   
-  return(rmspe)
+  if(ctrl$loss == "leastsquares") {
+    loss <- sqrt(loss/length(y))
+  } else if(ctrl$loss == 'logistic') {
+    loss <- loss/length(y)
+  }
+
+  if(!is.null(ctrl$lambdapenalty)) {
+    loss <- ifelse(lambda <= 1e-12, loss + 1e12 * (1e-12 - lambda)^2, loss)
+  }
+  print(loss)
+  return(loss)
 }
 
 ## Lambda search for KRLS
@@ -249,9 +258,9 @@ lambdaline <-
       #Lbound <- 0
       Lbound = .Machine$double.eps  #CJH: to avoid Inf in next statement
 
-      while(sum(D / (D + Lbound)) > q){
-        Lbound <- Lbound+.05
-      }
+      #while(sum(D / (D + Lbound)) > q){
+      #  Lbound <- Lbound+.05
+      #}
     }  else {
       stopifnot(is.vector(Lbound),
                 length(Lbound)==1,
@@ -263,8 +272,8 @@ lambdaline <-
     X2 <- Ubound - (.381966)*(Ubound-Lbound)
 
     # starting LOO losses
-    S1 <- looloss(lambda=X1,y=y,U=U, D=D,w=w)
-    S2 <- looloss(lambda=X2,y=y,U=U, D=D,w=w)
+    S1 <- looloss(lambda=X1,y=scale(y),U=U, D=D,w=w)
+    S2 <- looloss(lambda=X2,y=scale(y),U=U, D=D,w=w)
 
     if(noisy){cat("Lbound:",Lbound,"X1:",X1,"X2:",X2,"Ubound:",Ubound,"S1:",S1,"S2:",S2,"\n") }
 
@@ -276,14 +285,14 @@ lambdaline <-
         X2 <- X1
         X1 <- Lbound + (.381966)*(Ubound-Lbound)
         S2 <- S1
-        S1 <- looloss(lambda=X1,y=y,U=U, D=D,w=w)
+        S1 <- looloss(lambda=X1,y=scale(y),U=U, D=D,w=w)
 
       } else { #S2 < S1
         Lbound  <- X1
         X1 <- X2
         X2 <- Ubound - (.381966)*(Ubound-Lbound)
         S1 <- S2
-        S2 <- looloss(lambda=X2,y=y,U=U, D=D,w=w)
+        S2 <- looloss(lambda=X2,y=scale(y),U=U, D=D,w=w)
       }
 
       if(noisy){cat("Lbound:",Lbound,"X1:",X1,"X2:",X2,"Ubound:",Ubound,"S1:",S1,"S2:",S2,"\n") }
@@ -298,6 +307,7 @@ lambdaline <-
 #' @export
 looloss <-
   function(y=NULL,K=NULL,D=NULL,U=NULL,w=NULL,lambda=NULL){
+    print(D[1]);print(y[1])
       if(is.null(w)) {
         Le <- solve_for_d_ls(y=y,D=D,U=U,lambda=lambda)$Le
       } else {
