@@ -6,9 +6,10 @@
 \usage{
 krls(X, y, w = NULL, loss = "leastsquares", whichkernel = "gaussian",
   b = NULL, optimb = FALSE, lambda = NULL, hyperfolds = 5,
-  lambdastart = 10^(-6)/length(y), L = NULL, U = NULL, tol = NULL,
-  truncate = FALSE, lastkeeper = NULL, epsilon = NULL, con = list(maxit
-  = 500), returnopt = TRUE, quiet = TRUE, sigma = NULL, ...)
+  lambdastart = 10^(-6)/length(y), lambdainterval = c(10^-6, 4), L = NULL,
+  U = NULL, tol = NULL, truncate = FALSE, epsilon = NULL,
+  lastkeeper = NULL, con = list(maxit = 500), returnopt = TRUE,
+  quiet = TRUE, sigma = NULL, ...)
 }
 \arguments{
 \item{X}{\emph{N} by \emph{D} data numeric matrix that contains the values of \emph{D} predictor variables for \eqn{i=1,\ldots,N} observations. The matrix may not contain missing values or constants. Note that no intercept is required for the least squares or logistic loss. In the case of least squares, the function operates on demeaned data and subtracting the mean of \emph{y} is equivalent to including an (unpenalized) intercept into the model. In the case of logistic loss, we automatically estimate an unpenalized intercept in the linear component of the model.}
@@ -25,11 +26,13 @@ krls(X, y, w = NULL, loss = "leastsquares", whichkernel = "gaussian",
 
 \item{optimb}{A boolean that if \code{TRUE} will numerically estimate \code{b} using cross validation error instead of setting \code{b} to the default.}
 
-\item{lambda}{A positive scalar that specifies the \eqn{\lambda}{lambda} parameter for the regularizer (see details). It governs the tradeoff between model fit and complexity. By default, this parameter is chosen by minimizing the sum of the squared leave-one-out errors for KRLS and by minimizing the sum of squared cross-validation errors for KRLogit, with the number of folds set by \code{hyperfolds}. When using logistic loss, \code{lambda} can also be a numeric vector of positive scalars in which case a line search over these values will be used to choose \code{lambda}.}
+\item{lambda}{A positive scalar that specifies the \eqn{\lambda}{lambda} parameter for the regularizer (see details). It governs the tradeoff between model fit and complexity. By default, this parameter is chosen by minimizing the sum of the squared leave-one-out errors for KRLS and by minimizing the sum of cross-validation negative log likelihood for KRLogit, with the number of folds set by \code{hyperfolds}. When using logistic loss, \code{lambda} can also be a numeric vector of positive scalars in which case a line search over these values will be used to choose \code{lambda}.}
 
-\item{hyperfolds}{A positive scalar that sets the number of folds used in selecting \code{lambda} via cross-validation error.}
+\item{hyperfolds}{A positive scalar that sets the number of folds used in selecting \code{lambda} or \code{b} via cross-validation.}
 
-\item{lambdastart}{A positive scalar that specifices the starting value for a numerical optimization of \code{lambda}. Only is used when \code{lambda} is \code{NULL} and with logistic loss. Defaults to very small value.}
+\item{lambdastart}{A positive scalar that specifices the starting value for a numerical optimization of \code{lambda}. Only is used when jointly optimizing over \code{lambda} and \code{b}}
+
+\item{lambdainterval}{A numeric vector of length two that specifies the minimum and maxmum \code{lambda} values to look over with \code{optimize}. Both values must be strictly positive. Only used with logistic loss and when \code{lambda} is NULL. Defaults to \code{c(10^-6, 4)}. This is for use with numerical optimization, if you want to do a grid search, instead pass a numerical vector to the \code{lambda} argument.}
 
 \item{L}{Non-negative scalar that determines the lower bound of the search window for the leave-one-out optimization to find \eqn{\lambda}{lambda} with least squares loss. Default is \code{NULL} which means that the lower bound is found by using an algorithm outlined in \code{\link{lambdaline}}. Ignored with logistic loss.}
 
@@ -39,7 +42,7 @@ krls(X, y, w = NULL, loss = "leastsquares", whichkernel = "gaussian",
 
 \item{truncate}{A boolean that defaults to \code{FALSE}. If \code{TRUE} truncates the kernel matrix, keeping as many eigenvectors as needed so that 1-\code{epsilon} of the total variance in the kernel matrix is retained. Alternatively, you can simply specify \code{epsilon} and truncation will be used.}
 
-\item{epsilon}{Scalar between 0 and 1 that determines the total variaces that can be lost in the truncation caused by \code{truncate=TRUE}. If not NULL, truncation is used.}
+\item{epsilon}{Scalar between 0 and 1 that determines the total variance that can be lost in truncation. If not NULL, truncation is automatically set to TRUE.}
 
 \item{con}{A list of control arguments passed to optimization for the numerical optimization of the kernel regularized logistic loss function.}
 

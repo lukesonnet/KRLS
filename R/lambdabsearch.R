@@ -72,7 +72,8 @@ lambdasearch <- function(y,
       
       ## Logistic optimize for lambda
         
-      fit.lambda <- optimize(lambdab.fn, interval=log(c(10^-12, 4)),
+      print(control)
+      fit.lambda <- optimize(lambdab.fn, interval=log(control$lambdainterval),
                           Kdat = Kdat, y=y, folds=length(control$chunks),
                           chunks = control$chunks, ctrl = control,
                           b = b,
@@ -204,8 +205,9 @@ lambdab.fn <- function(par = NULL,
     loss <- loss/length(y)
   }
 
-  if(!control$quiet){
-    cat(paste0('loss: ', loss))
+  if(!ctrl$quiet){
+    cat(paste0("lambda: ", lambda, "\n"))
+    cat(paste0("loss: ", loss, "\n"))
   }
   return(loss)
 }
