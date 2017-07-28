@@ -15,9 +15,6 @@ summary.krls2 <- function(object,
     return(invisible(NULL))
   }
         
-  cat("* *********************** *\n")
-  cat("Model Summary:\n\n")
-  #cat("R2:",object$R2,"\n\n")
       
   d <- ncol(object$X)
   n <- nrow(object$X)
@@ -41,7 +38,9 @@ summary.krls2 <- function(object,
   if(sum(object$binaryindicator)>0){         
     rownames(avgcoefficients)[object$binaryindicator] <- paste(rownames(avgcoefficients)[object$binaryindicator],"*",sep="")
   }
-        
+  cat("* *********************** *\n")
+  cat("Model Summary:\n\n")
+  #cat("R2:",object$R2,"\n\n")      
   cat("Average Marginal Effects:\n")
   print(avgcoefficients,...)
   if(sum(object$binaryindicator)>0){

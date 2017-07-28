@@ -10,28 +10,27 @@
 #' @export
 lambdabsearch <- function(y,
                           X,
-                          hyperctrl,
                           control) {
 
-  if(is.null(hyperctrl$lambdarange)) {
-    if (!is.null(hyperctrl$brange)) stop("Grid search for b only works with fixed lambda or lambda grid search.")
+  if(is.null(control$lambdarange)) {
+    if (!is.null(control$brange)) stop("Grid search for b only works with fixed lambda or lambda grid search.")
 
-    fit.hyper <- optim(par=log(c(hyperctrl$lambdastart, 2.2*control$d)), lambdab.fn,
-                       X=X, y=y, folds=length(hyperctrl$chunks),
-                       chunks = hyperctrl$chunks, ctrl = control,
+    fit.hyper <- optim(par=log(c(control$lambdastart, 2.2*control$d)), lambdab.fn,
+                       X=X, y=y, folds=length(control$chunks),
+                       chunks = control$chunks, ctrl = control,
                        vcov = FALSE,
                        control=list(trace = T, abstol = 1e-4), method="BFGS")
 
     lambda <- exp(fit.hyper$par[1])
     b <- exp(fit.hyper$par[2])
   } else {
-    if (hyperctrl$optimb) stop("Optimizing b does not work with a grid search for lambda.")
-    hypergrid <- as.matrix(expand.grid(hyperctrl$lambdarange, hyperctrl$brange))
+    if (control$optimb) stop("Optimizing b does not work with a grid search for lambda.")
+    hypergrid <- as.matrix(expand.grid(control$lambdarange, control$brange))
     hyperMSE <- NULL
     for(i in 1:nrow(hypergrid)){
       hyperMSE[i] <- lambdab.fn(par = log(hypergrid[i, ]), X=X,
-                                    y=y, folds=length(hyperctrl$chunks),
-                                    chunks = hyperctrl$chunks, ctrl = control)
+                                    y=y, folds=length(control$chunks),
+                                    chunks = control$chunks, ctrl = control)
     }
     hyper <- hypergrid[which.min(hyperMSE), ]
     lambda <- hyper[1]
@@ -48,68 +47,54 @@ lambdabsearch <- function(y,
 lambdasearch <- function(y,
                          X,
                          Kdat,
-                         hyperctrl,
                          control,
                          b) {
 
   if (control$loss == "leastsquares") {
     if(control$weight){
       print('here')
-      lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, w=control$w, tol=hyperctrl$tol, noisy = !control$quiet)
+      lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, w=control$w, tol=control$tol, noisy = !control$quiet)
     } else {
-      lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, tol=hyperctrl$tol, noisy = !control$quiet)
+      lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, tol=control$tol, noisy = !control$quiet)
     }
   } else {
 
-    if(is.null(hyperctrl$lambdarange)) {
+    if(is.null(control$lambdarange)) {
+      
+      start_val <- log(control$lambdastart)
+        
+      #fit.lambda <- optim(par=start_val, lambdab.fn,
+      #                   Kdat = Kdat, y=y, folds=length(control$chunks),
+      #                    chunks = control$chunks, ctrl = control,
+      #                    b = b,
+      #                    vcov = FALSE,
+      #                    control=list(trace = T, abstol = 1e-4, REPORT = 1), method="Nelder-Mead")
 
-      if (hyperctrl$lambdaline) {
-        if(control$weight){
-          lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, w=control$w, tol=hyperctrl$tol, noisy = !control$quiet)
-        } else {
-          print('here')
-          lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, tol=hyperctrl$tol, noisy = !control$quiet)
-        }
-      } else {
+      fit.lambda <- optimize(lambdab.fn, interval=log(c(10^-12, 4)),
+                          Kdat = Kdat, y=y, folds=length(control$chunks),
+                          chunks = control$chunks, ctrl = control,
+                          b = b,
+                          vcov = FALSE)
         
-        start_val <- ifelse(is.null(control$lambdapenalty), log(hyperctrl$lambdastart), hyperctrl$lambdastart)
-        
-        #fit.lambda <- optim(par=start_val, lambdab.fn,
-        #                   Kdat = Kdat, y=y, folds=length(hyperctrl$chunks),
-        #                    chunks = hyperctrl$chunks, ctrl = control,
-        #                    b = b,
-        #                    vcov = FALSE,
-        #                    control=list(trace = T, abstol = 1e-4, REPORT = 1), method="Nelder-Mead")
-
-        fit.lambda <- optimize(lambdab.fn, interval=log(c(10^-12, 4)),
-                            Kdat = Kdat, y=y, folds=length(hyperctrl$chunks),
-                            chunks = hyperctrl$chunks, ctrl = control,
-                            b = b,
-                            vcov = FALSE)
-        
-        fit.lambda$par=fit.lambda$minimum
+      fit.lambda$par=fit.lambda$minimum
   
         
-        if(!control$quiet) {
-          print(fit.lambda)
-        }
-        
-        lambda <- ifelse(is.null(control$lambdapenalty),
-                         exp(fit.lambda$par),
-                         fit.lambda$par)
+      if(!control$quiet) {
+        print(fit.lambda)
       }
+        
+      lambda <- exp(fit.lambda$par)
       
-
     } else {
 
       lambdaMSE <- NULL
-      for(i in 1:length(hyperctrl$lambdarange)){
-        lambdaMSE[i] <- lambdab.fn(par = log(hyperctrl$lambdarange[i]), Kdat = Kdat,
-                                       y=y, folds=length(hyperctrl$chunks),
-                                       chunks = hyperctrl$chunks, ctrl = control,
+      for(i in 1:length(control$lambdarange)){
+        lambdaMSE[i] <- lambdab.fn(par = log(control$lambdarange[i]), Kdat = Kdat,
+                                       y=y, folds=length(control$chunks),
+                                       chunks = control$chunks, ctrl = control,
                                        b = b)
       }
-      lambda <- hyperctrl$lambdarange[which.min(lambdaMSE)]
+      lambda <- control$lambdarange[which.min(lambdaMSE)]
     }
   }
 
@@ -121,27 +106,26 @@ lambdasearch <- function(y,
 #' @export
 bsearch <- function(y,
                               X,
-                              hyperctrl,
                               control,
                               lambda) {
-  if(is.null(hyperctrl$brange)) {
+  if(is.null(control$brange)) {
     fit.b <- optim(par=log(2.2*control$d), lambdab.fn,
-                       X=X, y=y, folds=length(hyperctrl$chunks),
-                       chunks = hyperctrl$chunks, ctrl = control,
+                       X=X, y=y, folds=length(control$chunks),
+                       chunks = control$chunks, ctrl = control,
                        lambda = lambda,
                        vcov = FALSE,
                        control=list(trace = T, abstol = 1e-4), method="BFGS")
     b <- exp(fit.b$par)
   } else {
     bMSE <- NULL
-    for(i in 1:length(hyperctrl$brange)){
-      if(hyperctrl$brange[i] < 0) stop("All bs must be positive")
-      bMSE[i] <- lambdab.fn(par = log(hyperctrl$brange[i]), X=X,
-                                    y=y, folds=length(hyperctrl$chunks),
-                                    chunks = hyperctrl$chunks, ctrl = control,
+    for(i in 1:length(control$brange)){
+      if(control$brange[i] < 0) stop("All bs must be positive")
+      bMSE[i] <- lambdab.fn(par = log(control$brange[i]), X=X,
+                                    y=y, folds=length(control$chunks),
+                                    chunks = control$chunks, ctrl = control,
                                     #b = b,
                                     lambda = lambda)
-      b <- hyperctrl$brange[which.min(bMSE)]
+      b <- control$brange[which.min(bMSE)]
     }
   }
 
@@ -166,14 +150,14 @@ lambdab.fn <- function(par = NULL,
                            ctrl = NULL) {
 
   if(is.null(c(lambda, b))) {
-    lambda <- ifelse(is.null(ctrl$lambdapenalty), exp(par[1]), par[1])
+    lambda <- exp(par[1])
     b <- exp(par[2])
     Kdat <- generateK(X=X,
                       b=b,
                       control=ctrl)
   } else {
     if (is.null(lambda)) {
-      lambda <- ifelse(is.null(ctrl$lambdapenalty), exp(par[1]), par[1])
+      lambda <- exp(par[1])
     }
     if (is.null(b)) {
       b <- exp(par)
@@ -218,9 +202,6 @@ lambdab.fn <- function(par = NULL,
     loss <- loss/length(y)
   }
 
-  if(!is.null(ctrl$lambdapenalty)) {
-    loss <- ifelse(lambda <= 1e-12, loss + 1e12 * (1e-12 - lambda)^2, loss)
-  }
   print(loss)
   return(loss)
 }

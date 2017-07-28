@@ -52,8 +52,8 @@
 #' @param L Non-negative scalar that determines the lower bound of the search window for the leave-one-out optimization to find \eqn{\lambda}{lambda} with least squares loss. Default is \code{NULL} which means that the lower bound is found by using an algorithm outlined in \code{\link{lambdaline}}. Ignored with logistic loss.
 #' @param U Positive scalar that determines the upper bound of the search window for the leave-one-out optimization to find \eqn{\lambda}{lambda} with least squares loss. Default is \code{NULL} which means that the upper bound is found by using an algorithm outlined in \code{\link{lambdaline}}. Ignored with logistic loss.
 #' @param tol Positive scalar that determines the tolerance used in the optimization routine used to find \eqn{\lambda}{lambda} with least squares loss. Default is \code{NULL} which means that convergence is achieved when the difference in the sum of squared leave-one-out errors between the \var{i} and the \var{i+1} iteration is less than \var{N * 10^-3}. Ignored with logistic loss.
-#' @param truncate A boolean that defaults to \code{FALSE}. If \code{TRUE} truncates the kernel matrix, keeping as many eigenvectors as needed so that 1-\code{epsilon} of the total variance in the kernel matrix is retained.
-#' @param epsilon Scalar between 0 and 1 that determines the total variaces that can be lost in the truncation caused by \code{truncate=TRUE}.
+#' @param truncate A boolean that defaults to \code{FALSE}. If \code{TRUE} truncates the kernel matrix, keeping as many eigenvectors as needed so that 1-\code{epsilon} of the total variance in the kernel matrix is retained. Alternatively, you can simply specify \code{epsilon} and truncation will be used.
+#' @param epsilon Scalar between 0 and 1 that determines the total variaces that can be lost in the truncation caused by \code{truncate=TRUE}. If not NULL, truncation is used.
 #' @param con A list of control arguments passed to optimization for the numerical optimization of the kernel regularized logistic loss function.
 #' @param returnopt A boolean that defaults to \code{FALSE}. If \code{TRUE}, returns the result of the \code{optim} method called to optimize the kernel regularized logistic loss function.
 #' @param quiet A boolean that defaults to \code{TRUE} and determines whether to suppress printing in the method.
@@ -111,11 +111,10 @@ krls <- function(# Data arguments
                     L = NULL,
                     U = NULL,
                     tol = NULL,
-                    lambdaline = FALSE,
                     # Truncation arguments
                     truncate = FALSE,
                     lastkeeper = NULL,
-                    epsilon = 0.01,
+                    epsilon = NULL,
                     package = 'RSpectra',
                     # Optimization arguments
                     con = list(maxit=500),
@@ -124,13 +123,15 @@ krls <- function(# Data arguments
                     sigma = NULL, # to provide legacy support for old code,
                                   # simply is interpreted as 'b' if 'b' is NULL;
                                   # ignored otherwise
-                    ...){
-                    #cpp = TRUE) {
+                    ...) {
 
   ###----------------------------------------
   ## Input validation and housekeeping
   ###----------------------------------------
 
+  # set R to issue warnings as they occur
+  options(warn=1)
+  
   ## Prepare the data
   X <- as.matrix(X)
   y <- as.matrix(y)
@@ -197,6 +198,22 @@ krls <- function(# Data arguments
     }
     w <- n * (w / sum(w)) # rescale w to sum to 1
     weight = T
+  }
+  
+  ## Set truncation options
+  if (!is.null(epsilon)) {
+    if (!is.numeric(epsilon) | epsilon < 0 | epsilon > 1) {
+      stop("epsilon must be numeric and between 0 and 1, inclusive")
+    } else {
+      truncate <- TRUE
+    }
+  } else if (truncate) {
+    epsilon = 0.001 # If truncate but no epsilon specified, use default
+  }
+  
+  ## Warn if not truncating a big dataset
+  if (n >= 1000 & !truncate) {
+    warning("With n >= 1000 you should consider using truncation for speed. Try setting epsilon to 0.001")
   }
   
   ## Carry vars in list
@@ -273,19 +290,21 @@ krls <- function(# Data arguments
   if(is.null(lambda) | is.null(b)) {
     chunks <- chunk(sample(n), hyperfolds)
 
-    hyperctrl <- list(chunks = chunks,
-                      lambdastart = lambdastart,
-                      lambdarange = lambdarange,
-                      lambdaline = lambdaline,
-                      brange = brange,
-                      optimb = optimb,
-                      Lbound = L,
-                      Ubound = U,
-                      tol = tol)
+    control <- c(control,
+                    list(chunks = chunks,
+                         lambdastart = lambdastart,
+                         lambdarange = lambdarange,
+                         brange = brange,
+                         optimb = optimb,
+                         Lbound = L,
+                         Ubound = U,
+                         tol = tol))
   } else {
     chunks <- NULL
   }
 
+  
+  print(str(control))
   ###----------------------------------------
   ## searching for hyperparameters
   ###----------------------------------------
@@ -302,7 +321,6 @@ krls <- function(# Data arguments
       lambda <- lambdasearch(y=y,
                              X=X,
                              Kdat=Kdat,
-                             hyperctrl=hyperctrl,
                              control=control,
                              b=b)
     }
@@ -312,7 +330,6 @@ krls <- function(# Data arguments
 
       hyperOut <- lambdabsearch(y=y,
                                 X=X,
-                                hyperctrl=hyperctrl,
                                 control=control)
       lambda <- hyperOut$lambda
       b <- hyperOut$b
@@ -320,7 +337,6 @@ krls <- function(# Data arguments
     } else { # lambda is set
       b <- bsearch(y=y,
                    X=X,
-                   hyperctrl=hyperctrl,
                    control=control,
                    lambda=lambda)
     }
@@ -350,7 +366,6 @@ krls <- function(# Data arguments
 
   coefhat <- UDinv %*% out$dhat
 
-  # todo: replace with internal predict dispatcher that takes getDhat object
   if (loss == "leastsquares") {
 
     yfitted <- Kdat$K %*% coefhat

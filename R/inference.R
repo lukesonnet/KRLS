@@ -10,7 +10,6 @@
 
 #' @export
 inference.krls2 <- function(obj,
-                            sandwich = ifelse(obj$loss == "leastsquares", F, T),
                             robust = FALSE,
                             clusters = NULL,
                             returnmoreinf = FALSE,
@@ -20,20 +19,18 @@ inference.krls2 <- function(obj,
   
   if(!obj$truncate) {
     if(obj$loss == 'logistic') {
-      warning("Standard errors and uncertainty only available for binary models with truncation")
+      warning("Standard errors and uncertainty for binary models are only available with truncation")
       vcov <- FALSE
-    } else if (sandwich & obj$loss == "leastsquares") {
-      stop("Sandwich estimators only available with truncated KRLS.")
+    } else if (robust & obj$loss == "leastsquares") {
+      stop("Robust estimators only available with truncated KRLS.")
     }
   }
   
-  if(!sandwich & !is.null(clusters)) {
-    stop("Clusters require using sandwich == T")
+  if(!is.null(clusters)) {
+    robust <- TRUE
   }
   
-  if((robust | !is.null(clusters)) & !vcov) {
-    stop("Standard errors only available if vcov = TRUE")
-  } else if (!vcov) {
+  if (!vcov) {
     warning("Standard errors only available if vcov = TRUE")
   }
   
@@ -83,22 +80,22 @@ inference.krls2 <- function(obj,
   if (vcov) {
     
     if (obj$loss == "leastsquares") {
-      if(!sandwich) {
+      if(!robust) {
         sigmasq <- as.vector((1/n) * crossprod(y-yfitted))
       }
       
-      if(!weight & !sandwich) {
+      if(!weight & !robust) {
         vcov.c <- tcrossprod(mult_diag(obj$U,sigmasq*(obj$D+obj$lambda)^-2),obj$U)
       } else {
         
         UDinv <- mult_diag(obj$U, 1/obj$D)
         invhessian <- krls_hess_trunc_inv(obj$U, obj$D, obj$w, obj$lambda)
         
-        if(weight & !sandwich) {
+        if(weight & !robust) {
           
           vcov.d <- invhessian %*% crossprod(mult_diag(obj$U, sigmasq*obj$w^2), obj$U) %*% invhessian
           
-        } else if (sandwich) {
+        } else if (robust) {
           if(is.null(clusters)) {
             score <- matrix(nrow = n, ncol = length(obj$dhat))
             for(i in 1:n) {
@@ -138,16 +135,25 @@ inference.krls2 <- function(obj,
         
         invhessian <- krlogit_hess_trunc_inv(c(obj$dhat, obj$beta0hat), obj$U, obj$D, y, obj$w, obj$lambda)
  
-        if(sandwich) {
+        if(robust) {
           if(is.null(clusters)) {
             score <- matrix(nrow = n, ncol = length(c(obj$dhat, obj$beta0hat)))
             for(i in 1:n) {
-              score[i, ] = t(-1 * krlogit_gr_trunc(c(obj$dhat, obj$beta0hat), obj$U[i, , drop=F], obj$D, y[i, drop = F], obj$w[i], obj$lambda/n))
+              score[i, ] = t(-1 * krlogit_gr_trunc(c(obj$dhat, obj$beta0hat),
+                                                   obj$U[i, , drop=F],
+                                                   obj$D,
+                                                   y[i, drop = F],
+                                                   obj$w[i],
+                                                   obj$lambda/n))
             }
           } else {
             score <- matrix(nrow = length(clusters), ncol = length(c(obj$dhat, obj$beta0hat)))
             for(j in 1:length(clusters)){
-              score[j, ] <-  t(-1 * krlogit_gr_trunc(c(obj$dhat, obj$beta0hat), obj$U[clusters[[j]], , drop=F], obj$D, y[clusters[[j]], drop = F], obj$w[clusters[[j]]], length(clusters[[j]]) * obj$lambda/n))
+              score[j, ] <-  t(-1 * krlogit_gr_trunc(c(obj$dhat, obj$beta0hat),
+                                                     obj$U[clusters[[j]], , drop=F],
+                                                     obj$D, y[clusters[[j]], drop = F],
+                                                     obj$w[clusters[[j]]],
+                                                     length(clusters[[j]]) * obj$lambda/n))
             }
             
           }
@@ -190,19 +196,12 @@ inference.krls2 <- function(obj,
     if(cpp) {
       
       if(vcov) {
-        if(!obj$truncate){
-          derivout <- pwmfx(obj$K, X, obj$coeffs, vcov.c, tau, obj$b)
-        } else {
-          derivout <- pwmfx(tcrossprod(mult_diag(obj$U, obj$D), obj$U), X, obj$coeffs, vcov.c, tau, obj$b)
-        }
+        derivout <- pwmfx(obj$K, X, obj$coeffs, vcov.c, tau, obj$b)#Kfull rather than K here as truncation handled through coefs
+
         derivatives <- derivout[1:n, ]
         var.avgderivatives <- derivout[n+1, ]
       } else {
-        if(!obj$truncate){
-          derivatives <- pwmfx_novar(obj$K, X, obj$coeffs, tau, obj$b)
-        } else {
-          derivatives <- pwmfx_novar(tcrossprod(mult_diag(obj$U, obj$D), obj$U), X, obj$coeffs, tau, obj$b)
-        }
+        derivatives <- pwmfx_novar(obj$K, X, obj$coeffs, tau, obj$b)#Kfull rather than K here as truncation handled through coefs
       }
       
     } else {
@@ -220,13 +219,14 @@ inference.krls2 <- function(obj,
           distk <-  matrix(distances[,k],n,n,byrow=TRUE) 
         }
         L <-  distk*obj$K  #Kfull rather than K here as truncation handled through coefs
-        derivatives[,k] <- tau*(-1/obj$b)*(L%*%obj$coeffs)
+        derivatives[,k] <- -(tau/obj$b)*(L%*%obj$coeffs)
         if(obj$truncate==FALSE) {
           var.avgderivatives = NULL
         } else {
-          var.avgderivatives[1,k] <- 1/(obj$b * n)^2 * sum(crossprod(tau^2, crossprod(L,vcov.c%*%L)))
+          var.avgderivatives[k] <- 1/(obj$b * n)^2 * sum(crossprod(tau^2, crossprod(L,vcov.c%*%L)))
         }
       }
+      print(derivatives[1,])
     }
     
     ## Rescale quantities of interest
@@ -283,28 +283,6 @@ inference.krls2 <- function(obj,
   }
   
   return(z)
-}
-
-# Chad's pwmfxR function which is mostly cribbed from above
-pwmfxR <- function() {
-  rows <- cbind(rep(1:n, each = n), 1:n)
-  distances <- X[rows[,1],] - X[ rows[,2],] 
-  
-  for(k in 1:d){
-    print(paste("Computing derivatives, variable", k))
-    if(d==1){
-      distk <-  matrix(distances,n,n,byrow=TRUE)
-    } else {
-      distk <-  matrix(distances[,k],n,n,byrow=TRUE) 
-    }
-    L <-  distk*Kdat$K  #Kfull rather than K here as truncation handled through coefs
-    derivatives[,k] <- tau*(-1/b)*(L%*%coefhat)
-    if(truncate==FALSE) {
-      var.avgderivatives = NULL
-    } else {
-      var.avgderivatives[1,k] <- 1/(b * n)^2 * sum(crossprod(tau^2, crossprod(L,vcov.c%*%L)))
-    }
-  }
 }
 
 # First differences
