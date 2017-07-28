@@ -19,4 +19,4 @@ LinkingTo: Rcpp, RcppArmadillo
 License: GPL (>= 2)
 Suggests:
     lattice
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1

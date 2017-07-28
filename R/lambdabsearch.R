@@ -90,7 +90,7 @@ lambdasearch <- function(y,
         fit.lambda$par=fit.lambda$minimum
   
         
-                if(!control$quiet) {
+        if(!control$quiet) {
           print(fit.lambda)
         }
         
