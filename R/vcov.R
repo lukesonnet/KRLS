@@ -1,1 +1,0 @@
-## This file contains functions that are now deprecated

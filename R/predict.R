@@ -24,21 +24,19 @@ predict.krls2 <- function(object, newdata, se.fit = FALSE, ...) {
   
   newdataK <- newKernel(X = object$X, newData = newdata, whichkernel = object$kernel, b = object$b)
 
-  #if(object$truncate){
-  #  newdataK <- newdataK%*%object$U
-  #}
-  
   if(object$loss == "logistic") {
     yfitted <- logistic(K = newdataK, coeff = object$coeffs, beta0 = object$beta0hat)
     
     if(se.fit){
-      # use truncation so that we can use vcov.db0 because vcov.c does not have uncertainty of b0. Could change this and return vcov.c padded with UDinv %*% vcov.db0[1:nrow(UDinv), ncol(vcov.db0)] instead
+
       newU <- newdataK %*% mult_diag(object$U, 1/object$D)
       # todo: could move to cpp if slow
+      
       partiallogit <- partial_logit(newU, object$dhat, object$beta0hat)
       # each row is dy/dd with dy/db in the last column
       deriv.logit <- cbind(t(mult_diag(t(newU), partiallogit)),
                            partiallogit)
+      
       vcov.fit <- tcrossprod(deriv.logit %*% object$vcov.db0, deriv.logit)
       se.fit <- matrix(sqrt(diag(vcov.fit)),ncol=1)
     } else {
@@ -73,13 +71,4 @@ predict.krls2 <- function(object, newdata, se.fit = FALSE, ...) {
   }
   
   return(fit)
-}
-
-## The logistic function that takes values for coeff, b0, and a K or Ktilde
-#' @export
-logistic <- function(K, coeff, beta0) {
-  
-  yhat <- 1 / (1 + exp(-(beta0+K%*%coeff)))
-  
-  return(yhat)
 }

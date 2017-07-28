@@ -42,7 +42,7 @@ summary.krls2 <- function(object,
   cat("Model Summary:\n\n")
   #cat("R2:",object$R2,"\n\n")      
   cat("Average Marginal Effects:\n")
-  print(avgcoefficients,...)
+  print(round(avgcoefficients, 8),...)
   if(sum(object$binaryindicator)>0){
     cat("\n(*) average dy/dx is for discrete change of dummy variable from min to max (i.e. usually 0 to 1))\n\n")
   }
