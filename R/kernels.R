@@ -21,7 +21,7 @@ generateK <- function(X,
 
   if(control$truncate) {
     truncDat <- Ktrunc(K = K, b=b, lastkeeper=control$lastkeeper, epsilon=control$epsilon,
-                       package=control$package, quiet = control$quiet)
+                       quiet = control$quiet)
     U <- truncDat$Utrunc
     D <- truncDat$eigvals
   } else {
@@ -43,7 +43,7 @@ generateK <- function(X,
 ## Function that returns truncated versions of the data if given
 ## todo: throws warning whenever n < 500 because it uses eigen, should we suppress?
 #' @export
-Ktrunc <- function(X=NULL, K=NULL, b=NULL, epsilon=NULL, lastkeeper=NULL, package=NULL, quiet = TRUE){
+Ktrunc <- function(X=NULL, K=NULL, b=NULL, epsilon=NULL, lastkeeper=NULL, quiet = TRUE){
   if(is.null(K)){
     X.sd <- apply(X, 2, sd)
     X.mu <- colMeans(X)
@@ -60,25 +60,17 @@ Ktrunc <- function(X=NULL, K=NULL, b=NULL, epsilon=NULL, lastkeeper=NULL, packag
     while (enoughvar==FALSE){
       numvectors=numvectorss[j]
       if(!quiet) print(paste("trying",numvectors,"vectors"))
-      if(package == 'RSpectra') {
-        eigobj <- NULL
-        eigobj <- suppressWarnings({eigs_sym(K, numvectors, which="LM")})
-        #for now, letting it throw an error in certain failure cases.
-        totalvar=sum(eigobj$values)/nrow(K)
-      } else {
-        eigobj <- trlan.eigen(K, numvectors, lambda = eigobj$d, U = eigobj$u)
-        #for now, letting it throw an error in certain failure cases.
-        totalvar=sum(eigobj$d)/nrow(K)
-      }
+
+      eigobj <- NULL
+      eigobj <- suppressWarnings({eigs_sym(K, numvectors, which="LM")})
+      #for now, letting it throw an error in certain failure cases.
+      totalvar=sum(eigobj$values)/nrow(K)
+
       if(!quiet) print(totalvar)
       
       
       if (totalvar>=(1-epsilon)){
-        if(package == 'RSpectra') {
-          lastkeeper = min(which(cumsum(eigobj$values)/nrow(K) > (1-epsilon)))
-        } else {
-          lastkeeper = min(which(cumsum(eigobj$d)/nrow(K) > (1-epsilon)))
-        }
+        lastkeeper = min(which(cumsum(eigobj$values)/nrow(K) > (1-epsilon)))
 
         if(!quiet) print(paste("lastkeeper=",lastkeeper))
         enoughvar=TRUE
@@ -90,20 +82,11 @@ Ktrunc <- function(X=NULL, K=NULL, b=NULL, epsilon=NULL, lastkeeper=NULL, packag
     } #end while gotenough==FALSE      
   } else { # if !is.null(lastkeeper)
     ## Suppress warning about using all eigenvalues
-    if(package == 'RSpectra') {
-      eigobj <- suppressWarnings({eigs_sym(K, lastkeeper, which="LM")})
-    } else {
-      eigobj <- trlan.eigen(K, lastkeeper, lambda = eigobj$d, U = eigobj$u)
-    }
+    eigobj <- suppressWarnings({eigs_sym(K, lastkeeper, which="LM")})
   }
   
-  if(package == 'RSpectra') {
-    return(list(Utrunc=eigobj$vectors[, 1:lastkeeper, drop = F],
-           eigvals=eigobj$values[1:lastkeeper, drop = F]))
-  } else {
-    return(list(Utrunc=eigobj$u[, 1:lastkeeper, drop = F],
-                eigvals=eigobj$d[1:lastkeeper, drop = F]))
-  }
+  return(list(Utrunc=eigobj$vectors[, 1:lastkeeper, drop = F],
+         eigvals=eigobj$values[1:lastkeeper, drop = F]))
 }
 
 

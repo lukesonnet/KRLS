@@ -25,7 +25,6 @@
 #' via the summary() function. See summary.krls2().
 #'
 #' @import RSpectra
-#' @import svd
 #' @useDynLib KRLS2
 #' @importFrom Rcpp sourceCpp
 
@@ -115,7 +114,6 @@ krls <- function(# Data arguments
                     truncate = FALSE,
                     lastkeeper = NULL,
                     epsilon = NULL,
-                    package = 'RSpectra',
                     # Optimization arguments
                     con = list(maxit=500),
                     returnopt = TRUE,
@@ -227,7 +225,6 @@ krls <- function(# Data arguments
                  epsilon=epsilon,
                  quiet=quiet,
                  returnopt=returnopt,
-                 package=package,
                  ...)
 
   ###----------------------------------------
