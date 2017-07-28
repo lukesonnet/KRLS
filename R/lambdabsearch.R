@@ -15,6 +15,8 @@ lambdabsearch <- function(y,
   if(is.null(control$lambdarange)) {
     if (!is.null(control$brange)) stop("Grid search for b only works with fixed lambda or lambda grid search.")
 
+    ## Joint optimization using BFGS of lambda and b
+    
     fit.hyper <- optim(par=log(c(control$lambdastart, 2.2*control$d)), lambdab.fn,
                        X=X, y=y, folds=length(control$chunks),
                        chunks = control$chunks, ctrl = control,
@@ -25,6 +27,9 @@ lambdabsearch <- function(y,
     b <- exp(fit.hyper$par[2])
   } else {
     if (control$optimb) stop("Optimizing b does not work with a grid search for lambda.")
+    
+    ## Grid search over lambda and b
+    
     hypergrid <- as.matrix(expand.grid(control$lambdarange, control$brange))
     hyperMSE <- NULL
     for(i in 1:nrow(hypergrid)){
@@ -51,6 +56,10 @@ lambdasearch <- function(y,
                          b) {
 
   if (control$loss == "leastsquares") {
+    
+    ## Least squares golden section search
+    ## todo: just replace with optimize? test output + efficiency
+    
     if(control$weight){
       print('here')
       lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, w=control$w, tol=control$tol, noisy = !control$quiet)
@@ -61,15 +70,8 @@ lambdasearch <- function(y,
 
     if(is.null(control$lambdarange)) {
       
-      start_val <- log(control$lambdastart)
+      ## Logistic optimize for lambda
         
-      #fit.lambda <- optim(par=start_val, lambdab.fn,
-      #                   Kdat = Kdat, y=y, folds=length(control$chunks),
-      #                    chunks = control$chunks, ctrl = control,
-      #                    b = b,
-      #                    vcov = FALSE,
-      #                    control=list(trace = T, abstol = 1e-4, REPORT = 1), method="Nelder-Mead")
-
       fit.lambda <- optimize(lambdab.fn, interval=log(c(10^-12, 4)),
                           Kdat = Kdat, y=y, folds=length(control$chunks),
                           chunks = control$chunks, ctrl = control,
@@ -87,6 +89,8 @@ lambdasearch <- function(y,
       
     } else {
 
+      ## line search for lambda
+      
       lambdaMSE <- NULL
       for(i in 1:length(control$lambdarange)){
         lambdaMSE[i] <- lambdab.fn(par = log(control$lambdarange[i]), Kdat = Kdat,
@@ -133,10 +137,8 @@ bsearch <- function(y,
 
 }
 
-# todo: Unless the folds are much smaller, lastkeeper will probably be the same
-# or only one or two smaller, should we pass lastkeeper and just use it?
 ## This computes the RMSPE using 'folds' cross-validation, fitting a new model
-## for each subset of the data
+## for each subset of the data, but not refitting the kernel matrix unless looking for b
 #' @export
 lambdab.fn <- function(par = NULL,
                            y = NULL,
@@ -202,7 +204,9 @@ lambdab.fn <- function(par = NULL,
     loss <- loss/length(y)
   }
 
-  print(loss)
+  if(!control$quiet){
+    cat(paste0('loss: ', loss))
+  }
   return(loss)
 }
 
@@ -298,7 +302,6 @@ lambdaline <-
 #' @export
 looloss <-
   function(y=NULL,K=NULL,D=NULL,U=NULL,w=NULL,lambda=NULL){
-    print(D[1]);print(y[1])
       if(is.null(w)) {
         Le <- solve_for_d_ls(y=y,D=D,U=U,lambda=lambda)$Le
       } else {

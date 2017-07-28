@@ -52,7 +52,7 @@ Ktrunc <- function(X=NULL, K=NULL, b=NULL, epsilon=NULL, lastkeeper=NULL, quiet 
 
   if(is.null(lastkeeper)){
     #denoms <- c(10, 6, 3, 1) # we could also let people set this to speed up the algorithm
-    #CJH: even at 10, with N=5000 it is too big. Let's try this: 
+    #CJH: even at 10, with N=5000 it is too big. Let's try this:
     if (nrow(K) <= 500) numvectorss=nrow(K) else numvectorss=c(50, 100, 200, 300,500, min(c(nrow(K), 1000)), nrow(K))
     enoughvar=FALSE
     j=1
@@ -77,10 +77,9 @@ Ktrunc <- function(X=NULL, K=NULL, b=NULL, epsilon=NULL, lastkeeper=NULL, quiet 
         
       }
       j=j+1
-      # Will eventually add warning here for var < 0.99 at numvector= 300
-      # Allow to proceed w/out truncation and SEs or to try full eigen
+
     } #end while gotenough==FALSE      
-  } else { # if !is.null(lastkeeper)
+  } else { # if !is.null(lastkeeper), ie lastkeeper is given
     ## Suppress warning about using all eigenvalues
     eigobj <- suppressWarnings({eigs_sym(K, lastkeeper, which="LM")})
   }
