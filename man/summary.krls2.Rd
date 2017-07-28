@@ -12,3 +12,4 @@ much as one would use summary.lm for lm objects. Like its lm analog,
 it provides a summary akin to a regression table: average marginal 
 effects for each input variables, together with standard errors.
 }
+

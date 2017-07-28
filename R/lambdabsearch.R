@@ -74,13 +74,23 @@ lambdasearch <- function(y,
         
         start_val <- ifelse(is.null(control$lambdapenalty), log(hyperctrl$lambdastart), hyperctrl$lambdastart)
         
-        fit.lambda <- optim(par=start_val, lambdab.fn,
+        #fit.lambda <- optim(par=start_val, lambdab.fn,
+        #                   Kdat = Kdat, y=y, folds=length(hyperctrl$chunks),
+        #                    chunks = hyperctrl$chunks, ctrl = control,
+        #                    b = b,
+        #                    vcov = FALSE,
+        #                    control=list(trace = T, abstol = 1e-4, REPORT = 1), method="Nelder-Mead")
+
+        fit.lambda <- optimize(lambdab.fn, interval=log(c(10^-12, 4)),
                             Kdat = Kdat, y=y, folds=length(hyperctrl$chunks),
                             chunks = hyperctrl$chunks, ctrl = control,
                             b = b,
-                            vcov = FALSE,
-                            control=list(trace = T, abstol = 1e-4, REPORT = 1), method="Nelder-Mead")
-        if(!control$quiet) {
+                            vcov = FALSE)
+        
+        fit.lambda$par=fit.lambda$minimum
+  
+        
+                if(!control$quiet) {
           print(fit.lambda)
         }
         
@@ -195,8 +205,8 @@ lambdab.fn <- function(par = NULL,
 
     } else if (ctrl$loss == "logistic") {
       yhat <- logistic(Kdat$U[fold, ], out$dhat, out$beta0hat)
-      yhat[yhat==1]=1-1e-6
-      yhat[yhat==0]=0+1e-6
+      yhat[yhat==1]=1-1e-12
+      yhat[yhat==0]=0+1e-12
       loss <- loss - sum(y[fold]*log(yhat)+(1-y[fold])*log(1-yhat))
     }
 
