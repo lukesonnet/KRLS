@@ -79,7 +79,7 @@ lambdasearch <- function(y,
       
   
       # Test for closeness in log scale or else this test is too sensitive in smaller regions of lambda
-      solution_on_interval <- abs(exp(fit.lambda$minimum) - control$lambdainterval) < c(.Machine$double.eps^0.7, .Machine$double.eps^0.2)
+      solution_on_interval <- abs(fit.lambda$minimum - log(control$lambdainterval)) < 2*.Machine$double.eps^.5
 
       if (solution_on_interval[1]) 
         stop("Lambda solution too close to lower bound of lambdainterval; please decrease lower bound.")
