@@ -29,15 +29,16 @@ inference.krls2 <- function(obj,
       warning("Standard errors with logistic regression only available with truncation")
       vcov <- FALSE
     } else if ((robust | !is.null(clusters)) & obj$loss == "leastsquares") {
-      stop("Robust estimators only available with truncated KRLS. Either refit with truncation or remove robust and clusters options.")
+      warning("Robust standard errors with KRLS only available with truncation. Either refit with truncation or remove robust and clusters options.")
+      vcov <- FALSE
+      robust <- FALSE
+      cluster <- NULL
     }
   }
   
   if(!is.null(clusters)) {
     robust <- TRUE
   }
-  
-
   
   if(length(unique(obj$w))==1){
     weight = F

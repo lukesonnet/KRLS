@@ -66,9 +66,8 @@ for(i in 1:nrow(test_grid)) {
     expecting_fit_error <- NA #this means we will not expect an error
   }
   
-  # don't support these, should throw error when getting pwmfx/standard errors
-  if ((test_grid$robust[i] != 'reg' & !test_grid$truncation[i] & test_grid$loss[i] == 'leastsquares') |
-      test_grid$whichkernel[i] != 'gaussian') {
+  # don't support these, should throw error when getting pwmfx
+  if (test_grid$whichkernel[i] != 'gaussian') {
     print('expect inference error')
     expecting_inf_error <- 'Robust|kernel' #this means we will expect an error with one of these things in it (regex)
   } else {
