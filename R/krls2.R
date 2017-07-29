@@ -184,22 +184,6 @@ krls <- function(# Data arguments
     }
   }
 
-  ## todo: it might be faster to have different versions with and without weights
-  ## because it saves a bunch of pointless multiplications. However this will
-  ## increase the amount of code.
-  if (is.null(w)) { 
-    w <- rep(1, n)
-    weight = F
-  } else if (length(w) != n) {
-    stop("w is not the same length as y")
-  } else {
-    if(loss=="leastsquares" & !truncate) {
-      stop("For now, weighted KRLS only works with truncation")
-    }
-    w <- n * (w / sum(w)) # rescale w to sum to 1
-    weight = T
-  }
-  
   ## Set truncation options
   if (!is.null(epsilon)) {
     if (!is.numeric(epsilon) | epsilon < 0 | epsilon > 1) {
@@ -214,6 +198,22 @@ krls <- function(# Data arguments
   ## Warn if not truncating a big dataset
   if (n >= 1000 & !truncate) {
     warning("With n >= 1000 you should consider using truncation for speed. Try setting epsilon to 0.001")
+  }
+  
+  ## todo: it might be faster to have different versions with and without weights
+  ## because it saves a bunch of pointless multiplications. However this will
+  ## increase the amount of code.
+  if (is.null(w)) { 
+    w <- rep(1, n)
+    weight = F
+  } else if (length(w) != n) {
+    stop("w is not the same length as y")
+  } else {
+    if(loss=="leastsquares" & !truncate) {
+      stop("For now, weighted KRLS only works with truncation")
+    }
+    w <- n * (w / sum(w)) # rescale w to sum to 1
+    weight = T
   }
   
   ## Carry vars in list
