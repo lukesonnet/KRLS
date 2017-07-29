@@ -30,6 +30,7 @@ generateK <- function(X,
     D <- eigobj$values
   }
   
+  U <- as.matrix(U)
   lastkeeper <- NULL
   lastkeeper <- if(control$truncate) ncol(U)
 

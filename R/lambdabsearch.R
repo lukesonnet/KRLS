@@ -61,7 +61,6 @@ lambdasearch <- function(y,
     ## todo: just replace with optimize? test output + efficiency
     
     if (control$weight) {
-      print('here')
       lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, w=control$w, tol=control$tol, noisy = !control$quiet)
     } else {
       lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, tol=control$tol, noisy = !control$quiet)
@@ -183,7 +182,7 @@ lambdab.fn <- function(par = NULL,
   loss <- 0
   for(j in 1:folds){
     fold <- chunks[[j]]
-    UFold <- Kdat$U[-fold, ]
+    UFold <- Kdat$U[-fold, , drop = F] # to make sure it stays a matrix, which CPP demands
 
     suppressWarnings({suppressMessages({invisible(capture.output({
     out <- getDhat(par = pars,
@@ -199,7 +198,7 @@ lambdab.fn <- function(par = NULL,
       loss <- loss + sum((y[fold] - yhat)^2)
 
     } else if (ctrl$loss == "logistic") {
-      yhat <- logistic(Kdat$U[fold, ], out$dhat, out$beta0hat)
+      yhat <- logistic(Kdat$U[fold, , drop = F], out$dhat, out$beta0hat)
       yhat[yhat==1]=1-1e-12
       yhat[yhat==0]=0+1e-12
       loss <- loss - sum(y[fold]*log(yhat)+(1-y[fold])*log(1-yhat))
