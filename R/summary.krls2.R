@@ -15,7 +15,6 @@ summary.krls2 <- function(object,
     return(invisible(NULL))
   }
         
-      
   d <- ncol(object$X)
   n <- nrow(object$X)
         

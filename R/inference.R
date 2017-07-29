@@ -19,7 +19,7 @@ inference.krls2 <- function(obj,
   
   if(!obj$truncate) {
     if(obj$loss == 'logistic') {
-      warning("Standard errors and uncertainty for binary models are only available with truncation")
+      warning("Standard errors with logistic regression only available with truncation")
       vcov <- FALSE
     } else if (robust & obj$loss == "leastsquares") {
       stop("Robust estimators only available with truncated KRLS.")
@@ -34,7 +34,7 @@ inference.krls2 <- function(obj,
     warning("Standard errors only available if vcov = TRUE")
   }
   
-  if(length(unique(obj$w)==1)){
+  if(length(unique(obj$w))==1){
     weight = F
   } else{
     weight = T
