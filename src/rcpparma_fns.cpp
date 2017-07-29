@@ -25,21 +25,6 @@ arma::mat mult_diag(const arma::mat& x, const arma::vec& d) {
   return out;
 }
 
-
-// Eigen decomposition, unused
-
-//' @export
-// [[Rcpp::export]]
-Rcpp::List eigsym(const arma::mat& x) {
-  arma::vec eigval;
-  arma::mat eigvec;
-  
-  eig_sym(eigval, eigvec, x);
-  
-  return Rcpp::List::create(Rcpp::Named("eigvec") = eigvec,
-                            Rcpp::Named("eigval") = eigval);
-}
-
 //' @export
 // [[Rcpp::export]]
 arma::vec krls_gr_trunc(
@@ -224,19 +209,6 @@ arma::mat new_gauss_kern(const arma::mat& newx, const arma::mat& oldx, const dou
   return out;
 }
 
-
-
-//' @export
-// [[Rcpp::export]]
-double lambda_search(const double& tol,
-                     const double& l,
-                     const double& u,
-                     const arma::vec& y,
-                     const arma::vec& eigvals,
-                     const arma::mat& eigvecs,
-                     const double& eigtrunc) {
-  return 42;
-}
 
 //' @export
 // [[Rcpp::export]]

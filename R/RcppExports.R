@@ -7,11 +7,6 @@ mult_diag <- function(x, d) {
 }
 
 #' @export
-eigsym <- function(x) {
-    .Call('_KRLS2_eigsym', PACKAGE = 'KRLS2', x)
-}
-
-#' @export
 krls_gr_trunc <- function(U, D, y, w, fitted, dhat, lambda) {
     .Call('_KRLS2_krls_gr_trunc', PACKAGE = 'KRLS2', U, D, y, w, fitted, dhat, lambda)
 }
@@ -59,11 +54,6 @@ kern_gauss <- function(x, b) {
 #' @export
 new_gauss_kern <- function(newx, oldx, b) {
     .Call('_KRLS2_new_gauss_kern', PACKAGE = 'KRLS2', newx, oldx, b)
-}
-
-#' @export
-lambda_search <- function(tol, l, u, y, eigvals, eigvecs, eigtrunc) {
-    .Call('_KRLS2_lambda_search', PACKAGE = 'KRLS2', tol, l, u, y, eigvals, eigvecs, eigtrunc)
 }
 
 #' @export
