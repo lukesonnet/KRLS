@@ -82,10 +82,9 @@ lambdasearch <- function(y,
       solution_on_interval <- abs(fit.lambda$minimum - log(control$lambdainterval)) < 2*.Machine$double.eps^.5
 
       if (solution_on_interval[1]) 
-        stop("Lambda solution too close to lower bound of lambdainterval; please decrease lower bound.")
-      
+        warning("Lambda solution too close to lower bound of lambdainterval; please decrease lower bound.")
       if (solution_on_interval[2]) 
-        stop("Lambda solution too close to upper bound of lambdainterval; please increase upper bound.")
+        warning("Lambda solution too close to upper bound of lambdainterval; please increase upper bound.")
       
       fit.lambda$par <- fit.lambda$minimum
       
