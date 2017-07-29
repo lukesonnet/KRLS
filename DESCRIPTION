@@ -17,5 +17,6 @@ Imports:
 LinkingTo: Rcpp, RcppArmadillo
 License: GPL (>= 2)
 Suggests:
-    lattice
+    lattice,
+    testthat
 RoxygenNote: 6.0.1
