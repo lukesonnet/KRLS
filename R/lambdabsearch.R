@@ -60,7 +60,7 @@ lambdasearch <- function(y,
     ## Least squares golden section search
     ## todo: just replace with optimize? test output + efficiency
     
-    if(control$weight){
+    if (control$weight) {
       print('here')
       lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, w=control$w, tol=control$tol, noisy = !control$quiet)
     } else {
@@ -68,7 +68,7 @@ lambdasearch <- function(y,
     }
   } else {
 
-    if(is.null(control$lambdarange)) {
+    if (is.null(control$lambdarange)) {
       
       ## Logistic optimize for lambda
         
@@ -78,11 +78,20 @@ lambdasearch <- function(y,
                           chunks = control$chunks, ctrl = control,
                           b = b,
                           vcov = FALSE)
-        
-      fit.lambda$par=fit.lambda$minimum
+      
   
-        
-      if(!control$quiet) {
+      # Test for closeness in log scale or else this test is too sensitive in smaller regions of lambda
+      solution_on_interval <- abs(fit.lambda$minimum - log(control$lambdainterval)) < .Machine$double.eps^0.25
+
+      if (solution_on_interval[1]) 
+        stop("Lambda solution too close to lower bound of lambdainterval; please decrease lower bound.")
+      
+      if (solution_on_interval[2]) 
+        stop("Lambda solution too close to upper bound of lambdainterval; please increase upper bound.")
+      
+      fit.lambda$par <- fit.lambda$minimum
+      
+      if (!control$quiet) {
         print(fit.lambda)
       }
         

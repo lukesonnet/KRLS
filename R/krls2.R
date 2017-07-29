@@ -303,8 +303,6 @@ krls <- function(# Data arguments
     chunks <- NULL
   }
 
-  
-  print(str(control))
   ###----------------------------------------
   ## searching for hyperparameters
   ###----------------------------------------
