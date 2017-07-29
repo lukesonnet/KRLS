@@ -116,19 +116,16 @@ newKernel <- function(X, newData, whichkernel = "gaussian", b = NULL) {
   if(whichkernel=="gaussian"){ 
     if(is.null(b)) {b <- 2 * ncol(X)}
     newK <- new_gauss_kern(newData, X, b)
-  }
-  
-  if(whichkernel=="linear"){ K <- tcrossprod(rbind(newData, X)) }
-  if(whichkernel=="poly2"){ K <- (tcrossprod(rbind(newData, X))+1)^2 }
-  if(whichkernel=="poly3"){ K <- (tcrossprod(rbind(newData, X))+1)^3 }
-  if(whichkernel=="poly4"){ K <- (tcrossprod(rbind(newData, X))+1)^4 }
-  if(is.null(K) & is.null(newK)){ stop("No valid Kernel specified") }
-  
-  if(whichkernel != "gaussian"){
+  } else {
+    if(whichkernel=="linear"){ K <- tcrossprod(rbind(newData, X)) }
+    if(whichkernel=="poly2"){ K <- (tcrossprod(rbind(newData, X))+1)^2 }
+    if(whichkernel=="poly3"){ K <- (tcrossprod(rbind(newData, X))+1)^3 }
+    if(whichkernel=="poly4"){ K <- (tcrossprod(rbind(newData, X))+1)^4 }
     newK <- matrix(K[1:nn, (nn+1):(nn+nrow(X))],
                    nrow=nrow(newData),
                    byrow=FALSE)
   }
+  if(is.null(newK)){ stop("No valid Kernel specified") }
   
   return(newK)
 }
