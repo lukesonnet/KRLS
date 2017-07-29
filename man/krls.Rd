@@ -6,8 +6,8 @@
 \usage{
 krls(X, y, w = NULL, loss = "leastsquares", whichkernel = "gaussian",
   b = NULL, optimb = FALSE, lambda = NULL, hyperfolds = 5,
-  lambdastart = 10^(-6)/length(y), lambdainterval = c(10^-6, 4), L = NULL,
-  U = NULL, tol = NULL, truncate = FALSE, epsilon = NULL,
+  lambdastart = 10^(-6)/length(y), lambdainterval = c(10^-8, 25),
+  L = NULL, U = NULL, tol = NULL, truncate = FALSE, epsilon = NULL,
   lastkeeper = NULL, con = list(maxit = 500), returnopt = TRUE,
   quiet = TRUE, sigma = NULL, ...)
 }

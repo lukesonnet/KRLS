@@ -108,7 +108,7 @@ krls <- function(# Data arguments
                     lambda = NULL,
                     hyperfolds = 5,
                     lambdastart = 10^(-6)/length(y),
-                    lambdainterval = c(10^-6, 4),
+                    lambdainterval = c(10^-8, 25),
                     L = NULL,
                     U = NULL,
                     tol = NULL,
