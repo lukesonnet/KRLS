@@ -17,6 +17,10 @@ inference.krls2 <- function(obj,
                             derivative = TRUE,
                             cpp = TRUE) {
   
+  if (obj$kernel != 'gaussian') {
+    stop("Currently standard errors and marginal effects are only supported for gaussian kernels.")
+  }
+  
   if (!vcov) {
     warning("Standard errors only available if vcov = TRUE")
   }
