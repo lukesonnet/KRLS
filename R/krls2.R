@@ -57,6 +57,7 @@
 #' @param con A list of control arguments passed to optimization for the numerical optimization of the kernel regularized logistic loss function.
 #' @param returnopt A boolean that defaults to \code{FALSE}. If \code{TRUE}, returns the result of the \code{optim} method called to optimize the kernel regularized logistic loss function.
 #' @param quiet A boolean that defaults to \code{TRUE} and determines whether to suppress printing in the method.
+#' @param warn A number that sets your \code{warn} option. We default to 1 so that warnings print as they occur. You can change this to 2 if you want all warnings to be errors, to 0 if you want all warnings to wait until the top-level call is finished, or to a negative number to ignore them.
 #' @details
 #' \code{krls} implements the Kernel-based Regularized Least Squares (KRLS) estimator as described in Hainmueller and Hazlett (2014). Please consult this reference for any details.
 
@@ -120,6 +121,7 @@ krls <- function(# Data arguments
                     con = list(maxit=500),
                     returnopt = TRUE,
                     quiet = TRUE,
+                    warn = 1,
                     sigma = NULL, # to provide legacy support for old code,
                                   # simply is interpreted as 'b' if 'b' is NULL;
                                   # ignored otherwise
@@ -129,8 +131,8 @@ krls <- function(# Data arguments
   ## Input validation and housekeeping
   ###----------------------------------------
 
-  # set R to issue warnings as they occur
-  options(warn=1)
+  # set R to issue warnings as they occur if default = 1
+  options(warn=warn)
   
   ## Prepare the data
   X <- as.matrix(X)
