@@ -2,3 +2,4 @@ R/deprecated
 src/deprecated
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^\.travis\.yml$
