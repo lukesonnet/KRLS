@@ -60,29 +60,35 @@ lambdasearch <- function(y,
     ## Least squares golden section search
     ## todo: just replace with optimize? test output + efficiency
     
-    if(control$weight){
-      print('here')
+    if (control$weight) {
       lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, w=control$w, tol=control$tol, noisy = !control$quiet)
     } else {
       lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, tol=control$tol, noisy = !control$quiet)
     }
   } else {
 
-    if(is.null(control$lambdarange)) {
+    if (is.null(control$lambdarange)) {
       
       ## Logistic optimize for lambda
         
-      print(control)
       fit.lambda <- optimize(lambdab.fn, interval=log(control$lambdainterval),
                           Kdat = Kdat, y=y, folds=length(control$chunks),
                           chunks = control$chunks, ctrl = control,
                           b = b,
                           vcov = FALSE)
-        
-      fit.lambda$par=fit.lambda$minimum
+      
   
-        
-      if(!control$quiet) {
+      # Test for closeness in log scale or else this test is too sensitive in smaller regions of lambda
+      solution_on_interval <- abs(fit.lambda$minimum - log(control$lambdainterval)) < 2*.Machine$double.eps^.5
+
+      if (solution_on_interval[1]) 
+        warning("Lambda solution too close to lower bound of lambdainterval; please decrease lower bound.")
+      if (solution_on_interval[2]) 
+        warning("Lambda solution too close to upper bound of lambdainterval; please increase upper bound.")
+      
+      fit.lambda$par <- fit.lambda$minimum
+      
+      if (!control$quiet) {
         print(fit.lambda)
       }
         
@@ -175,7 +181,7 @@ lambdab.fn <- function(par = NULL,
   loss <- 0
   for(j in 1:folds){
     fold <- chunks[[j]]
-    UFold <- Kdat$U[-fold, ]
+    UFold <- Kdat$U[-fold, , drop = F] # to make sure it stays a matrix, which CPP demands
 
     suppressWarnings({suppressMessages({invisible(capture.output({
     out <- getDhat(par = pars,
@@ -191,7 +197,7 @@ lambdab.fn <- function(par = NULL,
       loss <- loss + sum((y[fold] - yhat)^2)
 
     } else if (ctrl$loss == "logistic") {
-      yhat <- logistic(Kdat$U[fold, ], out$dhat, out$beta0hat)
+      yhat <- logistic(Kdat$U[fold, , drop = F], out$dhat, out$beta0hat)
       yhat[yhat==1]=1-1e-12
       yhat[yhat==0]=0+1e-12
       loss <- loss - sum(y[fold]*log(yhat)+(1-y[fold])*log(1-yhat))

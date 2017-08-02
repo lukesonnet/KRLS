@@ -57,6 +57,7 @@
 #' @param con A list of control arguments passed to optimization for the numerical optimization of the kernel regularized logistic loss function.
 #' @param returnopt A boolean that defaults to \code{FALSE}. If \code{TRUE}, returns the result of the \code{optim} method called to optimize the kernel regularized logistic loss function.
 #' @param quiet A boolean that defaults to \code{TRUE} and determines whether to suppress printing in the method.
+#' @param warn A number that sets your \code{warn} option. We default to 1 so that warnings print as they occur. You can change this to 2 if you want all warnings to be errors, to 0 if you want all warnings to wait until the top-level call is finished, or to a negative number to ignore them.
 #' @details
 #' \code{krls} implements the Kernel-based Regularized Least Squares (KRLS) estimator as described in Hainmueller and Hazlett (2014). Please consult this reference for any details.
 
@@ -108,7 +109,7 @@ krls <- function(# Data arguments
                     lambda = NULL,
                     hyperfolds = 5,
                     lambdastart = 10^(-6)/length(y),
-                    lambdainterval = c(10^-6, 4),
+                    lambdainterval = c(10^-8, 25),
                     L = NULL,
                     U = NULL,
                     tol = NULL,
@@ -120,6 +121,7 @@ krls <- function(# Data arguments
                     con = list(maxit=500),
                     returnopt = TRUE,
                     quiet = TRUE,
+                    warn = 1,
                     sigma = NULL, # to provide legacy support for old code,
                                   # simply is interpreted as 'b' if 'b' is NULL;
                                   # ignored otherwise
@@ -129,8 +131,8 @@ krls <- function(# Data arguments
   ## Input validation and housekeeping
   ###----------------------------------------
 
-  # set R to issue warnings as they occur
-  options(warn=1)
+  # set R to issue warnings as they occur if default = 1
+  options(warn=warn)
   
   ## Prepare the data
   X <- as.matrix(X)
@@ -184,22 +186,6 @@ krls <- function(# Data arguments
     }
   }
 
-  ## todo: it might be faster to have different versions with and without weights
-  ## because it saves a bunch of pointless multiplications. However this will
-  ## increase the amount of code.
-  if (is.null(w)) { 
-    w <- rep(1, n)
-    weight = F
-  } else if (length(w) != n) {
-    stop("w is not the same length as y")
-  } else {
-    if(loss=="leastsquares" & !truncate) {
-      stop("For now, weighted KRLS only works with truncation")
-    }
-    w <- n * (w / sum(w)) # rescale w to sum to 1
-    weight = T
-  }
-  
   ## Set truncation options
   if (!is.null(epsilon)) {
     if (!is.numeric(epsilon) | epsilon < 0 | epsilon > 1) {
@@ -214,6 +200,22 @@ krls <- function(# Data arguments
   ## Warn if not truncating a big dataset
   if (n >= 1000 & !truncate) {
     warning("With n >= 1000 you should consider using truncation for speed. Try setting epsilon to 0.001")
+  }
+  
+  ## todo: it might be faster to have different versions with and without weights
+  ## because it saves a bunch of pointless multiplications. However this will
+  ## increase the amount of code.
+  if (is.null(w)) { 
+    w <- rep(1, n)
+    weight = F
+  } else if (length(w) != n) {
+    stop("w is not the same length as y")
+  } else {
+    if(loss=="leastsquares" & !truncate) {
+      stop("For now, weighted KRLS only works with truncation")
+    }
+    w <- n * (w / sum(w)) # rescale w to sum to 1
+    weight = T
   }
   
   ## Carry vars in list
@@ -303,8 +305,6 @@ krls <- function(# Data arguments
     chunks <- NULL
   }
 
-  
-  print(str(control))
   ###----------------------------------------
   ## searching for hyperparameters
   ###----------------------------------------

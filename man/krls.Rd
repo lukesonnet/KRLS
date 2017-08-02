@@ -6,10 +6,10 @@
 \usage{
 krls(X, y, w = NULL, loss = "leastsquares", whichkernel = "gaussian",
   b = NULL, optimb = FALSE, lambda = NULL, hyperfolds = 5,
-  lambdastart = 10^(-6)/length(y), lambdainterval = c(10^-6, 4), L = NULL,
-  U = NULL, tol = NULL, truncate = FALSE, epsilon = NULL,
+  lambdastart = 10^(-6)/length(y), lambdainterval = c(10^-8, 25),
+  L = NULL, U = NULL, tol = NULL, truncate = FALSE, epsilon = NULL,
   lastkeeper = NULL, con = list(maxit = 500), returnopt = TRUE,
-  quiet = TRUE, sigma = NULL, ...)
+  quiet = TRUE, warn = 1, sigma = NULL, ...)
 }
 \arguments{
 \item{X}{\emph{N} by \emph{D} data numeric matrix that contains the values of \emph{D} predictor variables for \eqn{i=1,\ldots,N} observations. The matrix may not contain missing values or constants. Note that no intercept is required for the least squares or logistic loss. In the case of least squares, the function operates on demeaned data and subtracting the mean of \emph{y} is equivalent to including an (unpenalized) intercept into the model. In the case of logistic loss, we automatically estimate an unpenalized intercept in the linear component of the model.}
@@ -49,6 +49,8 @@ krls(X, y, w = NULL, loss = "leastsquares", whichkernel = "gaussian",
 \item{returnopt}{A boolean that defaults to \code{FALSE}. If \code{TRUE}, returns the result of the \code{optim} method called to optimize the kernel regularized logistic loss function.}
 
 \item{quiet}{A boolean that defaults to \code{TRUE} and determines whether to suppress printing in the method.}
+
+\item{warn}{A number that sets your \code{warn} option. We default to 1 so that warnings print as they occur. You can change this to 2 if you want all warnings to be errors, to 0 if you want all warnings to wait until the top-level call is finished, or to a negative number to ignore them.}
 }
 \description{
 This is the primary fitting function.

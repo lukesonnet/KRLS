@@ -8,7 +8,7 @@ using namespace Rcpp;
 
 // mult_diag
 arma::mat mult_diag(const arma::mat& x, const arma::vec& d);
-RcppExport SEXP KRLS2_mult_diag(SEXP xSEXP, SEXP dSEXP) {
+RcppExport SEXP _KRLS2_mult_diag(SEXP xSEXP, SEXP dSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -18,20 +18,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// eigsym
-Rcpp::List eigsym(const arma::mat& x);
-RcppExport SEXP KRLS2_eigsym(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::mat& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(eigsym(x));
-    return rcpp_result_gen;
-END_RCPP
-}
 // krls_gr_trunc
 arma::vec krls_gr_trunc(const arma::mat& U, const arma::vec& D, const arma::vec& y, const arma::vec& w, const arma::vec& fitted, const arma::vec& dhat, const double& lambda);
-RcppExport SEXP KRLS2_krls_gr_trunc(SEXP USEXP, SEXP DSEXP, SEXP ySEXP, SEXP wSEXP, SEXP fittedSEXP, SEXP dhatSEXP, SEXP lambdaSEXP) {
+RcppExport SEXP _KRLS2_krls_gr_trunc(SEXP USEXP, SEXP DSEXP, SEXP ySEXP, SEXP wSEXP, SEXP fittedSEXP, SEXP dhatSEXP, SEXP lambdaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -48,7 +37,7 @@ END_RCPP
 }
 // krls_hess_trunc_inv
 arma::mat krls_hess_trunc_inv(const arma::mat& U, const arma::vec& D, const arma::vec& w, const double& lambda);
-RcppExport SEXP KRLS2_krls_hess_trunc_inv(SEXP USEXP, SEXP DSEXP, SEXP wSEXP, SEXP lambdaSEXP) {
+RcppExport SEXP _KRLS2_krls_hess_trunc_inv(SEXP USEXP, SEXP DSEXP, SEXP wSEXP, SEXP lambdaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -62,7 +51,7 @@ END_RCPP
 }
 // krlogit_fn_trunc
 double krlogit_fn_trunc(const arma::vec& par, const arma::mat& U, const arma::vec& D, const arma::vec& y, const arma::vec& w, const double& lambda);
-RcppExport SEXP KRLS2_krlogit_fn_trunc(SEXP parSEXP, SEXP USEXP, SEXP DSEXP, SEXP ySEXP, SEXP wSEXP, SEXP lambdaSEXP) {
+RcppExport SEXP _KRLS2_krlogit_fn_trunc(SEXP parSEXP, SEXP USEXP, SEXP DSEXP, SEXP ySEXP, SEXP wSEXP, SEXP lambdaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -78,7 +67,7 @@ END_RCPP
 }
 // krlogit_gr_trunc
 arma::vec krlogit_gr_trunc(const arma::vec& par, const arma::mat& U, const arma::vec& D, const arma::vec& y, const arma::vec& w, const double& lambda);
-RcppExport SEXP KRLS2_krlogit_gr_trunc(SEXP parSEXP, SEXP USEXP, SEXP DSEXP, SEXP ySEXP, SEXP wSEXP, SEXP lambdaSEXP) {
+RcppExport SEXP _KRLS2_krlogit_gr_trunc(SEXP parSEXP, SEXP USEXP, SEXP DSEXP, SEXP ySEXP, SEXP wSEXP, SEXP lambdaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -94,7 +83,7 @@ END_RCPP
 }
 // partial_logit
 arma::vec partial_logit(const arma::mat& K, const arma::vec& coef, const double& beta0);
-RcppExport SEXP KRLS2_partial_logit(SEXP KSEXP, SEXP coefSEXP, SEXP beta0SEXP) {
+RcppExport SEXP _KRLS2_partial_logit(SEXP KSEXP, SEXP coefSEXP, SEXP beta0SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -107,7 +96,7 @@ END_RCPP
 }
 // krlogit_hess_trunc_inv
 arma::mat krlogit_hess_trunc_inv(const arma::vec& par, const arma::mat& U, const arma::vec& D, const arma::vec& y, const arma::vec& w, const double& lambda);
-RcppExport SEXP KRLS2_krlogit_hess_trunc_inv(SEXP parSEXP, SEXP USEXP, SEXP DSEXP, SEXP ySEXP, SEXP wSEXP, SEXP lambdaSEXP) {
+RcppExport SEXP _KRLS2_krlogit_hess_trunc_inv(SEXP parSEXP, SEXP USEXP, SEXP DSEXP, SEXP ySEXP, SEXP wSEXP, SEXP lambdaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -123,7 +112,7 @@ END_RCPP
 }
 // euc_dist
 double euc_dist(const arma::rowvec& x1, const arma::rowvec& x2);
-RcppExport SEXP KRLS2_euc_dist(SEXP x1SEXP, SEXP x2SEXP) {
+RcppExport SEXP _KRLS2_euc_dist(SEXP x1SEXP, SEXP x2SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -135,7 +124,7 @@ END_RCPP
 }
 // kern_gauss_1d
 double kern_gauss_1d(const arma::rowvec& x1, const arma::rowvec& x2, const double& b);
-RcppExport SEXP KRLS2_kern_gauss_1d(SEXP x1SEXP, SEXP x2SEXP, SEXP bSEXP) {
+RcppExport SEXP _KRLS2_kern_gauss_1d(SEXP x1SEXP, SEXP x2SEXP, SEXP bSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -148,7 +137,7 @@ END_RCPP
 }
 // kern_gauss
 arma::mat kern_gauss(const arma::mat& x, const double& b);
-RcppExport SEXP KRLS2_kern_gauss(SEXP xSEXP, SEXP bSEXP) {
+RcppExport SEXP _KRLS2_kern_gauss(SEXP xSEXP, SEXP bSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -160,7 +149,7 @@ END_RCPP
 }
 // new_gauss_kern
 arma::mat new_gauss_kern(const arma::mat& newx, const arma::mat& oldx, const double& b);
-RcppExport SEXP KRLS2_new_gauss_kern(SEXP newxSEXP, SEXP oldxSEXP, SEXP bSEXP) {
+RcppExport SEXP _KRLS2_new_gauss_kern(SEXP newxSEXP, SEXP oldxSEXP, SEXP bSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -171,26 +160,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// lambda_search
-double lambda_search(const double& tol, const double& l, const double& u, const arma::vec& y, const arma::vec& eigvals, const arma::mat& eigvecs, const double& eigtrunc);
-RcppExport SEXP KRLS2_lambda_search(SEXP tolSEXP, SEXP lSEXP, SEXP uSEXP, SEXP ySEXP, SEXP eigvalsSEXP, SEXP eigvecsSEXP, SEXP eigtruncSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const double& >::type tol(tolSEXP);
-    Rcpp::traits::input_parameter< const double& >::type l(lSEXP);
-    Rcpp::traits::input_parameter< const double& >::type u(uSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type eigvals(eigvalsSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type eigvecs(eigvecsSEXP);
-    Rcpp::traits::input_parameter< const double& >::type eigtrunc(eigtruncSEXP);
-    rcpp_result_gen = Rcpp::wrap(lambda_search(tol, l, u, y, eigvals, eigvecs, eigtrunc));
-    return rcpp_result_gen;
-END_RCPP
-}
 // solve_for_d_ls
 Rcpp::List solve_for_d_ls(const arma::vec& y, const arma::mat& U, const arma::vec& D, const double& lambda);
-RcppExport SEXP KRLS2_solve_for_d_ls(SEXP ySEXP, SEXP USEXP, SEXP DSEXP, SEXP lambdaSEXP) {
+RcppExport SEXP _KRLS2_solve_for_d_ls(SEXP ySEXP, SEXP USEXP, SEXP DSEXP, SEXP lambdaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -204,7 +176,7 @@ END_RCPP
 }
 // solve_for_d_ls_w
 Rcpp::List solve_for_d_ls_w(const arma::vec& y, const arma::mat& U, const arma::vec& D, const arma::vec& w, const double& lambda);
-RcppExport SEXP KRLS2_solve_for_d_ls_w(SEXP ySEXP, SEXP USEXP, SEXP DSEXP, SEXP wSEXP, SEXP lambdaSEXP) {
+RcppExport SEXP _KRLS2_solve_for_d_ls_w(SEXP ySEXP, SEXP USEXP, SEXP DSEXP, SEXP wSEXP, SEXP lambdaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -219,7 +191,7 @@ END_RCPP
 }
 // pwmfx
 arma::mat pwmfx(const arma::mat& k, const arma::mat& x, const arma::vec& coefhat, const arma::mat& vcovc, const arma::vec& p, const double& b);
-RcppExport SEXP KRLS2_pwmfx(SEXP kSEXP, SEXP xSEXP, SEXP coefhatSEXP, SEXP vcovcSEXP, SEXP pSEXP, SEXP bSEXP) {
+RcppExport SEXP _KRLS2_pwmfx(SEXP kSEXP, SEXP xSEXP, SEXP coefhatSEXP, SEXP vcovcSEXP, SEXP pSEXP, SEXP bSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -235,7 +207,7 @@ END_RCPP
 }
 // pwmfx_novar
 arma::mat pwmfx_novar(const arma::mat& k, const arma::mat& x, const arma::vec& coefhat, const arma::vec& p, const double& b);
-RcppExport SEXP KRLS2_pwmfx_novar(SEXP kSEXP, SEXP xSEXP, SEXP coefhatSEXP, SEXP pSEXP, SEXP bSEXP) {
+RcppExport SEXP _KRLS2_pwmfx_novar(SEXP kSEXP, SEXP xSEXP, SEXP coefhatSEXP, SEXP pSEXP, SEXP bSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -247,4 +219,28 @@ BEGIN_RCPP
     rcpp_result_gen = Rcpp::wrap(pwmfx_novar(k, x, coefhat, p, b));
     return rcpp_result_gen;
 END_RCPP
+}
+
+static const R_CallMethodDef CallEntries[] = {
+    {"_KRLS2_mult_diag", (DL_FUNC) &_KRLS2_mult_diag, 2},
+    {"_KRLS2_krls_gr_trunc", (DL_FUNC) &_KRLS2_krls_gr_trunc, 7},
+    {"_KRLS2_krls_hess_trunc_inv", (DL_FUNC) &_KRLS2_krls_hess_trunc_inv, 4},
+    {"_KRLS2_krlogit_fn_trunc", (DL_FUNC) &_KRLS2_krlogit_fn_trunc, 6},
+    {"_KRLS2_krlogit_gr_trunc", (DL_FUNC) &_KRLS2_krlogit_gr_trunc, 6},
+    {"_KRLS2_partial_logit", (DL_FUNC) &_KRLS2_partial_logit, 3},
+    {"_KRLS2_krlogit_hess_trunc_inv", (DL_FUNC) &_KRLS2_krlogit_hess_trunc_inv, 6},
+    {"_KRLS2_euc_dist", (DL_FUNC) &_KRLS2_euc_dist, 2},
+    {"_KRLS2_kern_gauss_1d", (DL_FUNC) &_KRLS2_kern_gauss_1d, 3},
+    {"_KRLS2_kern_gauss", (DL_FUNC) &_KRLS2_kern_gauss, 2},
+    {"_KRLS2_new_gauss_kern", (DL_FUNC) &_KRLS2_new_gauss_kern, 3},
+    {"_KRLS2_solve_for_d_ls", (DL_FUNC) &_KRLS2_solve_for_d_ls, 4},
+    {"_KRLS2_solve_for_d_ls_w", (DL_FUNC) &_KRLS2_solve_for_d_ls_w, 5},
+    {"_KRLS2_pwmfx", (DL_FUNC) &_KRLS2_pwmfx, 6},
+    {"_KRLS2_pwmfx_novar", (DL_FUNC) &_KRLS2_pwmfx_novar, 5},
+    {NULL, NULL, 0}
+};
+
+RcppExport void R_init_KRLS2(DllInfo *dll) {
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
 }

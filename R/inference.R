@@ -17,21 +17,27 @@ inference.krls2 <- function(obj,
                             derivative = TRUE,
                             cpp = TRUE) {
   
+  if (obj$kernel != 'gaussian') {
+    stop("Currently standard errors and marginal effects are only supported for gaussian kernels.")
+  }
+  
+  if (!vcov) {
+    warning("Standard errors only available if vcov = TRUE")
+  }
   if(!obj$truncate) {
-    if(obj$loss == 'logistic') {
+    if(obj$loss == 'logistic' & (vcov | robust | !is.null(clusters))) {
       warning("Standard errors with logistic regression only available with truncation")
       vcov <- FALSE
-    } else if (robust & obj$loss == "leastsquares") {
-      stop("Robust estimators only available with truncated KRLS.")
+    } else if ((robust | !is.null(clusters)) & obj$loss == "leastsquares") {
+      warning("Robust standard errors with KRLS only available with truncation. Either refit with truncation or remove robust and clusters options.")
+      vcov <- FALSE
+      robust <- FALSE
+      cluster <- NULL
     }
   }
   
   if(!is.null(clusters)) {
     robust <- TRUE
-  }
-  
-  if (!vcov) {
-    warning("Standard errors only available if vcov = TRUE")
   }
   
   if(length(unique(obj$w))==1){
