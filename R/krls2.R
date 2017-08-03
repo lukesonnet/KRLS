@@ -43,12 +43,13 @@
 #' @param w \var{N} by \var{1} data numeric matrix or vector that contains the weights that should applied to each observation. These need not sum to one.
 #' @param loss String vector that specifies the loss function. For KRLS, use \code{leastsquares} and for KRLogit, use \code{logistic}.
 #' @param whichkernel String vector that specifies which kernel should be used. Must be one of \code{gaussian}, \code{linear}, \code{poly1}, \code{poly2}, \code{poly3}, or \code{poly4} (see details). Default is \code{gaussian}.
-#' @param b A positive scalar (formerly \code{sigma}) that specifies the bandwidth of the Gaussian kernel (see \code{\link{gausskernel}} for details). By default, the bandwidth is set equal to \var{2D} (twice the number of dimensions) which typically yields a reasonable scaling of the distances between observations in the standardized data that is used for the fitting.
-#' @param optimb A boolean that if \code{TRUE} will numerically estimate \code{b} using cross validation error instead of setting \code{b} to the default.
+#' @param b A positive scalar (formerly \code{sigma}) that specifies the bandwidth of the Gaussian kernel (see \code{\link{gausskernel}} for details). By default, the bandwidth is set equal to \var{2D} (twice the number of dimensions) which typically yields a reasonable scaling of the distances between observations in the standardized data that is used for the fitting. You can also pass a numeric vector to do a grid search over possible b values.
+#' @param bstart A positive scalar that is the starting value for a numerical estimation of the \code{b} parameter using cross validation error, overriding the default. If \code{b} is specified as an argument, \code{bstart} is ignored.
+#' @param binterval A numeric vector of length two that specifies the minimum and maxmum \code{b} values to look over with \code{optimize} when optimizing only the \code{b} hyperparameter. Both values must be strictly positive. Only used with logistic loss and when \code{b} is NULL. Defaults to \code{c(10^-8, 500*p)}. This is for use with numerical optimization, if you want to do a grid search, instead pass a numerical vector to the \code{lambda} argument.
 #' @param lambda A positive scalar that specifies the \eqn{\lambda}{lambda} parameter for the regularizer (see details). It governs the tradeoff between model fit and complexity. By default, this parameter is chosen by minimizing the sum of the squared leave-one-out errors for KRLS and by minimizing the sum of cross-validation negative log likelihood for KRLogit, with the number of folds set by \code{hyperfolds}. When using logistic loss, \code{lambda} can also be a numeric vector of positive scalars in which case a line search over these values will be used to choose \code{lambda}.
 #' @param hyperfolds A positive scalar that sets the number of folds used in selecting \code{lambda} or \code{b} via cross-validation.
 #' @param lambdastart A positive scalar that specifices the starting value for a numerical optimization of \code{lambda}. Only is used when jointly optimizing over \code{lambda} and \code{b}
-#' @param lambdainterval A numeric vector of length two that specifies the minimum and maxmum \code{lambda} values to look over with \code{optimize}. Both values must be strictly positive. Only used with logistic loss and when \code{lambda} is NULL. Defaults to \code{c(10^-6, 4)}. This is for use with numerical optimization, if you want to do a grid search, instead pass a numerical vector to the \code{lambda} argument.
+#' @param lambdainterval A numeric vector of length two that specifies the minimum and maxmum \code{lambda} values to look over with \code{optimize}. Both values must be strictly positive. Only used with logistic loss and when \code{lambda} is NULL. Defaults to \code{c(10^-8, 25)}. This is for use with numerical optimization, if you want to do a grid search, instead pass a numerical vector to the \code{lambda} argument.
 #' @param L Non-negative scalar that determines the lower bound of the search window for the leave-one-out optimization to find \eqn{\lambda}{lambda} with least squares loss. Default is \code{NULL} which means that the lower bound is found by using an algorithm outlined in \code{\link{lambdaline}}. Ignored with logistic loss.
 #' @param U Positive scalar that determines the upper bound of the search window for the leave-one-out optimization to find \eqn{\lambda}{lambda} with least squares loss. Default is \code{NULL} which means that the upper bound is found by using an algorithm outlined in \code{\link{lambdaline}}. Ignored with logistic loss.
 #' @param tol Positive scalar that determines the tolerance used in the optimization routine used to find \eqn{\lambda}{lambda} with least squares loss. Default is \code{NULL} which means that convergence is achieved when the difference in the sum of squared leave-one-out errors between the \var{i} and the \var{i+1} iteration is less than \var{N * 10^-3}. Ignored with logistic loss.
@@ -104,7 +105,8 @@ krls <- function(# Data arguments
                     # Kernel arguments
                     whichkernel = "gaussian",
                     b = NULL,
-                    optimb = FALSE,
+                    bstart = NULL,
+                    binterval = c(10^-8, 500*ncol(X)),
                     # Lambda arguments
                     lambda = NULL,
                     hyperfolds = 5,
@@ -246,12 +248,12 @@ krls <- function(# Data arguments
 
   ## Default b to be 2*the number of features
   if (is.null(b)) {
-    if (!optimb) {
+    if (is.null(bstart)) {
       b <- 2*d
     } else if (loss == "leastsquares") {
-      message("Warning: Cannot simultaneously search for both lambda and b with leastsquares loss.")
-      message(sprintf("Setting b to %s", 2*d))
       b <- 2*d
+      warning(sprintf("Cannot simultaneously search for both lambda and b with leastsquares loss.
+                       Setting b to %s", b))
     }
   } else {
     if(length(b) > 1) {
@@ -262,7 +264,7 @@ krls <- function(# Data arguments
                 is.numeric(b),
                 b>0)
     }
-    if(optimb) warning("optimb ignored when b argument is used.")
+    if(!is.null(bstart)) warning("bstart ignored when b argument is used.")
 
   }
 
@@ -297,7 +299,8 @@ krls <- function(# Data arguments
                          lambdarange = lambdarange,
                          lambdainterval = lambdainterval,
                          brange = brange,
-                         optimb = optimb,
+                         bstart = bstart,
+                         binterval = binterval,
                          Lbound = L,
                          Ubound = U,
                          tol = tol))
@@ -335,6 +338,7 @@ krls <- function(# Data arguments
       b <- hyperOut$b
 
     } else { # lambda is set
+
       b <- bsearch(y=y,
                    X=X,
                    control=control,

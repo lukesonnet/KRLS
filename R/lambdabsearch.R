@@ -13,11 +13,12 @@ lambdabsearch <- function(y,
                           control) {
 
   if(is.null(control$lambdarange)) {
-    if (!is.null(control$brange)) stop("Grid search for b only works with fixed lambda or lambda grid search.")
+    
+    if (!is.null(control$brange)) 
+      stop("Grid search for b only works with fixed lambda or lambda grid search.")
 
     ## Joint optimization using BFGS of lambda and b
-    
-    fit.hyper <- optim(par=log(c(control$lambdastart, 2.2*control$d)), lambdab.fn,
+    fit.hyper <- optim(par=log(c(control$lambdastart, control$bstart)), lambdab.fn,
                        X=X, y=y, folds=length(control$chunks),
                        chunks = control$chunks, ctrl = control,
                        vcov = FALSE,
@@ -26,7 +27,9 @@ lambdabsearch <- function(y,
     lambda <- exp(fit.hyper$par[1])
     b <- exp(fit.hyper$par[2])
   } else {
-    if (control$optimb) stop("Optimizing b does not work with a grid search for lambda.")
+    
+    if (!is.null(control$bstart))
+      stop("Numerically optimizing b does not work with a grid search for lambda.")
     
     ## Grid search over lambda and b
     
@@ -120,13 +123,12 @@ bsearch <- function(y,
                               control,
                               lambda) {
   if(is.null(control$brange)) {
-    fit.b <- optim(par=log(2.2*control$d), lambdab.fn,
-                       X=X, y=y, folds=length(control$chunks),
+    fit.b <-  optimize(lambdab.fn, interval=log(control$binterval),
+                       Kdat = Kdat, X=X, y=y, folds=length(control$chunks),
                        chunks = control$chunks, ctrl = control,
                        lambda = lambda,
-                       vcov = FALSE,
-                       control=list(trace = T, abstol = 1e-4), method="BFGS")
-    b <- exp(fit.b$par)
+                       vcov = FALSE)
+    b <- exp(fit.b$minimum)
   } else {
     bMSE <- NULL
     for(i in 1:length(control$brange)){
@@ -212,6 +214,7 @@ lambdab.fn <- function(par = NULL,
   }
 
   if(!ctrl$quiet){
+    if(!is.null(ctrl$bstart)) cat(paste0("b: ", b, "\n"))
     cat(paste0("lambda: ", lambda, "\n"))
     cat(paste0("loss: ", loss, "\n"))
   }
