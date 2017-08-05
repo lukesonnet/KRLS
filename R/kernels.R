@@ -14,6 +14,7 @@ generateK <- function(X,
   K <- NULL
   if(control$whichkernel=="gaussian"){ K <- kern_gauss(X, b)}
   if(control$whichkernel=="linear"){ K <- tcrossprod(X) }
+  if(control$whichkernel=="gausslinear"){K <- .5*(kern_gauss(X,b)+tcrossprod(X))}
   if(control$whichkernel=="poly2"){ K <- (tcrossprod(X)+1)^2 }
   if(control$whichkernel=="poly3"){ K <- (tcrossprod(X)+1)^3 }
   if(control$whichkernel=="poly4"){ K <- (tcrossprod(X)+1)^4 }
@@ -63,13 +64,13 @@ Ktrunc <- function(X=NULL, K=NULL, b=NULL, epsilon=NULL, lastkeeper=NULL, quiet 
       eigobj <- NULL
       eigobj <- suppressWarnings({eigs_sym(K, numvectors, which="LM")})
       #for now, letting it throw an error in certain failure cases.
-      totalvar=sum(eigobj$values)/nrow(K)
+      #totalvar=sum(eigobj$values)/nrow(K)
+      totalvar=sum(eigobj$values)/sum(diag(K))
 
       if(!quiet) print(totalvar)
-      
-      
+
       if (totalvar>=(1-epsilon)){
-        lastkeeper = min(which(cumsum(eigobj$values)/nrow(K) > (1-epsilon)))
+        lastkeeper = min(which(cumsum(eigobj$values)/sum(diag(K)) > (1-epsilon)))
 
         if(!quiet) print(paste("lastkeeper=",lastkeeper))
         enoughvar=TRUE

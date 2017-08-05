@@ -5,11 +5,11 @@
 \title{Main function of KRLS}
 \usage{
 krls(X, y, w = NULL, loss = "leastsquares", whichkernel = "gaussian",
-  b = NULL, optimb = FALSE, lambda = NULL, hyperfolds = 5,
-  lambdastart = 10^(-6)/length(y), lambdainterval = c(10^-8, 25),
-  L = NULL, U = NULL, tol = NULL, truncate = FALSE, epsilon = NULL,
-  lastkeeper = NULL, con = list(maxit = 500), returnopt = TRUE,
-  quiet = TRUE, warn = 1, sigma = NULL, ...)
+  b = NULL, bstart = NULL, binterval = c(10^-8, 500 * ncol(X)),
+  lambda = NULL, hyperfolds = 5, lambdastart = 10^(-6)/length(y),
+  lambdainterval = c(10^-8, 25), L = NULL, U = NULL, tol = NULL,
+  truncate = FALSE, epsilon = NULL, lastkeeper = NULL, con = list(maxit
+  = 500), returnopt = TRUE, quiet = TRUE, warn = 1, sigma = NULL, ...)
 }
 \arguments{
 \item{X}{\emph{N} by \emph{D} data numeric matrix that contains the values of \emph{D} predictor variables for \eqn{i=1,\ldots,N} observations. The matrix may not contain missing values or constants. Note that no intercept is required for the least squares or logistic loss. In the case of least squares, the function operates on demeaned data and subtracting the mean of \emph{y} is equivalent to including an (unpenalized) intercept into the model. In the case of logistic loss, we automatically estimate an unpenalized intercept in the linear component of the model.}
@@ -22,9 +22,11 @@ krls(X, y, w = NULL, loss = "leastsquares", whichkernel = "gaussian",
 
 \item{whichkernel}{String vector that specifies which kernel should be used. Must be one of \code{gaussian}, \code{linear}, \code{poly1}, \code{poly2}, \code{poly3}, or \code{poly4} (see details). Default is \code{gaussian}.}
 
-\item{b}{A positive scalar (formerly \code{sigma}) that specifies the bandwidth of the Gaussian kernel (see \code{\link{gausskernel}} for details). By default, the bandwidth is set equal to \var{2D} (twice the number of dimensions) which typically yields a reasonable scaling of the distances between observations in the standardized data that is used for the fitting.}
+\item{b}{A positive scalar (formerly \code{sigma}) that specifies the bandwidth of the Gaussian kernel (see \code{\link{gausskernel}} for details). By default, the bandwidth is set equal to \var{2D} (twice the number of dimensions) which typically yields a reasonable scaling of the distances between observations in the standardized data that is used for the fitting. You can also pass a numeric vector to do a grid search over possible b values.}
 
-\item{optimb}{A boolean that if \code{TRUE} will numerically estimate \code{b} using cross validation error instead of setting \code{b} to the default.}
+\item{bstart}{A positive scalar that is the starting value for a numerical estimation of the \code{b} parameter using cross validation error, overriding the default. If \code{b} is specified as an argument, \code{bstart} is ignored.}
+
+\item{binterval}{A numeric vector of length two that specifies the minimum and maxmum \code{b} values to look over with \code{optimize} when optimizing only the \code{b} hyperparameter. Both values must be strictly positive. Only used with logistic loss and when \code{b} is NULL. Defaults to \code{c(10^-8, 500*p)}. This is for use with numerical optimization, if you want to do a grid search, instead pass a numerical vector to the \code{lambda} argument.}
 
 \item{lambda}{A positive scalar that specifies the \eqn{\lambda}{lambda} parameter for the regularizer (see details). It governs the tradeoff between model fit and complexity. By default, this parameter is chosen by minimizing the sum of the squared leave-one-out errors for KRLS and by minimizing the sum of cross-validation negative log likelihood for KRLogit, with the number of folds set by \code{hyperfolds}. When using logistic loss, \code{lambda} can also be a numeric vector of positive scalars in which case a line search over these values will be used to choose \code{lambda}.}
 
@@ -32,7 +34,7 @@ krls(X, y, w = NULL, loss = "leastsquares", whichkernel = "gaussian",
 
 \item{lambdastart}{A positive scalar that specifices the starting value for a numerical optimization of \code{lambda}. Only is used when jointly optimizing over \code{lambda} and \code{b}}
 
-\item{lambdainterval}{A numeric vector of length two that specifies the minimum and maxmum \code{lambda} values to look over with \code{optimize}. Both values must be strictly positive. Only used with logistic loss and when \code{lambda} is NULL. Defaults to \code{c(10^-6, 4)}. This is for use with numerical optimization, if you want to do a grid search, instead pass a numerical vector to the \code{lambda} argument.}
+\item{lambdainterval}{A numeric vector of length two that specifies the minimum and maxmum \code{lambda} values to look over with \code{optimize}. Both values must be strictly positive. Only used with logistic loss and when \code{lambda} is NULL. Defaults to \code{c(10^-8, 25)}. This is for use with numerical optimization, if you want to do a grid search, instead pass a numerical vector to the \code{lambda} argument.}
 
 \item{L}{Non-negative scalar that determines the lower bound of the search window for the leave-one-out optimization to find \eqn{\lambda}{lambda} with least squares loss. Default is \code{NULL} which means that the lower bound is found by using an algorithm outlined in \code{\link{lambdaline}}. Ignored with logistic loss.}
 

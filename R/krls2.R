@@ -177,7 +177,6 @@ krls <- function(# Data arguments
   X <- scale(X, center = TRUE, scale = X.init.sd)
 
   if (loss == "leastsquares") {
-
     y.init.sd <- apply(y.init, 2, sd)
     y.init.mean <- mean(y.init)
     y <- scale(y, center=y.init.mean, scale=y.init.sd)
