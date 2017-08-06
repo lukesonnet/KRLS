@@ -10,7 +10,8 @@ getDhat <- function(par = NULL,
                     w,
                     lambda,
                     con = list(),
-                    ctrl) {
+                    ctrl = control,
+                    printopt) {
   
   if(ctrl$loss == "leastsquares") {
     if(ctrl$weight) {
@@ -26,8 +27,8 @@ getDhat <- function(par = NULL,
                    w = w,
                    lambda = lambda,
                    con = con,
-                   printout = !ctrl$quiet,
-                   returnopt = ctrl$returnopt)
+                   returnopt = ctrl$returnopt,
+                   printopt = printopt)
   } else {
     stop("Loss must be either 'leastsquares' or 'logistic'.")
   }
@@ -53,7 +54,7 @@ solveForDOptim <- function(par= NULL,
                       w = NULL,
                       lambda = NULL,
                       con = list(),
-                      printout = FALSE,
+                      printopt = FALSE,
                       returnopt = TRUE) {
   
   ncoeffs <- ncol(U)
@@ -76,7 +77,7 @@ solveForDOptim <- function(par= NULL,
   beta0hat <- opt$par[ncoeffs+1]
   
   if (!returnopt) opt <- NULL
-  if (printout) {
+  if (printopt) {
     print(paste("Calls to function:", opt$counts[1], ", calls to gradient:", opt$counts[2]))
     print(paste("Converged? ", as.logical(1 - opt$convergence)))
   }

@@ -22,7 +22,7 @@ generateK <- function(X,
 
   if(control$truncate) {
     truncDat <- Ktrunc(K = K, b=b, lastkeeper=control$lastkeeper, epsilon=control$epsilon,
-                       quiet = control$quiet)
+                       printlevel = control$printlevel)
     U <- truncDat$Utrunc
     D <- truncDat$eigvals
   } else {
@@ -45,7 +45,7 @@ generateK <- function(X,
 ## Function that returns truncated versions of the data if given
 ## todo: throws warning whenever n < 500 because it uses eigen, should we suppress?
 #' @export
-Ktrunc <- function(X=NULL, K=NULL, b=NULL, epsilon=NULL, lastkeeper=NULL, quiet = TRUE){
+Ktrunc <- function(X=NULL, K=NULL, b=NULL, epsilon=NULL, lastkeeper=NULL, printlevel = 0){
   if(is.null(K)){
     X.sd <- apply(X, 2, sd)
     X.mu <- colMeans(X)
@@ -59,7 +59,7 @@ Ktrunc <- function(X=NULL, K=NULL, b=NULL, epsilon=NULL, lastkeeper=NULL, quiet 
     eigobj <- list(d = NULL, u = NULL)
     while (enoughvar==FALSE){
       numvectors=numvectorss[j]
-      if(!quiet) print(paste("trying",numvectors,"vectors"))
+      if(printlevel > 0) print(paste("trying",numvectors,"vectors"))
 
       eigobj <- NULL
       eigobj <- suppressWarnings({eigs_sym(K, numvectors, which="LM")})
@@ -67,12 +67,12 @@ Ktrunc <- function(X=NULL, K=NULL, b=NULL, epsilon=NULL, lastkeeper=NULL, quiet 
       #totalvar=sum(eigobj$values)/nrow(K)
       totalvar=sum(eigobj$values)/trace_mat(K)
 
-      if(!quiet) print(totalvar)
+      if(printlevel > 0) print(totalvar)
 
       if (totalvar>=(1-epsilon)){
         lastkeeper = min(which(cumsum(eigobj$values)/trace_mat(K) > (1-epsilon)))
 
-        if(!quiet) print(paste("lastkeeper=",lastkeeper))
+        if(printlevel > 0) print(paste("lastkeeper=",lastkeeper))
         enoughvar=TRUE
         
       }

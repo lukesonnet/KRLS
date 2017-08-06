@@ -57,7 +57,7 @@
 #' @param epsilon Scalar between 0 and 1 that determines the total variance that can be lost in truncation. If not NULL, truncation is automatically set to TRUE.
 #' @param con A list of control arguments passed to optimization for the numerical optimization of the kernel regularized logistic loss function.
 #' @param returnopt A boolean that defaults to \code{FALSE}. If \code{TRUE}, returns the result of the \code{optim} method called to optimize the kernel regularized logistic loss function.
-#' @param quiet A boolean that defaults to \code{TRUE} and determines whether to suppress printing in the method.
+#' @param printlevel A number that is either 0 (default), 1, or 2. 0 Has minimal printing, 1 prints out most diagnostics, and 2 prints out most diagnostics including \code{optim} diagnostics for each fold in the cross-validation selection of hyperparameters.
 #' @param warn A number that sets your \code{warn} option. We default to 1 so that warnings print as they occur. You can change this to 2 if you want all warnings to be errors, to 0 if you want all warnings to wait until the top-level call is finished, or to a negative number to ignore them.
 #' @details
 #' \code{krls} implements the Kernel-based Regularized Least Squares (KRLS) estimator as described in Hainmueller and Hazlett (2014). Please consult this reference for any details.
@@ -122,7 +122,7 @@ krls <- function(# Data arguments
                     # Optimization arguments
                     con = list(maxit=500),
                     returnopt = TRUE,
-                    quiet = TRUE,
+                    printlevel = 0,
                     warn = 1,
                     sigma = NULL, # to provide legacy support for old code,
                                   # simply is interpreted as 'b' if 'b' is NULL;
@@ -228,7 +228,7 @@ krls <- function(# Data arguments
                  truncate=truncate,
                  lastkeeper=lastkeeper,
                  epsilon=epsilon,
-                 quiet=quiet,
+                 printlevel=printlevel,
                  returnopt=returnopt,
                  ...)
 
@@ -363,7 +363,8 @@ krls <- function(# Data arguments
                  w = control$w,
                  lambda = lambda,
                  con = con,
-                 ctrl = control)
+                 ctrl = control,
+                 printopt = control$printlevel > 0)
 
   UDinv <- mult_diag(Kdat$U, 1/Kdat$D)
 
