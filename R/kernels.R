@@ -65,12 +65,12 @@ Ktrunc <- function(X=NULL, K=NULL, b=NULL, epsilon=NULL, lastkeeper=NULL, quiet 
       eigobj <- suppressWarnings({eigs_sym(K, numvectors, which="LM")})
       #for now, letting it throw an error in certain failure cases.
       #totalvar=sum(eigobj$values)/nrow(K)
-      totalvar=sum(eigobj$values)/sum(diag(K))
+      totalvar=sum(eigobj$values)/trace_mat(K)
 
       if(!quiet) print(totalvar)
 
       if (totalvar>=(1-epsilon)){
-        lastkeeper = min(which(cumsum(eigobj$values)/sum(diag(K)) > (1-epsilon)))
+        lastkeeper = min(which(cumsum(eigobj$values)/trace_mat(K) > (1-epsilon)))
 
         if(!quiet) print(paste("lastkeeper=",lastkeeper))
         enoughvar=TRUE

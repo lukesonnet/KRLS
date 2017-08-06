@@ -27,6 +27,12 @@ arma::mat mult_diag(const arma::mat& x, const arma::vec& d) {
 
 //' @export
 // [[Rcpp::export]]
+double trace_mat(const arma::mat& x) {
+  return arma::trace(x);
+}
+
+//' @export
+// [[Rcpp::export]]
 arma::vec krls_gr_trunc(
     const arma::mat& U,
     const arma::vec& D,
