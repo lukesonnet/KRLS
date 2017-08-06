@@ -21,8 +21,9 @@ generateK <- function(X,
   if(is.null(K)){ stop("No valid Kernel specified") }
 
   if(control$truncate) {
-    truncDat <- Ktrunc(K = K, b=b, lastkeeper=control$lastkeeper, epsilon=control$epsilon,
-                       printlevel = control$printlevel)
+    truncDat <- Ktrunc(K = K,
+                       b=b,
+                       control=control)
     U <- truncDat$Utrunc
     D <- truncDat$eigvals
   } else {
@@ -45,40 +46,48 @@ generateK <- function(X,
 ## Function that returns truncated versions of the data if given
 ## todo: throws warning whenever n < 500 because it uses eigen, should we suppress?
 #' @export
-Ktrunc <- function(X=NULL, K=NULL, b=NULL, epsilon=NULL, lastkeeper=NULL, printlevel = 0){
+Ktrunc <- function(X=NULL,
+                   K=NULL,
+                   b=NULL,
+                   control=NULL){
+  
   if(is.null(K)){
     X.sd <- apply(X, 2, sd)
     X.mu <- colMeans(X)
     K <- kern_gauss(scale(X), ifelse(is.null(b), ncol(X), b))
   }
 
-  if(is.null(lastkeeper)){
-    if (nrow(K) <= 500) numvectorss=nrow(K) else numvectorss=c(250, 500, 1000, min(c(nrow(K), 2000)), nrow(K))
+  if(is.null(control$lastkeeper)){
+    
+    if (nrow(K) <= 500) {
+      numvectorss <- nrow(K)
+    } else {
+      numvectorss <- c(250, 500, 1000, min(c(nrow(K), 2000)), nrow(K))
+    }
     enoughvar=FALSE
     j=1
     eigobj <- list(d = NULL, u = NULL)
     while (enoughvar==FALSE){
-      numvectors=numvectorss[j]
-      if(printlevel > 0) print(paste("trying",numvectors,"vectors"))
+      numvectors <- numvectorss[j]
+      if(control$printlevel > 0) print(paste("trying",numvectors,"vectors"))
 
       eigobj <- NULL
       eigobj <- suppressWarnings({eigs_sym(K, numvectors, which="LM")})
-      #for now, letting it throw an error in certain failure cases.
-      #totalvar=sum(eigobj$values)/nrow(K)
       totalvar=sum(eigobj$values)/trace_mat(K)
 
-      if(printlevel > 0) print(totalvar)
+      if(control$printlevel > 0) print(totalvar)
 
-      if (totalvar>=(1-epsilon)){
-        lastkeeper = min(which(cumsum(eigobj$values)/trace_mat(K) > (1-epsilon)))
+      if (totalvar>=(1-control$epsilon)){
+        lastkeeper = min(which(cumsum(eigobj$values)/trace_mat(K) > (1-control$epsilon)))
 
-        if(printlevel > 0) print(paste("lastkeeper=",lastkeeper))
+        if(control$printlevel > 0) print(paste("lastkeeper=",lastkeeper))
         enoughvar=TRUE
         
       }
       j=j+1
 
-    } #end while gotenough==FALSE      
+    } #end while gotenough==FALSE
+    
   } else { # if !is.null(lastkeeper), ie lastkeeper is given
     ## Suppress warning about using all eigenvalues
     eigobj <- suppressWarnings({eigs_sym(K, lastkeeper, which="LM")})
