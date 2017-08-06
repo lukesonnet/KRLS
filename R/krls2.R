@@ -386,7 +386,7 @@ krls <- function(# Data arguments
   z <- list(K = Kdat$K,
             U = Kdat$U,
             D = Kdat$D,
-            w = control$w,
+            w = ifelse(weight, control$w, NULL),
             lastkeeper = Kdat$lastkeeper,
             truncate = truncate,
             coeffs = coefhat,
