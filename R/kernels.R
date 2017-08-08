@@ -90,7 +90,8 @@ Ktrunc <- function(X=NULL,
       } else if (j == length(numvectorss)) {
         stop(
           sprintf(
-            "Tried a max of %s vectors but only captured %s of the variance. This shouldn't happen.",
+            "Tried a max of %s vectors but only captured %s of the variance.
+            This shouldn't happen, but you can increase epsilon to force this through.",
             numvectors,
             totalvar
           )
