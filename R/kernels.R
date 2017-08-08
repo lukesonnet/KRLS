@@ -59,10 +59,14 @@ Ktrunc <- function(X=NULL,
 
   if(is.null(control$lastkeeper)){
     
-    if (nrow(K) <= 500) {
-      numvectorss <- nrow(K)
+    maxvector <- ifelse(control$whichkernel == "linear",
+                        control$d,
+                        nrow(K))
+    
+    if (maxvector <= 500) {
+      numvectorss <- maxvector
     } else {
-      numvectorss <- c(250, 500, 1000, min(c(nrow(K), 2000)), nrow(K))
+      numvectorss <- c(250, 500, 1000, min(c(maxvector, 2000)), maxvector)
     }
     enoughvar=FALSE
     j=1
@@ -83,6 +87,14 @@ Ktrunc <- function(X=NULL,
         if(control$printlevel > 0) print(paste("lastkeeper=",lastkeeper))
         enoughvar=TRUE
         
+      } else if (j == length(numvectorss)) {
+        stop(
+          sprintf(
+            "Tried a max of %s vectors but only captured %s of the variance. This shouldn't happen.",
+            numvectors,
+            totalvar
+          )
+        )
       }
       j=j+1
 
