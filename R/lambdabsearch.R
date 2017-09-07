@@ -77,7 +77,7 @@ lambdasearch <- function(y,
       fit.lambda <- optimize(lambdab.fn, interval=log(control$lambdainterval),
                              Kdat = Kdat, y=y, folds=length(control$chunks),
                              chunks = control$chunks, ctrl = control,
-                             b = b,
+                             b = b, tol = .Machine$double.eps^0.2,
                              vcov = FALSE)
       
       
