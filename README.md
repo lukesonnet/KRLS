@@ -12,7 +12,7 @@ devtools::install_github('lukesonnet/KRLS')
 
 ### Troubleshooting installation
 
-This version uses `Rcpp` extensively for speed reasons. These means you need to have the write compilers on your machine.
+This version uses `Rcpp` extensively for speed reasons. These means you need to have the right compilers on your machine.
 
 #### Windows
 If you are on Windows, you will need to install [RTools](https://cran.r-project.org/bin/windows/Rtools/) if you haven't already. If you still are having difficulty with installing and it says that the compilation failed, try installing it without support for multiple architectures:
