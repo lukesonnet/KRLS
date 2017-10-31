@@ -20,6 +20,8 @@ generateK <- function(X,
   if(control$whichkernel=="poly4"){ K <- (tcrossprod(X)+1)^4 }
   if(is.null(K)){ stop("No valid Kernel specified") }
 
+  lastkeeper <- NULL
+  
   if(control$truncate) {
     truncDat <- Ktrunc(K = K,
                        b=b,
@@ -28,12 +30,22 @@ generateK <- function(X,
     D <- truncDat$eigvals
   } else {
     eigobj <- eigen(K)
-    U <- eigobj$vectors
-    D <- ifelse(eigobj$values < .Machine$double.eps, .Machine$double.eps, eigobj$values)
+    eigvaliszero <- eigobj$values == 0
+    if(any(eigvaliszero)) {
+      
+      lastkeeper <- (which(eigvaliszero)-1)
+      
+      warning(sprintf('Some eigvals numerically 0, truncating to before that value, %d', lastkeeper))
+      
+      U <- eigobj$vectors[, 1:lastkeeper]
+      D <- eigobj$values[1:lastkeeper]
+    } else {
+      U <- eigobj$vectors
+      D <- eigobj$values
+    }
   }
   
   U <- as.matrix(U)
-  lastkeeper <- NULL
   lastkeeper <- if(control$truncate) ncol(U)
 
   return(list(K = K,
