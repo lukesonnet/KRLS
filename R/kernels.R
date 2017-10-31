@@ -29,7 +29,7 @@ generateK <- function(X,
   } else {
     eigobj <- eigen(K)
     U <- eigobj$vectors
-    D <- eigobj$values
+    D <- ifelse(eigobj$values < .Machine$double.eps, .Machine$double.eps, eigobj$values)
   }
   
   U <- as.matrix(U)
