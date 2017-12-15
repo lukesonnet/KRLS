@@ -144,35 +144,35 @@ krls <- function(# Data arguments
   n <- nrow(X)
   d <- ncol(X)
 
-  if (is.numeric(X)==FALSE) {
+  if (!is.numeric(X)) {
     stop("X must be numeric")
   }
-  if (is.numeric(y)==FALSE) {
+  if (!is.numeric(y)) {
     stop("y must be numeric")
   }
-  if (sd(y)==0) {
+  if (var(y)==0) {
     stop("y is a constant")
   }
-  if (sum(is.na(X))>0){
+  if (anyNA(X)){
     stop("X contains missing data")
   }
-  if (sum(is.na(y))>0){
+  if (anyNA(y)){
     stop("y contains missing data")
   }
-  if (n!=nrow(y)){
+  if (n != nrow(y)){
     stop("nrow(X) not equal to number of elements in y")
   }
 
   # column names in case there are none
   if (is.null(colnames(X))) {
-    colnames(X) <- paste("x", 1:d, sep="")
+    colnames(X) <- paste0("x", 1:d)
   }
 
   ## Scale data
   X.init <- X
   X.init.sd <- apply(X.init, 2, sd)
-  if (sum(X.init.sd == 0)) {
-    stop("at least one column in X is a constant, please remove the constant(s)")
+  if (any(X.init.sd == 0)) {
+    stop("at least one column (", which(X.init.sd == 0) ,") in X is a constant, please remove the constant(s)")
   }
   X <- scale(X, center = TRUE, scale = X.init.sd)
 
@@ -189,7 +189,7 @@ krls <- function(# Data arguments
 
   ## Set truncation options
   if (!is.null(epsilon)) {
-    if (!is.numeric(epsilon) | epsilon < 0 | epsilon > 1) {
+    if (!is.numeric(epsilon) || epsilon < 0 || epsilon > 1) {
       stop("epsilon must be numeric and between 0 and 1, inclusive")
     } else {
       truncate <- TRUE
@@ -199,7 +199,7 @@ krls <- function(# Data arguments
   }
   
   ## Warn if not truncating a big dataset
-  if (n >= 1000 & !truncate) {
+  if (n >= 1000 && !truncate) {
     warning("With n >= 1000 you should consider using truncation for speed. Try setting epsilon to 0.001")
   }
   
@@ -208,7 +208,7 @@ krls <- function(# Data arguments
   ## increase the amount of code.
   if (is.null(w)) { 
     w <- rep(1, n)
-    weight = F
+    weight = FALSE
   } else if (length(w) != n) {
     stop("w is not the same length as y")
   } else {
@@ -216,7 +216,7 @@ krls <- function(# Data arguments
       stop("For now, weighted KRLS only works with truncation")
     }
     w <- n * (w / sum(w)) # rescale w to sum to 1
-    weight = T
+    weight = TRUE
   }
   
   ## Carry vars in list
@@ -350,8 +350,8 @@ krls <- function(# Data arguments
 
   }
 
-  message(sprintf("Lambda selected: %s", lambda))
-  message(sprintf("b selected: %s", b))
+  message("Lambda selected: ", lambda)
+  message("b selected: ", b)
 
   ###----------------------------------------
   ## Estimating choice coefficients (solving)
