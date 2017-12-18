@@ -22,6 +22,12 @@ devtools::install_github('lukesonnet/KRLS', args=c('--no-multiarch'))
 
 #### Mac OSX
 
+In order to compile the `C++` in this package, `RcppArmadillo` will require you to have compilers installed on your machine. You may already have these, but you can install them by running:
+
+```bash
+xcode-select --install
+```
+
 If you are having problems with this install on Mac OSX, specifically if you are getting errors with either `lgfortran` or `lquadmath`, then try open your Terminal and try the following:
 
 ```bash
