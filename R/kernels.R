@@ -11,14 +11,14 @@
 generateK <- function(X,
                       b,
                       control) {
-  K <- NULL
-  if(control$whichkernel=="gaussian"){ K <- kern_gauss(X, b)}
-  if(control$whichkernel=="linear"){ K <- tcrossprod(X) }
-  if(control$whichkernel=="gausslinear"){K <- .5*(kern_gauss(X,b)+tcrossprod(X))}
-  if(control$whichkernel=="poly2"){ K <- (tcrossprod(X)+1)^2 }
-  if(control$whichkernel=="poly3"){ K <- (tcrossprod(X)+1)^3 }
-  if(control$whichkernel=="poly4"){ K <- (tcrossprod(X)+1)^4 }
-  if(is.null(K)){ stop("No valid Kernel specified") }
+  K <- switch(control$whichkernel,
+              gaussian=kern_gauss(X, b),
+              linear=tcrossprod(X),
+              gausslinear=.5*(kern_gauss(X,b)+tcrossprod(X)),
+              poly2=(tcrossprod(X)+1)^2,
+              poly3=(tcrossprod(X)+1)^3,
+              poly4=(tcrossprod(X)+1)^4,
+              stop("No valid Kernel specified") )
 
   lastkeeper <- NULL
   
@@ -80,24 +80,21 @@ Ktrunc <- function(X=NULL,
     } else {
       numvectorss <- c(250, 500, 1000, min(c(maxvector, 2000)), maxvector)
     }
-    enoughvar=FALSE
-    j=1
-    eigobj <- list(d = NULL, u = NULL)
-    while (enoughvar==FALSE){
+
+    for (j in 1:length(numvectorss)){
       numvectors <- numvectorss[j]
       if(control$printlevel > 0) print(paste("trying",numvectors,"vectors"))
 
-      eigobj <- NULL
       eigobj <- suppressWarnings({eigs_sym(K, numvectors, which="LM")})
-      totalvar=sum(eigobj$values)/trace_mat(K)
+      totalvar <- sum(eigobj$values)/trace_mat(K)
 
       if(control$printlevel > 0) print(totalvar)
 
-      if (totalvar>=(1-control$epsilon)){
-        lastkeeper = min(which(cumsum(eigobj$values)/trace_mat(K) > (1-control$epsilon)))
+      if (totalvar >= (1-control$epsilon)){
+        lastkeeper <- min(which(cumsum(eigobj$values)/trace_mat(K) > (1-control$epsilon)))
 
         if(control$printlevel > 0) print(paste("lastkeeper=",lastkeeper))
-        enoughvar=TRUE
+        break;
         
       } else if (j == length(numvectorss)) {
         stop(
@@ -109,9 +106,8 @@ Ktrunc <- function(X=NULL,
           )
         )
       }
-      j=j+1
 
-    } #end while gotenough==FALSE
+    } 
     
   } else { # if !is.null(lastkeeper), ie lastkeeper is given
     ## Suppress warning about using all eigenvalues

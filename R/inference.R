@@ -25,10 +25,10 @@ inference.krls2 <- function(obj,
     warning("Standard errors only available if vcov = TRUE")
   }
   if(!obj$truncate) {
-    if(obj$loss == 'logistic' & (vcov | robust | !is.null(clusters))) {
+    if(obj$loss == 'logistic' & (vcov || robust || !is.null(clusters))) {
       warning("Standard errors with logistic regression only available with truncation")
       vcov <- FALSE
-    } else if ((robust | !is.null(clusters)) & obj$loss == "leastsquares") {
+    } else if ((robust || !is.null(clusters)) && obj$loss == "leastsquares") {
       warning("Robust standard errors with KRLS only available with truncation. Either refit with truncation or remove robust and clusters options.")
       vcov <- FALSE
       robust <- FALSE
@@ -36,15 +36,9 @@ inference.krls2 <- function(obj,
     }
   }
   
-  if(!is.null(clusters)) {
-    robust <- TRUE
-  }
+  robust <- !is.null(clusters)
   
-  if(length(unique(obj$w))==1){
-    weight = F
-  } else{
-    weight = T
-  }
+  weight <- length(unique(obj$w)) > 1
   
   if(!is.null(clusters) & !is.list(clusters)) {
     if(length(clusters) != nrow(obj$X)) stop("Clusters must be a vector the same length as X")
@@ -181,7 +175,7 @@ inference.krls2 <- function(obj,
   ## Getting pwmfx
   ###----------------------------------------
   
-  if (derivative==TRUE) {
+  if (derivative) {
     
     obj$binaryindicator=matrix(FALSE,1,d)
     colnames(obj$binaryindicator) <- colnames(X)
