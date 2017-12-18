@@ -5,7 +5,8 @@
 ##            mult_diag
 
 ## Function that splits a vector in to n chunks
-## TODO cite stackoverflow
+## From Stack Overflow answer by mathheadinclouds
+## link: https://stackoverflow.com/a/16275428
 #' @export
 chunk <- function(x,n) split(x, cut(seq_along(x), n, labels = FALSE)) 
 
