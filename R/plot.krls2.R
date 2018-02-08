@@ -11,7 +11,7 @@
 #' max and the min value of the predictor (instead of the range from the 1st
 #' to the 3rd quantile).
 #'
-#' @param obj an object of class \code{krls2} that preferably results from a call to 
+#' @param x an object of class \code{krls2} that preferably results from a call to 
 #'  \code{\link{summary.krls2}}. Also accepts the output of \code{\link{krls}} but
 #'  this is slower as it has to recompute pointwise marginal effects if the
 #'  histograms of pointwise marginal effects are requested by \code{which}.
@@ -68,7 +68,7 @@
 #' @export
 #'
 plot.krls2 <-
-  function(obj,
+  function(x,
            which = c(1:2),
            main = "distributions of pointwise marginal effects",
            setx = "mean",
@@ -78,14 +78,14 @@ plot.krls2 <-
            ...)
   {
     
-    if( class(obj)!= "krls2" ){
-      warning("obj not of class 'krls2'")
+    if( class(x)!= "krls2" ){
+      warning("`x` must be of class 'krls2'")
       #UseMethod("summary")
       return(invisible(NULL))
     }
     
-    d <- ncol(obj$X)
-    n <- nrow(obj$X)
+    d <- ncol(x$X)
+    n <- nrow(x$X)
     if(length(probs)!=2){
       stop("length(probs) must be 2")
     }
@@ -98,7 +98,7 @@ plot.krls2 <-
     } else {
       if(length(setx)!=1){stop("setx must be one of mean or median")}
       if(sum(setx %in% c("mean","median"))<1){stop("setx must be one of mean or median")}
-      setx <- apply(obj$X,2,setx)
+      setx <- apply(x$X,2,setx)
     }
     
     nplots <- 0
@@ -110,25 +110,24 @@ plot.krls2 <-
       on.exit(devAskNewPage(oask))
     }
     
-    if(is.null(colnames(obj$X))){
-      colnames(obj$X) <- paste("x",1:d,sep="") 
+    if(is.null(colnames(x$X))){
+      colnames(x$X) <- paste("x",1:d,sep="") 
     } 
     
     # derivatives
     if(1 %in% which){ # histograms of partial derivatives
-      if(is.null(obj$derivatives)){
+      if(is.null(x$derivatives)){
         warning("running summary.krls2 because object passed does not have PWMFX.
                 To save time, pass the result of summary.krls2 instead of krls to this plot method.")
-        obj <- inference.krls2(obj)
+        x <- inference.krls2(x)
       } else {
-        colnames(obj$derivatives) <- colnames(obj$X)
+        colnames(x$derivatives) <- colnames(x$X)
         
       
-        form <-  as.formula(paste("~",paste(colnames(obj$derivatives),collapse="+"),sep=""))
-        require(lattice)
-        
+        form <-  as.formula(paste("~",paste(colnames(x$derivatives),collapse="+"),sep=""))
+
         print(histogram(form,
-                        data=data.frame(obj$derivatives),
+                        data=data.frame(x$derivatives),
                         breaks=NULL,
                         main=main
                         ,...)
@@ -140,13 +139,13 @@ plot.krls2 <-
     if(2 %in% which){  # conditional expectation plots
       lengthunique    <- function(x){length(unique(x))}
       # vector with positions of binary variables
-      binaryindicator <- which(apply(obj$X,2,lengthunique)==2)
-      quantiles <-  apply(obj$X,2,quantile,probs=probs)     
+      binaryindicator <- which(apply(x$X,2,lengthunique)==2)
+      quantiles <-  apply(x$X,2,quantile,probs=probs)     
       
       for(i in 1:d){
         
         if(i %in% binaryindicator){ # E[Y|X] for binary Xs
-          Xi <- c(min(obj$X[,i]),max(obj$X[,i]))
+          Xi <- c(min(x$X[,i]),max(x$X[,i]))
           Newdata <- matrix(rep(setx,2),ncol=d,byrow=T)
           Newdata[,i] <- Xi
           
@@ -156,12 +155,12 @@ plot.krls2 <-
           Newdata <- matrix(rep(setx,nvalues),ncol=d,byrow=T)
           Newdata[,i] <- Xi
         }
-        pout <- predict(obj,newdata=Newdata,se=TRUE)
+        pout <- predict(x,newdata=Newdata,se=TRUE)
         Ylo  <- pout$fit-1.96*pout$se
         Yhi  <- pout$fit+1.96*pout$se
         plot(
           y=pout$fit,x=Xi,
-          xlab=colnames(obj$X)[i],
+          xlab=colnames(x$X)[i],
           ylab=c("E[Y|X]"),
           ylim=c(min(Ylo) -.25*c(sqrt(var(pout$fit))),
                  max(Yhi))+.25*c(sqrt(var(pout$fit))),

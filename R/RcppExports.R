@@ -3,81 +3,81 @@
 
 #' @export
 mult_diag <- function(x, d) {
-    .Call('_KRLS2_mult_diag', PACKAGE = 'KRLS2', x, d)
+    .Call(`_KRLS2_mult_diag`, x, d)
 }
 
 #' @export
 trace_mat <- function(x) {
-    .Call('_KRLS2_trace_mat', PACKAGE = 'KRLS2', x)
+    .Call(`_KRLS2_trace_mat`, x)
 }
 
 #' @export
 krls_gr_trunc <- function(U, D, y, w, fitted, dhat, lambda) {
-    .Call('_KRLS2_krls_gr_trunc', PACKAGE = 'KRLS2', U, D, y, w, fitted, dhat, lambda)
+    .Call(`_KRLS2_krls_gr_trunc`, U, D, y, w, fitted, dhat, lambda)
 }
 
 #' @export
 krls_hess_trunc_inv <- function(U, D, w, lambda) {
-    .Call('_KRLS2_krls_hess_trunc_inv', PACKAGE = 'KRLS2', U, D, w, lambda)
+    .Call(`_KRLS2_krls_hess_trunc_inv`, U, D, w, lambda)
 }
 
 #' @export
 krlogit_fn_trunc <- function(par, U, D, y, w, lambda) {
-    .Call('_KRLS2_krlogit_fn_trunc', PACKAGE = 'KRLS2', par, U, D, y, w, lambda)
+    .Call(`_KRLS2_krlogit_fn_trunc`, par, U, D, y, w, lambda)
 }
 
 #' @export
 krlogit_gr_trunc <- function(par, U, D, y, w, lambda) {
-    .Call('_KRLS2_krlogit_gr_trunc', PACKAGE = 'KRLS2', par, U, D, y, w, lambda)
+    .Call(`_KRLS2_krlogit_gr_trunc`, par, U, D, y, w, lambda)
 }
 
 #' @export
 partial_logit <- function(K, coef, beta0) {
-    .Call('_KRLS2_partial_logit', PACKAGE = 'KRLS2', K, coef, beta0)
+    .Call(`_KRLS2_partial_logit`, K, coef, beta0)
 }
 
 #' @export
 krlogit_hess_trunc_inv <- function(par, U, D, y, w, lambda) {
-    .Call('_KRLS2_krlogit_hess_trunc_inv', PACKAGE = 'KRLS2', par, U, D, y, w, lambda)
+    .Call(`_KRLS2_krlogit_hess_trunc_inv`, par, U, D, y, w, lambda)
 }
 
 #' @export
 euc_dist <- function(x1, x2) {
-    .Call('_KRLS2_euc_dist', PACKAGE = 'KRLS2', x1, x2)
+    .Call(`_KRLS2_euc_dist`, x1, x2)
 }
 
 #' @export
 kern_gauss_1d <- function(x1, x2, b) {
-    .Call('_KRLS2_kern_gauss_1d', PACKAGE = 'KRLS2', x1, x2, b)
+    .Call(`_KRLS2_kern_gauss_1d`, x1, x2, b)
 }
 
 #' @export
 kern_gauss <- function(x, b) {
-    .Call('_KRLS2_kern_gauss', PACKAGE = 'KRLS2', x, b)
+    .Call(`_KRLS2_kern_gauss`, x, b)
 }
 
 #' @export
 new_gauss_kern <- function(newx, oldx, b) {
-    .Call('_KRLS2_new_gauss_kern', PACKAGE = 'KRLS2', newx, oldx, b)
+    .Call(`_KRLS2_new_gauss_kern`, newx, oldx, b)
 }
 
 #' @export
 solve_for_d_ls <- function(y, U, D, lambda) {
-    .Call('_KRLS2_solve_for_d_ls', PACKAGE = 'KRLS2', y, U, D, lambda)
+    .Call(`_KRLS2_solve_for_d_ls`, y, U, D, lambda)
 }
 
 #' @export
 solve_for_d_ls_w <- function(y, U, D, w, lambda) {
-    .Call('_KRLS2_solve_for_d_ls_w', PACKAGE = 'KRLS2', y, U, D, w, lambda)
+    .Call(`_KRLS2_solve_for_d_ls_w`, y, U, D, w, lambda)
 }
 
 #' @export
 pwmfx <- function(k, x, coefhat, vcovc, p, b) {
-    .Call('_KRLS2_pwmfx', PACKAGE = 'KRLS2', k, x, coefhat, vcovc, p, b)
+    .Call(`_KRLS2_pwmfx`, k, x, coefhat, vcovc, p, b)
 }
 
 #' @export
 pwmfx_novar <- function(k, x, coefhat, p, b) {
-    .Call('_KRLS2_pwmfx_novar', PACKAGE = 'KRLS2', k, x, coefhat, p, b)
+    .Call(`_KRLS2_pwmfx_novar`, k, x, coefhat, p, b)
 }
 

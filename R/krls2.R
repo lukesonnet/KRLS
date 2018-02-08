@@ -25,9 +25,12 @@
 #' via the summary() function. See summary.krls2().
 #'
 #' @import RSpectra
-#' @useDynLib KRLS2
+#' @useDynLib KRLS2, .registration = TRUE
 #' @importFrom Rcpp sourceCpp
-
+#' @importFrom lattice histogram
+#' @importFrom grDevices devAskNewPage
+#' @importFrom graphics arrows par plot
+#' @importFrom stats as.formula optim optimize predict pt quantile sd var
 
 #############
 # Functions #

@@ -6,6 +6,8 @@ context("KRLogit gradient/hessian correct")
 test_that("", {
   library(numDeriv)
 
+  set.seed(42)
+
   # Fit model
   krlog_out <- krls(
     y = mtcars$am,
