@@ -1,5 +1,8 @@
 context("KRLogit gradient/hessian correct")
 
+# Note that this file is ignored by buildignore/CRAN to avoid
+# adding numDeriv to `suggests` in DESCRIPTION
+
 test_that("", {
   library(numDeriv)
 

@@ -12,6 +12,12 @@ install:
 
 cache:
   - C:\RLibrary
+  
+matrix:
+  - R_VERSION: release
+
+  - R_VERSION: oldrel
+    RTOOLS_VERSION: 33
 
 # Adapt as necessary starting from here
 
