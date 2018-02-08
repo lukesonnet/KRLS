@@ -56,7 +56,7 @@
 #' @param truncate A boolean that defaults to \code{FALSE}. If \code{TRUE} truncates the kernel matrix, keeping as many eigenvectors as needed so that 1-\code{epsilon} of the total variance in the kernel matrix is retained. Alternatively, you can simply specify \code{epsilon} and truncation will be used.
 #' @param epsilon Scalar between 0 and 1 that determines the total variance that can be lost in truncation. If not NULL, truncation is automatically set to TRUE.
 #' @param con A list of control arguments passed to optimization for the numerical optimization of the kernel regularized logistic loss function.
-#' @param returnopt A boolean that defaults to \code{FALSE}. If \code{TRUE}, returns the result of the \code{optim} method called to optimize the kernel regularized logistic loss function.
+#' @param returnopt A boolean that defaults to \code{FALSE}. If \code{TRUE}, returns the result of the \code{optim} method called to optimize the kernel regularized logistic loss function. Returns \code{NULL} with leastsquares loss.
 #' @param printlevel A number that is either 0 (default), 1, or 2. 0 Has minimal printing, 1 prints out most diagnostics, and 2 prints out most diagnostics including \code{optim} diagnostics for each fold in the cross-validation selection of hyperparameters.
 #' @param warn A number that sets your \code{warn} option. We default to 1 so that warnings print as they occur. You can change this to 2 if you want all warnings to be errors, to 0 if you want all warnings to wait until the top-level call is finished, or to a negative number to ignore them.
 #' @details
@@ -121,7 +121,7 @@ krls <- function(# Data arguments
                     lastkeeper = NULL,
                     # Optimization arguments
                     con = list(maxit=500),
-                    returnopt = TRUE,
+                    returnopt = FALSE,
                     printlevel = 0,
                     warn = 1,
                     sigma = NULL, # to provide legacy support for old code,
@@ -377,8 +377,6 @@ krls <- function(# Data arguments
 
   } else {
 
-    opt <- if(returnopt) out$opt else NULL
-
     yfitted <- logistic(K=Kdat$K, coeff=coefhat, beta0 = out$beta0hat)
 
   }
@@ -398,7 +396,8 @@ krls <- function(# Data arguments
             b = b,
             lambda = lambda,
             kernel = whichkernel,
-            loss = loss
+            loss = loss,
+            opt = opt
   )
 
   class(z) <- "krls2"

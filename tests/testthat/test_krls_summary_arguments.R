@@ -1,6 +1,4 @@
-library(testthat)
-library(KRLS2)
-context("Test different input configurations work\n")
+context("KRLS/KRLogit specifications")
 
 n <- 50
 betas <- rnorm(2)
@@ -55,23 +53,23 @@ for(i in 1:nrow(test_grid)) {
     lambda <- lambdagrid    
   }
 
-  cat('\n')
-  print(test_grid[i,])
+  # cat('\n')
+  # print(test_grid[i,])
   # don't support these, should throw error when fitting KR*
   if ((test_grid$weighted[i] & test_grid$loss[i] == 'leastsquares' & !test_grid$truncation[i])) {
-    print('expect fit error')
+    # print('expect fit error')
     expecting_fit_error <- 'weighted' #this means we will expect an error with one of these things in it (regex)
   } else {
-    print('expect no fit error')
+    # print('expect no fit error')
     expecting_fit_error <- NA #this means we will not expect an error
   }
   
   # don't support these, should throw error when getting pwmfx
   if (test_grid$whichkernel[i] != 'gaussian') {
-    print('expect inference error')
+    # print('expect inference error')
     expecting_inf_error <- 'Robust|kernel' #this means we will expect an error with one of these things in it (regex)
   } else {
-    print('expect no inference error')
+    # print('expect no inference error')
     expecting_inf_error <- NA #this means we will not expect an error
   }
   
