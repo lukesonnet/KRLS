@@ -1,11 +1,11 @@
 Package: KRLS2
 Type: Package
-Title: Kernel-based Regularized Least squares (KRLS)
-Version: 0.4
-Date: 2016-05-15
+Title: Kernel-based Regularized Least squares
+Version: 1.1.0
+Date: 2018-02-08
 Author: Jens Hainmueller (Stanford) Chad Hazlett (UCLA) Luke Sonnet (UCLA)
 Maintainer: Jens Hainmueller <jhain@stanford.edu>
-Description: Package implements Kernel-based Regularized Least Squares (KRLS), a
+Description: Implements Kernel-based Regularized Least Squares (KRLS), a
     machine learning method to fit multidimensional functions y=f(x) for regression
     and classification problems without relying on linearity or additivity
     assumptions. KRLS finds the best fitting function by minimizing the squared loss
@@ -13,10 +13,11 @@ Description: Package implements Kernel-based Regularized Least Squares (KRLS), a
     functions. For further details see Hainmueller and Hazlett (2014).
 Imports:
     Rcpp (>= 0.12.5),
-    RSpectra,
-    lattice
+    RSpectra
 LinkingTo: Rcpp, RcppArmadillo
 License: GPL (>= 2)
 Suggests:
-    testthat
+    testthat,
+    lattice
+URL: https://www.r-project.org, https://www.stanford.edu/~jhain/
 RoxygenNote: 6.0.1

@@ -126,7 +126,9 @@ plot.krls2 <-
       
         form <-  as.formula(paste("~",paste(colnames(x$derivatives),collapse="+"),sep=""))
 
-        print(histogram(form,
+        requireNamespace("lattice", quietly = TRUE)
+        
+        print(lattice::histogram(form,
                         data=data.frame(x$derivatives),
                         breaks=NULL,
                         main=main

@@ -45,7 +45,9 @@ krls(X, y, w = NULL, loss = "leastsquares", whichkernel = "gaussian",
 
 \item{truncate}{A boolean that defaults to \code{FALSE}. If \code{TRUE} truncates the kernel matrix, keeping as many eigenvectors as needed so that 1-\code{epsilon} of the total variance in the kernel matrix is retained. Alternatively, you can simply specify \code{epsilon} and truncation will be used.}
 
-\item{epsilon}{Scalar between 0 and 1 that determines the total variance that can be lost in truncation. If not NULL, truncation is automatically set to TRUE.}
+\item{epsilon}{Scalar between 0 and 1 that determines the total variance that can be lost in truncation. If not NULL, truncation is automatically set to TRUE. If \code{truncate == TRUE}, default is 0.001.}
+
+\item{lastkeeper}{Number of columns of \code{U} to keep when \code{truncate == TRUE}. Overrides \code{epsilon}.}
 
 \item{con}{A list of control arguments passed to optimization for the numerical optimization of the kernel regularized logistic loss function.}
 
@@ -54,6 +56,8 @@ krls(X, y, w = NULL, loss = "leastsquares", whichkernel = "gaussian",
 \item{printlevel}{A number that is either 0 (default), 1, or 2. 0 Has minimal printing, 1 prints out most diagnostics, and 2 prints out most diagnostics including \code{optim} diagnostics for each fold in the cross-validation selection of hyperparameters.}
 
 \item{warn}{A number that sets your \code{warn} option. We default to 1 so that warnings print as they occur. You can change this to 2 if you want all warnings to be errors, to 0 if you want all warnings to wait until the top-level call is finished, or to a negative number to ignore them.}
+
+\item{sigma}{DEPRECATED. Users should now use \code{b}, included for backwards compatability.}
 }
 \description{
 This is the primary fitting function.
