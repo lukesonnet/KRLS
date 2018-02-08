@@ -9,7 +9,8 @@ krls(X, y, w = NULL, loss = "leastsquares", whichkernel = "gaussian",
   lambda = NULL, hyperfolds = 5, lambdastart = 10^(-6)/length(y),
   lambdainterval = c(10^-8, 25), L = NULL, U = NULL, tol = NULL,
   truncate = FALSE, epsilon = NULL, lastkeeper = NULL, con = list(maxit
-  = 500), returnopt = TRUE, printlevel = 0, warn = 1, sigma = NULL, ...)
+  = 500), returnopt = FALSE, printlevel = 0, warn = 1, sigma = NULL,
+  ...)
 }
 \arguments{
 \item{X}{\emph{N} by \emph{D} data numeric matrix that contains the values of \emph{D} predictor variables for \eqn{i=1,\ldots,N} observations. The matrix may not contain missing values or constants. Note that no intercept is required for the least squares or logistic loss. In the case of least squares, the function operates on demeaned data and subtracting the mean of \emph{y} is equivalent to including an (unpenalized) intercept into the model. In the case of logistic loss, we automatically estimate an unpenalized intercept in the linear component of the model.}
@@ -48,7 +49,7 @@ krls(X, y, w = NULL, loss = "leastsquares", whichkernel = "gaussian",
 
 \item{con}{A list of control arguments passed to optimization for the numerical optimization of the kernel regularized logistic loss function.}
 
-\item{returnopt}{A boolean that defaults to \code{FALSE}. If \code{TRUE}, returns the result of the \code{optim} method called to optimize the kernel regularized logistic loss function.}
+\item{returnopt}{A boolean that defaults to \code{FALSE}. If \code{TRUE}, returns the result of the \code{optim} method called to optimize the kernel regularized logistic loss function. Returns \code{NULL} with leastsquares loss.}
 
 \item{printlevel}{A number that is either 0 (default), 1, or 2. 0 Has minimal printing, 1 prints out most diagnostics, and 2 prints out most diagnostics including \code{optim} diagnostics for each fold in the cross-validation selection of hyperparameters.}
 
