@@ -103,7 +103,6 @@ inference.krls2 <- function(obj,
           
         } else if (robust) {
           if(is.null(clusters)) {
-            print("here")
             score <- matrix(nrow = n, ncol = length(obj$dhat))
             for(i in 1:n) {
               score[i, ] <- krls_gr_trunc(
@@ -113,7 +112,7 @@ inference.krls2 <- function(obj,
                 obj$w[i],
                 yfitted[i],
                 obj$dhat,
-                obj$lambda
+                obj$lambda / n
               )
             }
           } else {
