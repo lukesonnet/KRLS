@@ -37,7 +37,6 @@ test_that("", {
     w = w,
     lambda = lambda
   )
-  krlog_grad
   
   # our grad fn
   an_grad <- krlogit_gr_trunc(
