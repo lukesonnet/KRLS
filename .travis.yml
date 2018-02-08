@@ -28,10 +28,10 @@ matrix:
       if: branch = master
 
 r_packages:
- -- numDeriv
+- numDeriv
 
 r_github_packages:
- -- r-lib/covr
+- r-lib/covr
 
 after_success:
- -- test $TRAVIS_OS_NAME == "linux" && Rscript -e 'covr::coveralls()'
+- test $TRAVIS_OS_NAME == "linux" && Rscript -e 'covr::coveralls()'
