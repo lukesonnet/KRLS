@@ -33,5 +33,5 @@ r_packages:
 r_github_packages:
  -- r-lib/covr
 
- after_success:
+after_success:
  -- test $TRAVIS_OS_NAME == "linux" && Rscript -e 'covr::coveralls()'
