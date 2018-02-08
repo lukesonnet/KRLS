@@ -370,15 +370,19 @@ krls <- function(# Data arguments
 
   coefhat <- UDinv %*% out$dhat
 
+  opt <- NULL
   if (loss == "leastsquares") {
 
     yfitted <- Kdat$K %*% coefhat
     yfitted <- yfitted * y.init.sd + y.init.mean
-
+    
   } else {
 
     yfitted <- logistic(K=Kdat$K, coeff=coefhat, beta0 = out$beta0hat)
 
+    if (returnopt) {
+      opt <- out$opt
+    }
   }
 
   z <- list(K = Kdat$K,

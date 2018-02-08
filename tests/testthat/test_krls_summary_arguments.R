@@ -1,6 +1,6 @@
 context("KRLS/KRLogit specifications")
 
-n <- 50
+n <- 25
 betas <- rnorm(2)
 X <- cbind(rbinom(n, 1, 0.4), rnorm(n))
 ypure <- X %*% betas 
