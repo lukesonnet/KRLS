@@ -103,26 +103,31 @@ inference.krls2 <- function(obj,
           
         } else if (robust) {
           if(is.null(clusters)) {
+            print("here")
             score <- matrix(nrow = n, ncol = length(obj$dhat))
             for(i in 1:n) {
-              score[i, ] = krls_gr_trunc(obj$U[i, , drop = F],
-                                         obj$D,
-                                         y[i],
-                                         obj$w[i],
-                                         yfitted[i], 
-                                         obj$dhat,
-                                         obj$lambda/n)
+              score[i, ] <- krls_gr_trunc(
+                obj$U[i, , drop = F],
+                obj$D,
+                y[i],
+                obj$w[i],
+                yfitted[i],
+                obj$dhat,
+                obj$lambda
+              )
             }
           } else {
             score <- matrix(nrow = length(clusters), ncol = length(obj$dhat))
             for(j in 1:length(clusters)){
-              score[j, ] = krls_gr_trunc(obj$U[clusters[[j]], , drop = F],
-                                         obj$D,
-                                         y[clusters[[j]]],
-                                         obj$w[clusters[[j]]],
-                                         yfitted[clusters[[j]]],
-                                         obj$dhat,
-                                         length(clusters[[j]]) * obj$lambda/n)
+              score[j, ] <- krls_gr_trunc(
+                obj$U[clusters[[j]], , drop = F],
+                obj$D,
+                y[clusters[[j]]],
+                obj$w[clusters[[j]]],
+                yfitted[clusters[[j]]],
+                obj$dhat,
+                length(clusters[[j]]) * obj$lambda / n
+              )
             }
             
           }
