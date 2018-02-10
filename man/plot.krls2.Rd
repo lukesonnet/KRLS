@@ -4,13 +4,13 @@
 \alias{plot.krls2}
 \title{Plot method for KRLS and KRLogit Model Fits}
 \usage{
-\method{plot}{krls2}(obj, which = c(1:2),
+\method{plot}{krls2}(x, which = c(1:2),
   main = "distributions of pointwise marginal effects", setx = "mean",
   ask = prod(par("mfcol")) < nplots, nvalues = 50, probs = c(0.25, 0.75),
   ...)
 }
 \arguments{
-\item{obj}{an object of class \code{krls2} that preferably results from a call to 
+\item{x}{an object of class \code{krls2} that preferably results from a call to 
 \code{\link{summary.krls2}}. Also accepts the output of \code{\link{krls}} but
 this is slower as it has to recompute pointwise marginal effects if the
 histograms of pointwise marginal effects are requested by \code{which}.}

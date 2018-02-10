@@ -10,7 +10,7 @@ summary.krls2 <- function(object,
                           probs = c(.25, .5, .75),
                           ...) {
   if( class(object)!= "krls2" ) {
-    warning("Object not of class 'krls2'")
+    warning("`object` must be of class 'krls2'")
     UseMethod("summary")
     return(invisible(NULL))
   }

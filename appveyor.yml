@@ -14,6 +14,13 @@ cache:
   - C:\RLibrary
 
 # Adapt as necessary starting from here
+environment:
+
+  matrix:
+  - R_VERSION: release
+
+  - R_VERSION: oldrel
+    RTOOLS_VERSION: 33
 
 build_script:
   - travis-tool.sh install_deps
