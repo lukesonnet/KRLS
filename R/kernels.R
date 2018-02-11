@@ -29,7 +29,7 @@ generateK <- function(X,
     U <- truncDat$Utrunc
     D <- truncDat$eigvals
   } else {
-    eigobj <- eigen(K, symmetric = T)
+    eigobj <- eigen(K)
     eigvaliszero <- eigobj$values == 0
     if(any(eigvaliszero)) {
       

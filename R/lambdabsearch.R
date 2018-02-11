@@ -264,9 +264,9 @@ lambdaline <-
       #Lbound <- 0
       Lbound = .Machine$double.eps  #CJH: to avoid Inf in next statement
       
-      #while(sum(D / (D + Lbound)) > q){
-      #  Lbound <- Lbound+.05
-      #}
+      while(sum(D / (D + Lbound)) > q){
+       Lbound <- Lbound+.05
+      }
     }  else {
       stopifnot(is.vector(Lbound),
                 length(Lbound)==1,

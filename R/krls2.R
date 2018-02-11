@@ -279,7 +279,7 @@ krls <- function(# Data arguments
   ## todo: build distance matrix E first so that we can more quickly compute
   ## K below
 
-  if(!is.null(lambda)) {
+  if (!is.null(lambda)) {
     # Allow range in lambda argument
     if (length(lambda) > 1) {
       lambdarange <- lambda
@@ -293,7 +293,7 @@ krls <- function(# Data arguments
   }
 
   ## set chunks for any ranges
-  if(is.null(lambda) | is.null(b)) {
+  if (is.null(lambda) || is.null(b)) {
     chunks <- chunk(sample(n), hyperfolds)
 
     control <- c(control,
@@ -316,14 +316,14 @@ krls <- function(# Data arguments
   ###----------------------------------------
 
   ## If b ix fixed, compute all of the kernels
-  if(!is.null(b)) {
+  if (!is.null(b)) {
 
     ## Compute kernel matrix and truncated objects
     Kdat <- generateK(X=X,
                       b=b,
                       control=control)
 
-    if(is.null(lambda)) {
+    if (is.null(lambda)) {
       lambda <- lambdasearch(y=y,
                              X=X,
                              Kdat=Kdat,
@@ -332,7 +332,7 @@ krls <- function(# Data arguments
     }
   } else { # if(is.null(b)
 
-    if(is.null(lambda)) {
+    if (is.null(lambda)) {
 
       hyperOut <- lambdabsearch(y=y,
                                 X=X,

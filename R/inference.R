@@ -204,7 +204,7 @@ inference.krls2 <- function(obj,
     # Get actual pwmfx
     if (any(!binaryindicator)) {
       
-      if(obj$loss == "leastsquares") {
+      if (obj$loss == "leastsquares") {
         tau <- rep(2, n)
       } else if (obj$loss == "logistic") {
         tau <- 2 * yfitted*(1-yfitted)
@@ -249,10 +249,10 @@ inference.krls2 <- function(obj,
     # Get FDs
     if (any(binaryindicator)) {
       # Contrast 
-      if (obj$loss = "leastsquares") {
-        h <- as.matrix(rep(c(1/n, -(1/n)), each=n))
-      } else {
+      if (obj$loss == "leastsquares") {
         h <- as.matrix(rep(1/n, each=n))
+      } else {
+        h <- as.matrix(rep(c(1/n, -(1/n)), each=n))
       }
       
       fdout <- as.matrix(sapply(
@@ -399,7 +399,7 @@ firstdiffs <- function(object, n, p, h, vcov.c, vcov.d){
     if (getvar) {
       # multiply by 2 to correct for using data twice
       
-      var <- crossprod(h, M %*% vcov.c %*% crossprod(M, h)) * 2
+      var <- crossprod(h, M %*% vcov.c %*% crossprod(M, h))
                        
     } else {
       var <- NA
@@ -425,8 +425,7 @@ firstdiffs <- function(object, n, p, h, vcov.c, vcov.d){
       deriv.avgfd.logit <- crossprod(h, pout$deriv.logit)
       vcov.avgfd <-
         tcrossprod(deriv.avgfd.logit %*% vcov.d, deriv.avgfd.logit)
-      # multiply by 2 to correct for using data twice
-      var <- as.vector(vcov.avgfd) * 2
+      var <- as.vector(vcov.avgfd)
     } else {
       var <- NA
     }
