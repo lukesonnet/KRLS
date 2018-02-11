@@ -4,9 +4,9 @@ test_that("Truncation returns roughly same results as no truncation", {
   # This largely tests if anything goes really wrong in truncation
   # not that it is a good approximation
   
-  krlso <- krls(y = mtcars$am, X = mtcars$mpg, truncate = FALSE)
+  krlso <- krls(y = mtcars$am, X = mtcars[, c("mpg", "wt")], truncate = FALSE)
   
-  krlso_trunc <- krls(y = mtcars$am, X = mtcars$mpg, epsilon = 0.0000001)
+  krlso_trunc <- krls(y = mtcars$am, X = mtcars[, c("mpg", "wt")], epsilon = 0.0000001)
 
   expect_true(
     ncol(krlso_trunc$U) < ncol(krlso$U)
@@ -16,14 +16,14 @@ test_that("Truncation returns roughly same results as no truncation", {
     max(
       inference.krls2(krlso)$derivatives - 
         inference.krls2(krlso_trunc)$derivatives
-    ) < 1e-6
+    ) < 1e-4
   )
   
   expect_true(
     max(
       krlso$fitted - 
         krlso_trunc$fitted
-    ) < 1e-7
+    ) < 1e-6
   )
 
   # Overfitting without truncation with logistic seems to be a serious problem
