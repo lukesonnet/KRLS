@@ -248,8 +248,12 @@ inference.krls2 <- function(obj,
     
     # Get FDs
     if (any(binaryindicator)) {
-      # Contrast vector
-      h <- rep(c(1/n, -(1/n)), each=n)
+      # Contrast 
+      if (obj$loss = "leastsquares") {
+        h <- as.matrix(rep(c(1/n, -(1/n)), each=n))
+      } else {
+        h <- as.matrix(rep(1/n, each=n))
+      }
       
       fdout <- as.matrix(sapply(
         which(binaryindicator),
@@ -364,6 +368,69 @@ firstdiffs <- function(object, n, p, h, vcov.c, vcov.d){
   
   # all
   diffs <- pout$fit[1:n] - pout$fit[(n + 1):(2 * n)]
+  
+  fd <- c(diffs, var, est)
+  
+  return(fd)
+}
+
+
+# First differences
+firstdiffs <- function(object, n, p, h, vcov.c, vcov.d){ 
+  
+  n <- nrow(object$X)
+  
+  # compute marginal differences from min to max 
+  X1 <- X0 <- object$X
+  # Given we know it's binary
+  X1[, p] <- max(object$X[, p])
+  X0[, p] <- min(object$X[, p])
+  
+  getvar <- !is.null(vcov.c)
+  
+  if (object$loss == "leastsquares") {
+    M <- 
+      newKernel(X = object$X, newData = X1, whichkernel = object$kernel, b = object$b) -
+      newKernel(X = object$X, newData = X0, whichkernel = object$kernel, b = object$b)
+    
+    diffs <- M %*% object$coeffs * sd(object$y)
+    est <- crossprod(h, diffs)
+    
+    if (getvar) {
+      # multiply by 2 to correct for using data twice
+      
+      var <- crossprod(h, M %*% vcov.c %*% crossprod(M, h)) * 2
+                       
+    } else {
+      var <- NA
+    }
+    
+  } else {
+    newdataK <- newKernel(X = object$X, newData = rbind(X0, X1), whichkernel = object$kernel, b = object$b)
+    
+    pout <- predict_logistic(
+      newdataK = newdataK,
+      dhat = object$dhat,
+      coeffs = object$coeffs,
+      beta0hat = object$beta0hat,
+      U = object$U,
+      D = object$D,
+      vcov.d = vcov.d,
+      se.fit = getvar
+    )
+    
+    est <- crossprod(h, pout$fit)
+    diffs <- pout$fit[1:n] - pout$fit[(n + 1):(2 * n)]
+    if (getvar) {
+      deriv.avgfd.logit <- crossprod(h, pout$deriv.logit)
+      vcov.avgfd <-
+        tcrossprod(deriv.avgfd.logit %*% vcov.d, deriv.avgfd.logit)
+      # multiply by 2 to correct for using data twice
+      var <- as.vector(vcov.avgfd) * 2
+    } else {
+      var <- NA
+    }
+  }
   
   fd <- c(diffs, var, est)
   
