@@ -201,6 +201,7 @@ inference.krls2 <- function(obj,
     binaryindicator <- 
       apply(obj$X, 2, function(x) length(unique(x))) == 2
     
+    # Get actual pwmfx
     if (any(!binaryindicator)) {
       
       if(obj$loss == "leastsquares") {
@@ -245,6 +246,7 @@ inference.krls2 <- function(obj,
       vcov.c <- vcov.c * (y.init.sd^2)
     }
     
+    # Get FDs
     if (any(binaryindicator)) {
       # Contrast vector
       h <- rep(c(1/n, -(1/n)), each=n)

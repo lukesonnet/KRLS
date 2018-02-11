@@ -27,14 +27,16 @@ predict.krls2 <- function(object, newdata, se.fit = FALSE, ...) {
       beta0hat = object$beta0hat,
       U = object$U,
       D = object$D,
-      vcov.d = object$vcov.d
+      vcov.d = object$vcov.d,
+      se.fit = se.fit
     )
   } else if (object$loss == "leastsquares") {
     fit <- predict_leastsquares(
       newdataK = newdataK,
       y = object$y,
       coeffs = object$coeffs,
-      vcov.c = object$vcov.c
+      vcov.c = object$vcov.c,
+      se.fit = se.fit
     )
   }
   
