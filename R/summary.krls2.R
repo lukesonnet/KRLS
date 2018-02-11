@@ -25,8 +25,8 @@ summary.krls2 <- function(object,
     object <- inference.krls2(object, ...)
   } 
   # average marginal effects  
-  est     <- t(object$avgderivatives)
-  se     <- sqrt((object$var.avgderivatives))
+  est     <- object$avgderivatives
+  se     <- sqrt(object$var.avgderivatives)
   tval   <- est/(se)
   avgcoefficients <- cbind(est, se, tval, 2 * pt(abs(tval),n-d, lower.tail = FALSE))
   colnames(avgcoefficients) <- c("Est", "Std. Error", "t value", "Pr(>|t|)")

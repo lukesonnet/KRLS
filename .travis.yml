@@ -29,6 +29,7 @@ matrix:
 
 r_packages:
 - numDeriv
+- KRLS
 
 r_github_packages:
 - r-lib/covr

@@ -5,3 +5,4 @@ src/deprecated
 ^\.travis\.yml$
 ^appveyor\.yml$
 ^tests/testthat/test_krlogit_fns\.R$
+^tests/testthat/test_old_krls\.R$
