@@ -1,5 +1,5 @@
 # KRLS
-[![Travis-CI Build Status](https://travis-ci.org/lukesonnet/KRLS.svg?branch=master)](https://travis-ci.org/lukesonnet/KRLS) [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/lukesonnet/KRLS?branch=master&svg=true)](https://ci.appveyor.com/project/lukesonnet/KRLS)
+[![Travis-CI Build Status](https://travis-ci.org/lukesonnet/KRLS.svg?branch=master)](https://travis-ci.org/lukesonnet/KRLS) [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/lukesonnet/KRLS?branch=master&svg=true)](https://ci.appveyor.com/project/lukesonnet/KRLS) [![Coverage Status](https://coveralls.io/repos/github/lukesonnet/KRLS/badge.svg?branch=master)](https://coveralls.io/github/lukesonnet/KRLS?branch=master)
 
 This package provides methods for fitting flexible functional forms for continuous and binary outcomes. This package is under development and may behave unexpectedly. It is intended to replace the KRLS package available on CRAN. Please email [Luke Sonnet](mailto:luke.sonnet@gmail.com) or leave an issue for Luke Sonnet or Chad Hazlett.
 
