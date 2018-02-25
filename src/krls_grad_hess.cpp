@@ -19,14 +19,14 @@ arma::vec krls_gr_trunc(
 
 // Hessian used for sandwich estimator for KRLS
 // [[Rcpp::export]]
-arma::mat krls_hess_trunc_inv(const arma::mat& U,
+arma::mat krls_hess_trunc(const arma::mat& U,
                           const arma::vec& D,
                           const arma::vec& w,
                            const double& lambda) {
 
   arma::mat hess = 2 * (mult_diag(U.t(), w) * U + arma::diagmat(lambda * (1 / D)));
 
-  return arma::inv_sympd(hess);
+  return hess;
 
 }
 
@@ -83,7 +83,7 @@ arma::vec partial_logit(const arma::mat& K,
 }
 
 // [[Rcpp::export]]
-arma::mat krlogit_hess_trunc_inv(const arma::vec& par,
+arma::mat krlogit_hess_trunc(const arma::vec& par,
                            const arma::mat& U,
                            const arma::vec& D,
                            const arma::vec& y,
@@ -107,5 +107,5 @@ arma::mat krlogit_hess_trunc_inv(const arma::vec& par,
   ret.submat(0, coef.n_elem, coef.n_elem - 1, coef.n_elem) = dcdb;
   ret(coef.n_elem, coef.n_elem) = dbdb;
 
-  return arma::inv_sympd(ret);
+  return ret;
 }

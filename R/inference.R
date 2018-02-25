@@ -103,7 +103,8 @@ inference.krls2 <- function(obj,
     if (obj$loss == "leastsquares") {
       
       if (weight || robust) {
-        invhessian <- krls_hess_trunc_inv(obj$U, obj$D, obj$w, obj$lambda)
+        hessian <- krls_hess_trunc(obj$U, obj$D, obj$w, obj$lambda)
+        invhessian <- solve(hessian)
       } 
       
       if (robust) {
@@ -151,7 +152,8 @@ inference.krls2 <- function(obj,
       
     } else if (obj$truncate) { # if loss == 'logistic'
       
-      invhessian <- krlogit_hess_trunc_inv(c(obj$dhat, obj$beta0hat), obj$U, obj$D, y, obj$w, obj$lambda)
+      hessian <- krlogit_hess_trunc(c(obj$dhat, obj$beta0hat), obj$U, obj$D, y, obj$w, obj$lambda)
+      invhessian <- solve(hessian)
 
       if (robust) {
         
