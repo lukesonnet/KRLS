@@ -311,6 +311,7 @@ inference.krls2 <- function(obj,
 
   if(return_components) {
     z$score <- score
+    z$hessian <- hessian
     z$invhessian <- invhessian
   }
   
