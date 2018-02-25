@@ -218,9 +218,6 @@ BEGIN_RCPP
 END_RCPP
 }
 
-RcppExport SEXP _KRLS2_krlogit_hess_trunc_inv(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP _KRLS2_krls_hess_trunc_inv(SEXP, SEXP, SEXP, SEXP);
-
 static const R_CallMethodDef CallEntries[] = {
     {"_KRLS2_krls_gr_trunc", (DL_FUNC) &_KRLS2_krls_gr_trunc, 7},
     {"_KRLS2_krls_hess_trunc", (DL_FUNC) &_KRLS2_krls_hess_trunc, 4},
@@ -237,8 +234,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_KRLS2_pwmfx", (DL_FUNC) &_KRLS2_pwmfx, 7},
     {"_KRLS2_solve_for_d_ls", (DL_FUNC) &_KRLS2_solve_for_d_ls, 4},
     {"_KRLS2_solve_for_d_ls_w", (DL_FUNC) &_KRLS2_solve_for_d_ls_w, 5},
-    {"_KRLS2_krlogit_hess_trunc_inv", (DL_FUNC) &_KRLS2_krlogit_hess_trunc_inv, 6},
-    {"_KRLS2_krls_hess_trunc_inv",    (DL_FUNC) &_KRLS2_krls_hess_trunc_inv,    4},
     {NULL, NULL, 0}
 };
 
