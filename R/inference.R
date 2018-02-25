@@ -109,17 +109,20 @@ inference.krls2 <- function(obj,
       if (robust) {
         
         # actually t(score)
-        score <- sapply(clusters, function(clust_ids) {
-          krls_gr_trunc(
-            obj$U[clust_ids, , drop = FALSE],
-            obj$D,
-            y[clust_ids],
-            obj$w[clust_ids],
-            yfitted[clust_ids],
-            obj$dhat,
-            obj$lambda / n
-          )
-        })
+        score <- do.call(
+          cbind,
+          lapply(clusters, function(clust_ids) {
+            krls_gr_trunc(
+              obj$U[clust_ids, , drop = FALSE],
+              obj$D,
+              y[clust_ids],
+              obj$w[clust_ids],
+              yfitted[clust_ids],
+              obj$dhat,
+              obj$lambda / n
+            )
+          })
+        )
         
         vcov.d <- invhessian %*% tcrossprod(score) %*% invhessian
         
@@ -153,7 +156,9 @@ inference.krls2 <- function(obj,
       if (robust) {
         
         # actually t(score)
-        score <- sapply(clusters, function(clust_ids) {
+        score <- do.call(
+          cbind,
+          lapply(clusters, function(clust_ids) {
           score_lambda <- length(clust_ids) * obj$lambda / n
           krlogit_gr_trunc(
             c(obj$dhat, obj$beta0hat),
@@ -163,8 +168,8 @@ inference.krls2 <- function(obj,
             obj$w[clust_ids],
             score_lambda
           ) * -1
-        })
-        
+          })
+        )
         
         vcov.d <- invhessian %*% tcrossprod(score) %*% invhessian
         
@@ -309,71 +314,6 @@ inference.krls2 <- function(obj,
   
   return(z)
 }
-
-
-# First differences
-firstdiffs <- function(object, n, p, h, vcov.c, vcov.d){ 
-  
-  n <- nrow(object$X)
-  
-  # compute marginal differences from min to max 
-  Xall <- rbind(object$X, object$X)
-  Xall[1:n, p] <- max(object$X[, p])
-  Xall[(n+1):(2*n), p] <- min(object$X[, p])
-
-  getvar <- !is.null(vcov.c)
-  
-  newdataK <- newKernel(X = object$X, newData = Xall, whichkernel = object$kernel, b = object$b)
-  if (object$loss == "leastsquares") {
-    pout <- predict_leastsquares(
-      newdataK = newdataK,
-      coeffs = object$coeffs,
-      vcov.c = vcov.c,
-      y = object$y,
-      se.fit = getvar
-    )
-    
-    if (getvar) {
-      # multiply by 2 to correct for using data twice
-      var <- as.vector(t(h) %*% pout$vcov.fit %*% h) * 2
-    } else {
-      var <- NA
-    }
-    
-  } else {
-    pout <- predict_logistic(
-      newdataK = newdataK,
-      dhat = object$dhat,
-      coeffs = object$coeffs,
-      beta0hat = object$beta0hat,
-      U = object$U,
-      D = object$D,
-      vcov.d = vcov.d,
-      se.fit = getvar
-    )
-    
-    if (getvar) {
-      deriv.avgfd.logit <- crossprod(h, pout$deriv.logit)
-      vcov.avgfd <-
-        tcrossprod(deriv.avgfd.logit %*% vcov.d, deriv.avgfd.logit)
-      # multiply by 2 to correct for using data twice
-      var <- as.vector(vcov.avgfd) * 2
-    } else {
-      var <- NA
-    }
-  }
-  
-  # store FD estimates
-  est <- t(h) %*% pout$fit
-  
-  # all
-  diffs <- pout$fit[1:n] - pout$fit[(n + 1):(2 * n)]
-  
-  fd <- c(diffs, var, est)
-  
-  return(fd)
-}
-
 
 # First differences
 firstdiffs <- function(object, n, p, h, vcov.c, vcov.d){ 
