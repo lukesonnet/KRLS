@@ -23,9 +23,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// krls_hess_trunc_inv
-arma::mat krls_hess_trunc_inv(const arma::mat& U, const arma::vec& D, const arma::vec& w, const double& lambda);
-RcppExport SEXP _KRLS2_krls_hess_trunc_inv(SEXP USEXP, SEXP DSEXP, SEXP wSEXP, SEXP lambdaSEXP) {
+// krls_hess_trunc
+arma::mat krls_hess_trunc(const arma::mat& U, const arma::vec& D, const arma::vec& w, const double& lambda);
+RcppExport SEXP _KRLS2_krls_hess_trunc(SEXP USEXP, SEXP DSEXP, SEXP wSEXP, SEXP lambdaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -33,7 +33,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::vec& >::type D(DSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type w(wSEXP);
     Rcpp::traits::input_parameter< const double& >::type lambda(lambdaSEXP);
-    rcpp_result_gen = Rcpp::wrap(krls_hess_trunc_inv(U, D, w, lambda));
+    rcpp_result_gen = Rcpp::wrap(krls_hess_trunc(U, D, w, lambda));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -82,9 +82,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// krlogit_hess_trunc_inv
-arma::mat krlogit_hess_trunc_inv(const arma::vec& par, const arma::mat& U, const arma::vec& D, const arma::vec& y, const arma::vec& w, const double& lambda);
-RcppExport SEXP _KRLS2_krlogit_hess_trunc_inv(SEXP parSEXP, SEXP USEXP, SEXP DSEXP, SEXP ySEXP, SEXP wSEXP, SEXP lambdaSEXP) {
+// krlogit_hess_trunc
+arma::mat krlogit_hess_trunc(const arma::vec& par, const arma::mat& U, const arma::vec& D, const arma::vec& y, const arma::vec& w, const double& lambda);
+RcppExport SEXP _KRLS2_krlogit_hess_trunc(SEXP parSEXP, SEXP USEXP, SEXP DSEXP, SEXP ySEXP, SEXP wSEXP, SEXP lambdaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -94,7 +94,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type w(wSEXP);
     Rcpp::traits::input_parameter< const double& >::type lambda(lambdaSEXP);
-    rcpp_result_gen = Rcpp::wrap(krlogit_hess_trunc_inv(par, U, D, y, w, lambda));
+    rcpp_result_gen = Rcpp::wrap(krlogit_hess_trunc(par, U, D, y, w, lambda));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -218,13 +218,16 @@ BEGIN_RCPP
 END_RCPP
 }
 
+RcppExport SEXP _KRLS2_krlogit_hess_trunc_inv(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+RcppExport SEXP _KRLS2_krls_hess_trunc_inv(SEXP, SEXP, SEXP, SEXP);
+
 static const R_CallMethodDef CallEntries[] = {
     {"_KRLS2_krls_gr_trunc", (DL_FUNC) &_KRLS2_krls_gr_trunc, 7},
-    {"_KRLS2_krls_hess_trunc_inv", (DL_FUNC) &_KRLS2_krls_hess_trunc_inv, 4},
+    {"_KRLS2_krls_hess_trunc", (DL_FUNC) &_KRLS2_krls_hess_trunc, 4},
     {"_KRLS2_krlogit_fn_trunc", (DL_FUNC) &_KRLS2_krlogit_fn_trunc, 6},
     {"_KRLS2_krlogit_gr_trunc", (DL_FUNC) &_KRLS2_krlogit_gr_trunc, 6},
     {"_KRLS2_partial_logit", (DL_FUNC) &_KRLS2_partial_logit, 3},
-    {"_KRLS2_krlogit_hess_trunc_inv", (DL_FUNC) &_KRLS2_krlogit_hess_trunc_inv, 6},
+    {"_KRLS2_krlogit_hess_trunc", (DL_FUNC) &_KRLS2_krlogit_hess_trunc, 6},
     {"_KRLS2_mult_diag", (DL_FUNC) &_KRLS2_mult_diag, 2},
     {"_KRLS2_trace_mat", (DL_FUNC) &_KRLS2_trace_mat, 1},
     {"_KRLS2_euc_dist", (DL_FUNC) &_KRLS2_euc_dist, 2},
@@ -234,6 +237,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_KRLS2_pwmfx", (DL_FUNC) &_KRLS2_pwmfx, 7},
     {"_KRLS2_solve_for_d_ls", (DL_FUNC) &_KRLS2_solve_for_d_ls, 4},
     {"_KRLS2_solve_for_d_ls_w", (DL_FUNC) &_KRLS2_solve_for_d_ls_w, 5},
+    {"_KRLS2_krlogit_hess_trunc_inv", (DL_FUNC) &_KRLS2_krlogit_hess_trunc_inv, 6},
+    {"_KRLS2_krls_hess_trunc_inv",    (DL_FUNC) &_KRLS2_krls_hess_trunc_inv,    4},
     {NULL, NULL, 0}
 };
 

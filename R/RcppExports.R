@@ -5,8 +5,8 @@ krls_gr_trunc <- function(U, D, y, w, fitted, dhat, lambda) {
     .Call(`_KRLS2_krls_gr_trunc`, U, D, y, w, fitted, dhat, lambda)
 }
 
-krls_hess_trunc_inv <- function(U, D, w, lambda) {
-    .Call(`_KRLS2_krls_hess_trunc_inv`, U, D, w, lambda)
+krls_hess_trunc <- function(U, D, w, lambda) {
+    .Call(`_KRLS2_krls_hess_trunc`, U, D, w, lambda)
 }
 
 krlogit_fn_trunc <- function(par, U, D, y, w, lambda) {
@@ -21,8 +21,8 @@ partial_logit <- function(K, coef, beta0) {
     .Call(`_KRLS2_partial_logit`, K, coef, beta0)
 }
 
-krlogit_hess_trunc_inv <- function(par, U, D, y, w, lambda) {
-    .Call(`_KRLS2_krlogit_hess_trunc_inv`, par, U, D, y, w, lambda)
+krlogit_hess_trunc <- function(par, U, D, y, w, lambda) {
+    .Call(`_KRLS2_krlogit_hess_trunc`, par, U, D, y, w, lambda)
 }
 
 mult_diag <- function(x, d) {
