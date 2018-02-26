@@ -93,6 +93,7 @@ inference.krls2 <- function(obj,
   vcov.d <- NULL
   score <- NULL
   invhessian <- NULL
+  hessian <- NULL
 
   if (robust && !clustered) {
     clusters <- seq_len(n)
