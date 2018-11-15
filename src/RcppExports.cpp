@@ -172,7 +172,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // pwmfx
-arma::vec pwmfx(const arma::mat& k, const arma::vec& x, const arma::vec& coefhat, const Rcpp::Nullable<Rcpp::NumericMatrix>& vcovc_mat, const arma::vec& p, const arma::vec& p2, const double& b);
+Rcpp::List pwmfx(const arma::mat& k, const arma::vec& x, const arma::vec& coefhat, const Rcpp::Nullable<Rcpp::NumericMatrix>& vcovc_mat, const arma::vec& p, const arma::vec& p2, const double& b);
 RcppExport SEXP _KRLS2_pwmfx(SEXP kSEXP, SEXP xSEXP, SEXP coefhatSEXP, SEXP vcovc_matSEXP, SEXP pSEXP, SEXP p2SEXP, SEXP bSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;

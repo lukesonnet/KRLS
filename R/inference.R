@@ -201,6 +201,13 @@ inference.krls2 <- function(obj,
       dimnames=list(NULL, colnames(X))
     )
     
+    var.derivatives <- matrix(
+      NA,
+      ncol=d,
+      nrow=n,
+      dimnames=list(NULL, colnames(X))
+    )
+    
     var.avgderivatives <- rep(NA, d)
     
     binaryindicator <- 
@@ -219,15 +226,15 @@ inference.krls2 <- function(obj,
       #construct coefhat=c for no truncation and coefhat = U*c
       #to take the truncation into the coefficients. 
       #Kfull rather than K here as truncation handled through coefs
-      derivout <- as.matrix(apply(
-        X[, !binaryindicator, drop = FALSE],
-        2, 
-        function(x) pwmfx(obj$K, x, obj$coeffs, vcov.c, tau, tau2, obj$b)
-      ))
+      for (i in 1:d) {
+        if (!binaryindicator[i]) {
+          deriv_list <- pwmfx(obj$K, X[, i, drop = FALSE], obj$coeffs, vcov.c, tau, tau2, obj$b)
+          derivatives[, i] <- deriv_list$deriv
+          var.derivatives[, i] <- deriv_list$var_deriv
+          var.avgderivatives[i] <- deriv_list$var_avg_deriv
+        }
+      }
 
-      derivatives[, !binaryindicator] <- derivout[1:n, ]
-      var.avgderivatives[!binaryindicator] <- derivout[n+1, ]
-      
       ## Rescale quantities of interest
       if (obj$loss == "leastsquares") {
         avgderivatives <- colMeans(as.matrix(derivatives))
@@ -301,6 +308,7 @@ inference.krls2 <- function(obj,
       vcov.d = vcov.d,
       derivatives = derivatives,
       avgderivatives = avgderivatives,
+      var.derivatives = var.derivatives,
       var.avgderivatives = var.avgderivatives
     )
   )
