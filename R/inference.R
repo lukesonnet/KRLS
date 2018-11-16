@@ -230,7 +230,7 @@ inference.krls2 <- function(obj,
         if (!binaryindicator[i]) {
           deriv_list <- pwmfx(obj$K, X[, i, drop = FALSE], obj$coeffs, vcov.c, tau, tau2, obj$b)
           derivatives[, i] <- deriv_list$deriv
-          var.derivatives[, i] <- deriv_list$var_deriv
+          var.derivatives[, i] <- diag(deriv_list$var_deriv)
           var.avgderivatives[i] <- deriv_list$var_avg_deriv
         }
       }
