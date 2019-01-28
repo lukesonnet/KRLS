@@ -34,7 +34,8 @@ arma::vec pwmfx(const arma::mat& k,
 
   if (vcovc_mat.isNotNull()) {
     arma::mat distk = k % distmat;
-    out(n) = 1 / pow(b * n, 2) * accu(p2.t() * distk.t() * vcovc * distk);
+    arma::mat var1 = 1 / pow(b * n, 2) * p.t() * distk * vcovc * distk.t() * p;
+    out(n) = var1(0, 0);
   }
 
   return out;
