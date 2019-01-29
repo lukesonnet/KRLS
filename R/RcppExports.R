@@ -49,8 +49,8 @@ new_gauss_kern <- function(newx, oldx, b) {
     .Call(`_KRLS2_new_gauss_kern`, newx, oldx, b)
 }
 
-pwmfx <- function(k, x, coefhat, vcovc_mat, p, p2, b) {
-    .Call(`_KRLS2_pwmfx`, k, x, coefhat, vcovc_mat, p, p2, b)
+pwmfx <- function(k, x, coefhat, vcovc_mat, p, b) {
+    .Call(`_KRLS2_pwmfx`, k, x, coefhat, vcovc_mat, p, b)
 }
 
 solve_for_d_ls <- function(y, U, D, lambda) {

@@ -8,7 +8,6 @@ arma::vec pwmfx(const arma::mat& k,
                 const arma::vec& coefhat,
                 const Rcpp::Nullable<Rcpp::NumericMatrix>& vcovc_mat,
                 const arma::vec& p,
-                const arma::vec& p2,
                 const double& b)
 {
 
@@ -29,12 +28,12 @@ arma::vec pwmfx(const arma::mat& k,
       val += coefhat(i2) * k(i, i2) * distmat(i, i2);
     }
 
-    out(i) = - (p(i) / b)  * val;
+    out(i) = - (2 * p(i) / b)  * val;
   }
 
   if (vcovc_mat.isNotNull()) {
     arma::mat distk = k % distmat;
-    arma::mat var1 = 1 / pow(b * n, 2) * p.t() * distk * vcovc * distk.t() * p;
+    arma::mat var1 = 4 / pow(b * n, 2) * p.t() * distk * vcovc * distk.t() * p;
     out(n) = var1(0, 0);
   }
 

@@ -183,7 +183,7 @@ lambdab.fn <- function(par = NULL,
   loss <- 0
   for(j in 1:folds){
     fold <- chunks[[j]]
-    UFold <- Kdat$U[-fold, , drop = F] # to make sure it stays a matrix, which CPP demands
+    UFold <- Kdat$U[-fold, , drop = FALSE] # to make sure it stays a matrix, which CPP demands
     
     out <- getDhat(par = pars,
                    y=y[-fold],

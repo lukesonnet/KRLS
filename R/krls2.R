@@ -212,15 +212,15 @@ krls <- function(# Data arguments
   ## increase the amount of code.
   if (is.null(w)) { 
     w <- rep(1, n)
-    weight = FALSE
+    weight <- FALSE
   } else if (length(w) != n) {
     stop("w is not the same length as y")
   } else {
-    if(loss=="leastsquares" & !truncate) {
+    if(loss == "leastsquares" & !truncate) {
       stop("For now, weighted KRLS only works with truncation")
     }
-    w <- n * (w / sum(w)) # rescale w to sum to 1
-    weight = TRUE
+    w <- n * (w / sum(w)) # rescale w to sum to n
+    weight <- TRUE
   }
   
   ## Carry vars in list

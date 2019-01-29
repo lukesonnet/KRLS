@@ -52,7 +52,7 @@ inference.krls2 <- function(obj,
   }
   
   weight <- length(unique(obj$w)) > 1
-
+  
   ## Scale data
   y.init <- obj$y
   X.init <- obj$X
@@ -94,6 +94,7 @@ inference.krls2 <- function(obj,
   score <- NULL
   invhessian <- NULL
   hessian <- NULL
+  sigmasq_epsilon <- NULL
 
   if (robust && !clustered) {
     clusters <- seq_len(n)
@@ -129,19 +130,37 @@ inference.krls2 <- function(obj,
         vcov.d <- invhessian %*% tcrossprod(score) %*% invhessian
         
       } else {
-        sigmasq <- as.vector((1 / n) * crossprod(y - yfitted))
-        
-        if (weight) {
-          vcov.d <- 
-            invhessian %*% 
-            crossprod(mult_diag(obj$U, sigmasq * obj$w^2), obj$U) %*% 
-            invhessian
+        sigmasq_epsilon <- as.vector((1 / n) * crossprod(y - yfitted))
+
+        if (obj$truncate) {
+          # With truncation, we cannot "flip the middle",
+          # we instead use the Woodbury matrix identity=
+          
+          if (weight) {
+            stop("TODO")
+          } else {
+            Ulambdainv <- KRLS2:::mult_diag(obj$U, rep(1 / obj$lambda, nrow(obj$U)))
+            
+            UDUt_lambda_inv <- 
+              diag(1 / obj$lambda, nrow(obj$U)) - 
+              tcrossprod(
+                Ulambdainv %*% solve(diag(1 / obj$D) + crossprod(Ulambdainv, obj$U)), 
+                Ulambdainv
+              )
+  
+            vcov.c <- sigmasq_epsilon * (UDUt_lambda_inv %*% UDUt_lambda_inv)
+          }
         } else {
-          vcov.c <- 
-            tcrossprod(
-              mult_diag(obj$U, sigmasq * (obj$D + obj$lambda)^-2),
-              obj$U
-            )
+          if (weight) {
+            stop("TODO")
+          } else {
+            # Without truncation or weights, we can "flip the middle"
+            vcov.c <- 
+              tcrossprod(
+                mult_diag(obj$U, sigmasq_epsilon * (obj$D + obj$lambda)^-2),
+                obj$U
+              )
+          }
         }
       }
       
@@ -213,11 +232,10 @@ inference.krls2 <- function(obj,
     if (any(!binaryindicator)) {
       
       if (obj$loss == "leastsquares") {
-        tau <- rep(2, n)
+        tau <- rep(1, n)
       } else if (obj$loss == "logistic") {
-        tau <- 2 * yfitted*(1-yfitted)
+        tau <- yfitted * (1 - yfitted)
       }
-      tau2 <- tau^2
       
       #construct coefhat=c for no truncation and coefhat = U*c
       #to take the truncation into the coefficients. 
@@ -225,7 +243,7 @@ inference.krls2 <- function(obj,
       derivout <- as.matrix(apply(
         X[, !binaryindicator, drop = FALSE],
         2, 
-        function(x) pwmfx(obj$K, x, obj$coeffs, vcov.c, tau, tau2, obj$b)
+        function(x) pwmfx(obj$K, x, obj$coeffs, vcov.c, tau, obj$b)
       ))
 
       derivatives[, !binaryindicator] <- derivout[1:n, ]
@@ -233,6 +251,7 @@ inference.krls2 <- function(obj,
       
       ## Rescale quantities of interest
       if (obj$loss == "leastsquares") {
+        
         avgderivatives <- colMeans(as.matrix(derivatives))
         derivatives <- scale(y.init.sd*derivatives,center=FALSE,scale=X.init.sd)
         attr(derivatives,"scaled:scale")<- NULL
@@ -240,8 +259,6 @@ inference.krls2 <- function(obj,
         attr(avgderivatives,"scaled:scale")<- NULL
         var.avgderivatives <- (y.init.sd/X.init.sd)^2*var.avgderivatives
         attr(var.avgderivatives,"scaled:scale")<- NULL
-        
-
         
       } else {
         derivatives <- scale(derivatives, center=FALSE, scale = X.init.sd)
@@ -311,6 +328,7 @@ inference.krls2 <- function(obj,
   class(z) <- "krls2"
 
   if(return_components) {
+    z$sigmasq_epsilon <- sigmasq_epsilon
     z$score <- score
     z$hessian <- hessian
     z$invhessian <- invhessian
