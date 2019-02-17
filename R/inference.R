@@ -216,7 +216,7 @@ inference.krls2 <- function(obj,
   
   if (derivative) {
     
-    derivatives <- matrix(
+    derivatives <- var.derivatives <- matrix(
       NA, 
       ncol=d,
       nrow=n,
@@ -240,14 +240,34 @@ inference.krls2 <- function(obj,
       #construct coefhat=c for no truncation and coefhat = U*c
       #to take the truncation into the coefficients. 
       #Kfull rather than K here as truncation handled through coefs
-      derivout <- as.matrix(apply(
-        X[, !binaryindicator, drop = FALSE],
-        2, 
-        function(x) pwmfx(obj$K, x, obj$coeffs, vcov.c, tau, obj$b)
-      ))
-
-      derivatives[, !binaryindicator] <- derivout[1:n, ]
-      var.avgderivatives[!binaryindicator] <- derivout[n+1, ]
+      for (i in seq_len(d)) {
+        if (!binaryindicator[i]) {
+          if (is.numeric(vcov.c)) {
+            print("here")
+            deriv_list <- pwmfx(
+              obj$K, 
+              X[, i, drop = FALSE], 
+              obj$coeffs, 
+              vcov.c,
+              tau, 
+              obj$b
+            )
+            var.derivatives[, i] <- diag(deriv_list$var_deriv)
+            var.avgderivatives[i] <- deriv_list$var_avg_deriv
+          } else {
+            deriv_list <- pwmfx(
+              obj$K, 
+              X[, i, drop = FALSE], 
+              obj$coeffs,
+              matrix(0),
+              tau, 
+              obj$b
+            )
+          }
+          
+          derivatives[, i] <- deriv_list$deriv
+        }
+      }
       
       ## Rescale quantities of interest
       if (obj$loss == "leastsquares") {
@@ -255,7 +275,11 @@ inference.krls2 <- function(obj,
         avgderivatives <- colMeans(as.matrix(derivatives))
         derivatives <- scale(y.init.sd*derivatives,center=FALSE,scale=X.init.sd)
         attr(derivatives,"scaled:scale")<- NULL
-        avgderivatives <- as.vector(scale(y.init.sd*matrix(avgderivatives, nrow = 1),center=FALSE,scale=X.init.sd))
+        var.derivatives <- scale(y.init.sd^2 * var.derivatives, center=FALSE, scale=X.init.sd^2)
+        attr(avgderivatives,"scaled:scale")<- NULL
+        avgderivatives <- as.vector(
+          scale(y.init.sd * matrix(avgderivatives, nrow = 1), center=FALSE, scale=X.init.sd)
+        )
         attr(avgderivatives,"scaled:scale")<- NULL
         var.avgderivatives <- (y.init.sd/X.init.sd)^2*var.avgderivatives
         attr(var.avgderivatives,"scaled:scale")<- NULL
@@ -310,6 +334,7 @@ inference.krls2 <- function(obj,
   ###----------------------------------------
 
   colnames(derivatives) <- colnames(obj$X)
+  colnames(var.derivatives) <- colnames(obj$X)
   names(avgderivatives) <- colnames(obj$X)
   names(var.avgderivatives) <- colnames(obj$X)
   
@@ -321,6 +346,7 @@ inference.krls2 <- function(obj,
       vcov.d = vcov.d,
       derivatives = derivatives,
       avgderivatives = avgderivatives,
+      var.derivatives = var.derivatives,
       var.avgderivatives = var.avgderivatives
     )
   )

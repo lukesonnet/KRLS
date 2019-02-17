@@ -172,18 +172,18 @@ BEGIN_RCPP
 END_RCPP
 }
 // pwmfx
-arma::vec pwmfx(const arma::mat& k, const arma::vec& x, const arma::vec& coefhat, const Rcpp::Nullable<Rcpp::NumericMatrix>& vcovc_mat, const arma::vec& p, const double& b);
-RcppExport SEXP _KRLS2_pwmfx(SEXP kSEXP, SEXP xSEXP, SEXP coefhatSEXP, SEXP vcovc_matSEXP, SEXP pSEXP, SEXP bSEXP) {
+Rcpp::List pwmfx(const arma::mat& k, const arma::vec& x, const arma::vec& coefhat, const arma::mat& vcovc, const arma::vec& p, const double& b);
+RcppExport SEXP _KRLS2_pwmfx(SEXP kSEXP, SEXP xSEXP, SEXP coefhatSEXP, SEXP vcovcSEXP, SEXP pSEXP, SEXP bSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const arma::mat& >::type k(kSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type x(xSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type coefhat(coefhatSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::Nullable<Rcpp::NumericMatrix>& >::type vcovc_mat(vcovc_matSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type vcovc(vcovcSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type p(pSEXP);
     Rcpp::traits::input_parameter< const double& >::type b(bSEXP);
-    rcpp_result_gen = Rcpp::wrap(pwmfx(k, x, coefhat, vcovc_mat, p, b));
+    rcpp_result_gen = Rcpp::wrap(pwmfx(k, x, coefhat, vcovc, p, b));
     return rcpp_result_gen;
 END_RCPP
 }
