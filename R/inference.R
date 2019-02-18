@@ -243,7 +243,6 @@ inference.krls2 <- function(obj,
       for (i in seq_len(d)) {
         if (!binaryindicator[i]) {
           if (is.numeric(vcov.c)) {
-            print("here")
             deriv_list <- pwmfx(
               obj$K, 
               X[, i, drop = FALSE], 
