@@ -324,11 +324,13 @@ krls <- function(# Data arguments
                       control=control)
 
     if (is.null(lambda)) {
-      lambda <- lambdasearch(y=y,
-                             X=X,
-                             Kdat=Kdat,
-                             control=control,
-                             b=b)
+      lambda <- lambdasearch(
+        y = y,
+        X = X,
+        Kdat = Kdat,
+        control = control,
+        b = b
+      )
     }
   } else { # if(is.null(b)
 
@@ -375,10 +377,12 @@ krls <- function(# Data arguments
   coefhat <- UDinv %*% out$dhat
 
   opt <- NULL
+  Le <- NULL
   if (loss == "leastsquares") {
 
     yfitted <- Kdat$K %*% coefhat
     yfitted <- yfitted * y.init.sd + y.init.mean
+    Le <- out$Le
     
   } else {
 
@@ -407,6 +411,10 @@ krls <- function(# Data arguments
             loss = loss,
             opt = opt
   )
+  
+  if (is.numeric(Le)) {
+    z[["Looe"]] <- Le * y.init.sd
+  }
 
   class(z) <- "krls2"
 

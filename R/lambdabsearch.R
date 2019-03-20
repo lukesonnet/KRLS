@@ -63,11 +63,17 @@ lambdasearch <- function(y,
     ## Least squares golden section search
     ## todo: just replace with optimize? test output + efficiency
     
-    if (control$weight) {
-      lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, w=control$w, tol=control$tol, noisy = control$printlevel > 0)
-    } else {
-      lambda <- lambdaline(y=y, D=Kdat$D, U=Kdat$U, tol=control$tol, noisy = control$printlevel > 0)
-    }
+    res <- lambdaline(
+      y = y, 
+      D = Kdat$D,
+      U = Kdat$U, 
+      w = if (control$weight) control$w else NULL,
+      tol = control$tol, 
+      noisy = control$printlevel > 0
+    )
+    
+    lambda <- res[["lambda"]]
+    Le <- res[["Le"]]
   } else {
     
     if (is.null(control$lambdarange)) {
