@@ -275,6 +275,7 @@ inference.krls2 <- function(obj,
         derivatives <- scale(y.init.sd*derivatives,center=FALSE,scale=X.init.sd)
         attr(derivatives,"scaled:scale")<- NULL
         var.derivatives <- scale(y.init.sd^2 * var.derivatives, center=FALSE, scale=X.init.sd^2)
+        attr(var.derivatives,"scaled:scale")<- NULL
         attr(avgderivatives,"scaled:scale")<- NULL
         avgderivatives <- as.vector(
           scale(y.init.sd * matrix(avgderivatives, nrow = 1), center=FALSE, scale=X.init.sd)
