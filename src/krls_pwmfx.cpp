@@ -9,7 +9,8 @@ Rcpp::List pwmfx(const arma::mat& k,
                  const arma::vec& coefhat,
                  const arma::mat& vcovc,
                  const arma::vec& p,
-                 const double& b)
+                 const double& b,
+                 const bool& computevarderiv)
 {
   
   unsigned n = x.n_elem;
@@ -42,7 +43,12 @@ Rcpp::List pwmfx(const arma::mat& k,
     
     arma::mat var_mat = 4 / std::pow(b * n, 2) * p.t() * distk * vcovc * distk.t() * p;
     double var_avg_deriv = var_mat(0, 0);
-    arma::mat var_deriv = 4 / std::pow(b, 2) * distk.t() * vcovc * distk;
+    arma::mat var_deriv;
+    if (computevarderiv) {
+      var_deriv = 4 / std::pow(b, 2) * distk.t() * vcovc * distk;
+    } else {
+      var_deriv = 0.0;
+    }
     
     return Rcpp::List::create(
       Rcpp::Named("deriv") = deriv,

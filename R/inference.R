@@ -11,6 +11,7 @@
 #' @export
 inference.krls2 <- function(obj,
                             derivative = TRUE,
+                            derivativevar = FALSE,
                             vcov = TRUE,
                             robust = FALSE,
                             clusters = NULL,
@@ -249,7 +250,8 @@ inference.krls2 <- function(obj,
               obj$coeffs, 
               vcov.c,
               tau, 
-              obj$b
+              obj$b,
+              derivativevar
             )
             var.derivatives[, i] <- diag(deriv_list$var_deriv)
             var.avgderivatives[i] <- deriv_list$var_avg_deriv
@@ -260,7 +262,8 @@ inference.krls2 <- function(obj,
               obj$coeffs,
               matrix(0),
               tau, 
-              obj$b
+              obj$b,
+              derivativevar
             )
           }
           
