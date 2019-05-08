@@ -12,6 +12,7 @@
 inference.krls2 <- function(obj,
                             derivative = TRUE,
                             derivativevar = FALSE,
+                            secondderiv = FALSE,
                             vcov = TRUE,
                             robust = FALSE,
                             clusters = NULL,
@@ -226,6 +227,13 @@ inference.krls2 <- function(obj,
     
     var.avgderivatives <- rep(NA, d)
     
+    avgsecondderivatives <- matrix(
+      NA,
+      ncol = d,
+      nrow = d,
+      dimnames = list(colnames(X), colnames(X))
+    )
+    
     binaryindicator <- 
       apply(obj$X, 2, function(x) length(unique(x))) == 2
     
@@ -247,11 +255,13 @@ inference.krls2 <- function(obj,
             deriv_list <- pwmfx(
               obj$K, 
               X[, i, drop = FALSE], 
+              X,
               obj$coeffs, 
               vcov.c,
               tau, 
               obj$b,
-              derivativevar
+              derivativevar,
+              secondderiv
             )
             var.derivatives[, i] <- diag(deriv_list$var_deriv)
             var.avgderivatives[i] <- deriv_list$var_avg_deriv
@@ -259,14 +269,17 @@ inference.krls2 <- function(obj,
             deriv_list <- pwmfx(
               obj$K, 
               X[, i, drop = FALSE], 
+              X,
               obj$coeffs,
               matrix(0),
               tau, 
               obj$b,
-              derivativevar
+              derivativevar,
+              secondderiv
             )
           }
           
+          avgsecondderivatives[i, ] <- deriv_list$avg_second_deriv
           derivatives[, i] <- deriv_list$deriv
         }
       }
@@ -277,6 +290,12 @@ inference.krls2 <- function(obj,
         avgderivatives <- colMeans(as.matrix(derivatives))
         derivatives <- scale(y.init.sd*derivatives,center=FALSE,scale=X.init.sd)
         attr(derivatives,"scaled:scale")<- NULL
+        
+        print(avgsecondderivatives)
+        avgsecondderivatives <- avgsecondderivatives * y.init.sd / (tcrossprod(X.init.sd))
+        print(avgsecondderivatives)
+        attr(avgsecondderivatives,"scaled:scale")<- NULL
+        
         var.derivatives <- scale(y.init.sd^2 * var.derivatives, center=FALSE, scale=X.init.sd^2)
         attr(var.derivatives,"scaled:scale")<- NULL
         attr(avgderivatives,"scaled:scale")<- NULL
@@ -350,7 +369,8 @@ inference.krls2 <- function(obj,
       derivatives = derivatives,
       avgderivatives = avgderivatives,
       var.derivatives = var.derivatives,
-      var.avgderivatives = var.avgderivatives
+      var.avgderivatives = var.avgderivatives,
+      avgsecondderivatives = avgsecondderivatives
     )
   )
   
