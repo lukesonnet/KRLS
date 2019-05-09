@@ -53,14 +53,16 @@ Rcpp::List pwmfx(const arma::mat& K,
     
     arma::vec avg_second_deriv(X.n_cols);
     if (computederiv2) {
-      arma::mat coef_distmat2(n, n);
+      double val2;
       for (unsigned d = 0; d < X.n_cols; d++) {
+        val2 = 0.0;
         for (unsigned i = 0; i < n; ++i) {
           for (unsigned j = 0; j < n; ++j) {
-            coef_distmat2(i, j) = coefhat(j) * (X(i, d) - X(j, d));
+            val2 += coefhat(j) * K(i, j) * distmat(i, j) * (X(i, d) - X(j, d));
           }
         }
-        avg_second_deriv(d) = arma::accu(4 / std::pow(b * n, 2) * (distK % coef_distmat2));
+        
+        avg_second_deriv(d) = 4 / (std::pow(b, 2)) * val2 / n;
       }
     }
     
