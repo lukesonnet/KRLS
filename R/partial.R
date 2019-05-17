@@ -7,7 +7,7 @@
 #' @param nlocations An integer with the number of locations to plot the function at, defaults to 30 over the range of the relevant variable
 #' 
 #' @export
-partial_plot <- function(obj, xcol, derivcol = NULL, nlocations = 100) {
+partial_dep_mfx_plot <- function(obj, xcol, derivcol = NULL, nlocations = 100) {
   
   if (obj$kernel != 'gaussian' | obj$loss != "leastsquares") {
     stop(
@@ -65,7 +65,7 @@ partial_plot <- function(obj, xcol, derivcol = NULL, nlocations = 100) {
 }
 
 #' @export
-partial <- function(obj, xcol, derivcol, Xs) {
+partial_dep_mfx <- function(obj, xcol, derivcol, Xs) {
   
   Xstar <- obj$X
   Xstar[, xcol] <- Xs
