@@ -1,6 +1,8 @@
 
+#' Plot partial dependence of the  marginal effects
+#' 
 #' @param obj A \code{krls2} object
-#' @param xcol An integer specifying the column of the data we should plot the partial dependence function with respect to.
+#' @param xcol An integer specifying the column of the data we should plot the partial dependence function of (this is the S variable)
 #' @param derivcol An integer that specifies what kind of partial dependence plot should be generated. If left blank, the conditional expectation function is plotted; if specified the partial derivative of the CEF with respect to that column in the data is plotted.
 #' @param nlocations An integer with the number of locations to plot the function at, defaults to 30 over the range of the relevant variable
 #' 
@@ -30,8 +32,12 @@ partial_plot <- function(obj, xcol, derivcol = NULL, nlocations = 100) {
   
   for (i in seq_along(partial_dat$xstar)) {
     Xstar <- obj$X
-    Xstar[, xcol] <- partial_dat$xstar[i]
-    kro <- partial(obj, Xstar, derivcol = derivcol)
+    kro <- partial(
+      obj, 
+      xcol = xcol, 
+      derivcol = derivcol, 
+      Xs = partial_dat$xstar[i]
+    )
     partial_dat$xstar_deriv[i] <- kro$avg_deriv
     partial_dat$xstar_deriv_sd[i] <- sqrt(kro$var_avg_deriv)
   }
@@ -58,7 +64,11 @@ partial_plot <- function(obj, xcol, derivcol = NULL, nlocations = 100) {
   return(invisible(partial_dat))
 }
 
-partial <- function(obj, Xstar, derivcol) {
+#' @export
+partial <- function(obj, xcol, derivcol, Xs) {
+  
+  Xstar <- obj$X
+  Xstar[, xcol] <- Xs
   
   sdX <- apply(obj$X, 2, sd)
   mX <- apply(obj$X, 2, mean)
