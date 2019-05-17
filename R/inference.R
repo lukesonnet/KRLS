@@ -253,9 +253,10 @@ inference.krls2 <- function(obj,
         if (!binaryindicator[i]) {
           if (is.numeric(vcov.c)) {
             deriv_list <- pwmfx(
-              obj$K, 
-              X[, i, drop = FALSE], 
               X,
+              X,
+              wrt_column = i - 1,
+              obj$K, 
               obj$coeffs, 
               vcov.c,
               tau, 
@@ -267,10 +268,11 @@ inference.krls2 <- function(obj,
             var.avgderivatives[i] <- deriv_list$var_avg_deriv
           } else {
             deriv_list <- pwmfx(
-              obj$K, 
-              X[, i, drop = FALSE], 
               X,
-              obj$coeffs,
+              X,
+              wrt_column = i - 1,
+              obj$K, 
+              obj$coeffs, 
               matrix(0),
               tau, 
               obj$b,
@@ -278,7 +280,6 @@ inference.krls2 <- function(obj,
               secondderiv
             )
           }
-          
           avgsecondderivatives[i, ] <- deriv_list$avg_second_deriv
           derivatives[, i] <- deriv_list$deriv
         }

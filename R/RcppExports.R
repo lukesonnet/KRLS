@@ -49,8 +49,8 @@ new_gauss_kern <- function(newx, oldx, b) {
     .Call(`_KRLS2_new_gauss_kern`, newx, oldx, b)
 }
 
-pwmfx <- function(K, x, X, coefhat, Vcovc, p, b, computevarderiv, computederiv2) {
-    .Call(`_KRLS2_pwmfx`, K, x, X, coefhat, Vcovc, p, b, computevarderiv, computederiv2)
+pwmfx <- function(Xstar, X, wrt_column, K, coefhat, Vcovc, p, b, computevarderiv, computederiv2) {
+    .Call(`_KRLS2_pwmfx`, Xstar, X, wrt_column, K, coefhat, Vcovc, p, b, computevarderiv, computederiv2)
 }
 
 solve_for_d_ls <- function(y, U, D, lambda) {

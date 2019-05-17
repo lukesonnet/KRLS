@@ -172,21 +172,22 @@ BEGIN_RCPP
 END_RCPP
 }
 // pwmfx
-Rcpp::List pwmfx(const arma::mat& K, const arma::vec& x, const arma::mat& X, const arma::vec& coefhat, const arma::mat& Vcovc, const arma::vec& p, const double& b, const bool& computevarderiv, const bool& computederiv2);
-RcppExport SEXP _KRLS2_pwmfx(SEXP KSEXP, SEXP xSEXP, SEXP XSEXP, SEXP coefhatSEXP, SEXP VcovcSEXP, SEXP pSEXP, SEXP bSEXP, SEXP computevarderivSEXP, SEXP computederiv2SEXP) {
+Rcpp::List pwmfx(const arma::mat& Xstar, const arma::mat& X, const unsigned& wrt_column, const arma::mat& K, const arma::vec& coefhat, const arma::mat& Vcovc, const arma::vec& p, const double& b, const bool& computevarderiv, const bool& computederiv2);
+RcppExport SEXP _KRLS2_pwmfx(SEXP XstarSEXP, SEXP XSEXP, SEXP wrt_columnSEXP, SEXP KSEXP, SEXP coefhatSEXP, SEXP VcovcSEXP, SEXP pSEXP, SEXP bSEXP, SEXP computevarderivSEXP, SEXP computederiv2SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::mat& >::type K(KSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type Xstar(XstarSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const unsigned& >::type wrt_column(wrt_columnSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type K(KSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type coefhat(coefhatSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type Vcovc(VcovcSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type p(pSEXP);
     Rcpp::traits::input_parameter< const double& >::type b(bSEXP);
     Rcpp::traits::input_parameter< const bool& >::type computevarderiv(computevarderivSEXP);
     Rcpp::traits::input_parameter< const bool& >::type computederiv2(computederiv2SEXP);
-    rcpp_result_gen = Rcpp::wrap(pwmfx(K, x, X, coefhat, Vcovc, p, b, computevarderiv, computederiv2));
+    rcpp_result_gen = Rcpp::wrap(pwmfx(Xstar, X, wrt_column, K, coefhat, Vcovc, p, b, computevarderiv, computederiv2));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -233,7 +234,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_KRLS2_kern_gauss_1d", (DL_FUNC) &_KRLS2_kern_gauss_1d, 3},
     {"_KRLS2_kern_gauss", (DL_FUNC) &_KRLS2_kern_gauss, 2},
     {"_KRLS2_new_gauss_kern", (DL_FUNC) &_KRLS2_new_gauss_kern, 3},
-    {"_KRLS2_pwmfx", (DL_FUNC) &_KRLS2_pwmfx, 9},
+    {"_KRLS2_pwmfx", (DL_FUNC) &_KRLS2_pwmfx, 10},
     {"_KRLS2_solve_for_d_ls", (DL_FUNC) &_KRLS2_solve_for_d_ls, 4},
     {"_KRLS2_solve_for_d_ls_w", (DL_FUNC) &_KRLS2_solve_for_d_ls_w, 5},
     {NULL, NULL, 0}
