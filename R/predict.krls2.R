@@ -42,7 +42,16 @@ predict.krls2 <- function(object, newdata, se.fit = FALSE, ...) {
         se.fit = se.fit
       )
     }else {
-      R_test <- newKernel(X = object$X, newData = newdata, whichkernel = object$kernel, b = object$b, I = object$I)
+      R_test <- switch(object$aprxmethod,
+                       nys = newKernel(X = object$X, newData = newdata, 
+                                       whichkernel = object$kernel, b = object$b, I = object$I),
+                       col1 = newKernel(X = object$X, newData = newdata, 
+                                        whichkernel = object$kernel, b = object$b, I = object$I),
+                       col2 = newKernel(X = object$X, newData = newdata, 
+                                        whichkernel = object$kernel, b = object$b, I = object$I),
+                       ske = newKernel(X = object$X, newData = newdata, whichkernel = object$kernel,
+                                       b = object$b) %*% object$I,
+                       stop("No valid Kernel specified"))
       yfitted <- R_test %*% object$coeffs
       # transform back to the original scale
       yfitted <- (yfitted * apply(object$y, 2, sd)) + mean(object$y)

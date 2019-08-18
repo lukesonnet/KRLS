@@ -438,12 +438,13 @@ krls <- function(# Data arguments
     
     aprx_result <- switch(aprxmethod,
                 nys = nys_KRLS(X, y, b = b, m= m, n_av = n_av, control = control),
-                col1 = col1_KRLS(X, y, b, I),
-                col2 = col1_KRLS(X, y, b, I),
-                ske = ske_KRLS(X, y, b, I),
+                col1 = col1_KRLS(X, y, b = b, m= m, n_av = n_av, control = control),
+                col2 = col2_KRLS(X, y, b = b, m= m, n_av = n_av, control = control),
+                ske = ske_KRLS(X, y, b = b, m= m, n_av = n_av, control = control),
                 stop("No approximation method specified") )
     yfitted <- aprx_result$fitted * y.init.sd + y.init.mean
     z <- list(I = aprx_result$I,
+              m = m, 
               aprxmethod = aprxmethod,
               coeffs = aprx_result$coeffs,
               fitted = yfitted,
