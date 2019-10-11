@@ -20,4 +20,4 @@ Suggests:
     testthat,
     lattice
 URL: https://www.r-project.org, https://www.stanford.edu/~jhain/
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.1

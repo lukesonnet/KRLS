@@ -1,3 +1,5 @@
+#' @export
+
 # KRLS with column sampling 1
 # the ordinary column sampling method from literature
 

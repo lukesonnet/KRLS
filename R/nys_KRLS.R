@@ -1,3 +1,4 @@
+#' @export
 # make changes to suit KRLS2
 
 nys_KRLS <- function(X, y, b, m,
