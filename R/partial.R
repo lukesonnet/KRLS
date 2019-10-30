@@ -32,7 +32,7 @@ partial_dep_mfx_plot <- function(obj, xcol, derivcol = NULL, nlocations = 100) {
   
   for (i in seq_along(partial_dat$xstar)) {
     Xstar <- obj$X
-    kro <- partial(
+    kro <- partial_dep_mfx(
       obj, 
       xcol = xcol, 
       derivcol = derivcol, 

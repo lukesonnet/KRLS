@@ -192,7 +192,9 @@ krls <- function(# Data arguments
   }
 
   ## Set truncation options
-  if (!is.null(epsilon)) {
+  if (!is.null(lastkeeper)) {
+    truncate <- TRUE
+  } else if (!is.null(epsilon)) {
     if (!is.numeric(epsilon) || epsilon < 0 || epsilon > 1) {
       stop("epsilon must be numeric and between 0 and 1, inclusive")
     } else {

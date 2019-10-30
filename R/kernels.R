@@ -46,7 +46,7 @@ generateK <- function(X,
   }
   
   U <- as.matrix(U)
-  lastkeeper <- if(control$truncate) ncol(U)
+  lastkeeper <- ncol(U)
 
   return(list(K = K,
               U = U,
@@ -110,6 +110,7 @@ Ktrunc <- function(X=NULL,
     } 
     
   } else { # if !is.null(lastkeeper), ie lastkeeper is given
+    lastkeeper <- control$lastkeeper
     ## Suppress warning about using all eigenvalues
     eigobj <- suppressWarnings({eigs_sym(K, lastkeeper, which="LM")})
   }

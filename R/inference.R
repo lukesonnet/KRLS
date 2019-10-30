@@ -113,8 +113,7 @@ inference.krls2 <- function(obj,
       
       if (robust) {
         
-        # actually t(score)
-        score <- do.call(
+        score <- t(do.call(
           cbind,
           lapply(clusters, function(clust_ids) {
             krls_gr_trunc(
@@ -127,9 +126,10 @@ inference.krls2 <- function(obj,
               obj$lambda / n
             )
           })
-        )
+        ))
         
-        vcov.d <- invhessian %*% tcrossprod(score) %*% invhessian
+
+        vcov.d <- invhessian %*% crossprod(score) %*% invhessian
         
       } else {
         sigmasq_epsilon <- as.vector((1 / n) * crossprod(y - yfitted))
@@ -179,8 +179,11 @@ inference.krls2 <- function(obj,
 
       if (robust) {
         
-        # actually t(score)
-        score <- do.call(
+        #hessian <- krlogit_hess_trunc(c(obj$dhat, obj$beta0hat), obj$U, obj$D, y, obj$w, 0)
+        
+        #hessian2 <- krlogit_hess_trunc(c(obj$dhat, obj$beta0hat), obj$U, obj$D, y, obj$w, 0) + n * diag(c(2 * obj$lambda / obj$D, 0))
+        
+        score <- t(do.call(
           cbind,
           lapply(clusters, function(clust_ids) {
           score_lambda <- length(clust_ids) * obj$lambda / n
@@ -193,11 +196,15 @@ inference.krls2 <- function(obj,
             score_lambda
           ) * -1
           })
-        )
+        ))
         
-        vcov.d <- invhessian %*% tcrossprod(score) %*% invhessian
+        #s1 <- solve(hessian2)
+        #tmp <- apply(score, 2, mean)
+        #meat1 <- crossprod(score) - tmp %o% tmp
+        meat1 <- crossprod(score)
+        vcov.d <- (invhessian %*% meat1 %*% invhessian)
         
-      } else {
+        } else {
         vcov.d <- invhessian
       }
       
@@ -280,7 +287,6 @@ inference.krls2 <- function(obj,
               secondderiv
             )
           }
-          avgsecondderivatives[i, ] <- deriv_list$avg_second_deriv
           derivatives[, i] <- deriv_list$deriv
         }
       }
