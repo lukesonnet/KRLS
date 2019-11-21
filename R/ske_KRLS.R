@@ -1,3 +1,4 @@
+#' @export
 # KRLS with sketching
 
 ske_KRLS <- function(X, y, b, m, 

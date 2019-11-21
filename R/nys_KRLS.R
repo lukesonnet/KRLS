@@ -21,20 +21,23 @@ nys_KRLS <- function(X, y, b, m,
   
   # assess the quality of the selected columns
   # calculating the average R square
-  K_y <-switch(control$whichkernel,
-           gaussian=new_gauss_kern(X, X[sample(n, n_av), ], b),
-           linear=tcrossprod(X, X[sample(n, n_av), ]),
-           gausslinear=.5*(new_gauss_kern(X, X[sample(n, n_av), ], b)+tcrossprod(X, X[sample(n, n_av), ])),
-           poly2=(tcrossprod(X, X[sample(n, n_av), ])+1)^2,
-           poly3=(tcrossprod(X, X[sample(n, n_av), ])+1)^3,
-           poly4=(tcrossprod(X, X[sample(n, n_av), ])+1)^4,
-           stop("No valid Kernel specified") )
-  Rsq <- ave_Rsq(R, K_y)
+  # K_y <-switch(control$whichkernel,
+  #          gaussian=new_gauss_kern(X, X[sample(n, n_av), ], b),
+  #          linear=tcrossprod(X, X[sample(n, n_av), ]),
+  #          gausslinear=.5*(new_gauss_kern(X, X[sample(n, n_av), ], b)+tcrossprod(X, X[sample(n, n_av), ])),
+  #          poly2=(tcrossprod(X, X[sample(n, n_av), ])+1)^2,
+  #          poly3=(tcrossprod(X, X[sample(n, n_av), ])+1)^3,
+  #          poly4=(tcrossprod(X, X[sample(n, n_av), ])+1)^4,
+  #          stop("No valid Kernel specified") )
+  # Rsq <- ave_Rsq(R, K_y)
   
   # cross validation to select lambda
+  # note that this is not the real cross validation 
+  # as R is not reconstructed for each cv
   lables <- sample(folds, n, replace = T)
   cv_MSE <- rep(0, length(lambdas))
   
+  ## TODO: speed up by using sapply
   for (i in 1:length(lambdas)){
     lambda <- lambdas[i]
     MSE_vali <- rep(0, folds)
