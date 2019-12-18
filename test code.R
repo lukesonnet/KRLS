@@ -16,7 +16,7 @@ X <- matrix(runif(n*p), nrow = n, ncol = p)
 y_pure  <- ftru(X)
 y <- y_pure + rnorm(n, sd = sgm)
 
-nys_result <- krls(X = X, y = y, aprxmethod = "col2")
+nys_result <- krls(X = X, y = y, aprxmethod = "nys")
 nys_result$lambda
 mean((nys_result$fitted - nys_result$y)^2)
 
