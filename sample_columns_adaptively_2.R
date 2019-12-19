@@ -109,7 +109,8 @@ for (rep in 1:Nrep) {
 ## MSE plot
 result2 <- result %>% group_by(type,n) %>% summarize(mean_mse = mean(mse), mean_dt = mean(dt))
 #ggplot(subset(result2, type != "lm" & type != "rf"), aes(x=n,y=mean_mse,color=type)) + 
-ggplot(result2, aes(x=n,y=mean_mse,color=type)) +    
+ggplot(subset(result2, type != "lm" ), aes(x=n,y=mean_mse,color=type)) + 
+#ggplot(result2, aes(x=n,y=mean_mse,color=type)) +    
   geom_line(size=1.1) +
   xlab("n(log)") + ylab("MSE(log)") #+ scale_y_log10() + scale_x_log10()+
   theme_bw() + 
