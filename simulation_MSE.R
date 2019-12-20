@@ -72,7 +72,6 @@ for (rep in 1:Nrep) {
     result[t,"mse"] <- mean((y_predicted-y_test)^2)
     result[t,"dt"] <- dt
     result[t,"n"] <- n
-    
     result[t,"rep"] <- rep
     t <- t + 1
     
