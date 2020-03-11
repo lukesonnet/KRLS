@@ -20,9 +20,7 @@ generateK <- function(X,
               poly4=(tcrossprod(X)+1)^4,
               stop("No valid Kernel specified") )
 
-  lastkeeper <- NULL
-  
-  if(control$truncate) {
+  if (control$truncate) {
     truncDat <- Ktrunc(K = K,
                        b=b,
                        control=control)
