@@ -1,12 +1,26 @@
 ## This file contains functions that generate the variance covariance matrices
 ## derivatives, hessians and more
 ## Functions:
+##            pinv_trunc
 ##            inference.krls2
 ##            fdskrls
 ## Also in CPP:
 ##            See krlogit_fn, krlogit_fn_trunc, krlogit_hess_trunc etc...
 ##            Krlogit.fn, krlogit.hess.trunc, etc. are deprecated in
 ##            favor of these alternatives and can be found in deprecated/deprecated.R
+pinv_trunc <- function(svdhess, val) {
+  
+  print(svdhess$d[1]/svdhess$d)
+  lastgood <- max(c(1, which(svdhess$d[1]/svdhess$d <= val)))
+  
+  invhessian <- svdhess$u[, seq_len(lastgood), drop = FALSE] %*%
+    tcrossprod(
+      diag(1 / svdhess$d[seq_len(lastgood)], nrow = lastgood, ncol = lastgood),
+      svdhess$u[, seq_len(lastgood), drop = FALSE]
+    )
+  
+  return(invhessian)
+}
 
 #' @export
 inference.krls2 <- function(obj,
@@ -17,6 +31,7 @@ inference.krls2 <- function(obj,
                             robust = FALSE,
                             clusters = NULL,
                             return_components = FALSE,
+                            lambda_meat = TRUE,
                             cpp = TRUE) {
   
   if (obj$kernel != 'gaussian') {
@@ -123,7 +138,7 @@ inference.krls2 <- function(obj,
               obj$w[clust_ids],
               yfitted[clust_ids],
               obj$dhat,
-              obj$lambda / n
+              if (lambda_meat) obj$lambda / n else 0
             )
           })
         ))
@@ -174,8 +189,18 @@ inference.krls2 <- function(obj,
       
     } else if (obj$truncate) { # if loss == 'logistic'
       
-      hessian <- krlogit_hess_trunc(c(obj$dhat, obj$beta0hat), obj$U, obj$D, y, obj$w, obj$lambda)
-      invhessian <- solve(hessian)
+      n_d <- length(obj$dhat)
+      
+      hessian <- krlogit_hess_trunc(c(obj$dhat, obj$beta0hat), obj$U, obj$D, y, obj$w, obj$lambda)[
+        -(n_d + 1), -(n_d + 1)
+      ]
+      
+      # Pseudo-inverse of the hessian to prevent numerical problems
+      svdhess <- svd(hessian)
+
+      # How many eigenvalues j can you keep s.t. eig_1/eig_j <= 200?
+      invhessian <- pinv_trunc(svdhess, 200)
+      #invhessian <- solve(hessian)
 
       if (robust) {
         
@@ -193,7 +218,7 @@ inference.krls2 <- function(obj,
             obj$D,
             y[clust_ids, drop = FALSE],
             obj$w[clust_ids],
-            score_lambda
+            if (lambda_meat) score_lambda else 0
           ) * -1
           })
         ))
@@ -201,19 +226,20 @@ inference.krls2 <- function(obj,
         #s1 <- solve(hessian2)
         #tmp <- apply(score, 2, mean)
         #meat1 <- crossprod(score) - tmp %o% tmp
-        meat1 <- crossprod(score)
-        vcov.d <- (invhessian %*% meat1 %*% invhessian)
+        meat1 <- crossprod(score[, -(n_d + 1)])
+        
+        fsc <- ((n - 1) / (n - n_d)) * (length(clusters) / (length(clusters) - 1))
+        
+        vcov.d <- fsc * (invhessian %*% meat1 %*% invhessian)
         
         } else {
         vcov.d <- invhessian
       }
       
       UDinv <- mult_diag(obj$U, 1/obj$D)
-      # vcov.d has b0 in the last column and row for logistic loss
-      # Need to drop for vcov.c
-      n_d <- length(obj$dhat)
+
       vcov.c <- tcrossprod(
-        UDinv %*% vcov.d[-(n_d + 1), -(n_d + 1), drop = FALSE],
+        UDinv %*% vcov.d,
         UDinv
       )
     }
