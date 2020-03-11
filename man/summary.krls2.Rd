@@ -6,6 +6,25 @@
 \usage{
 summary.krls2(object, probs = c(0.25, 0.5, 0.75), ...)
 }
+\arguments{
+\item{object}{a 'krls2' object}
+
+\item{probs}{a numeric vector of probabilities for the display of marginal effect quantiles}
+
+\item{derivative}{boolean, whether to return the PWMFX. Defaults to TRUE.}
+
+\item{derivativevar}{boolean, whether to return variance of the individual PWMFX. Defaults to FALSE.}
+
+\item{vcov}{boolean, whether to return the variance of the AME. Defaults to TRUE.}
+
+\item{robust}{boolean, whether to use the sandwich estimator for either leastsquares or logistic loss. Defaults to FALSE.}
+
+\item{clusters}{a vector of any type representing the cluster each observation belongs to.}
+
+\item{return_components}{boolean, whether to return some of the component pieces of the PWMFX and variance estimates}
+
+\item{lambda_meat}{boolean, whether to include the normalized lambda in the meat of the robust sandwich estimators. Defaults to TRUE}
+}
 \description{
 Main method for examining results of krls,
 much as one would use summary.lm for lm objects. Like its lm analog,

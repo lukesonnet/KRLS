@@ -5,7 +5,9 @@
 #' it provides a summary akin to a regression table: average marginal 
 #' effects for each input variables, together with standard errors.
 #' 
-#' @inheritParams inference.krls2
+#' @param object a 'krls2' object
+#' @param probs a numeric vector of probabilities for the display of marginal effect quantiles
+#' @template inference-params
 #' 
 #' @export
 summary.krls2 <- function(object,
