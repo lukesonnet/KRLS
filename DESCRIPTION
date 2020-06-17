@@ -1,7 +1,7 @@
 Package: KRLS2
 Type: Package
 Title: Kernel-based Regularized Least squares
-Version: 1.1.0
+Version: 1.1.1
 Date: 2018-02-08
 Author: Jens Hainmueller (Stanford) Chad Hazlett (UCLA) Luke Sonnet (UCLA)
 Maintainer: Jens Hainmueller <jhain@stanford.edu>
@@ -20,4 +20,4 @@ Suggests:
     testthat,
     lattice
 URL: https://www.r-project.org, https://www.stanford.edu/~jhain/
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.1
