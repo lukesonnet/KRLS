@@ -6,8 +6,8 @@
 \usage{
 \method{plot}{krls2}(x, which = c(1:2),
   main = "distributions of pointwise marginal effects", setx = "mean",
-  ask = prod(par("mfcol")) < nplots, nvalues = 50, probs = c(0.25, 0.75),
-  ...)
+  ask = prod(par("mfcol")) < nplots, nvalues = 50, probs = c(0.25,
+  0.75), ...)
 }
 \arguments{
 \item{x}{an object of class \code{krls2} that preferably results from a call to 

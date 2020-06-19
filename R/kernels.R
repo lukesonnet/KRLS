@@ -75,7 +75,7 @@ Ktrunc <- function(X=NULL,
                         control$d,
                         nrow(K))
     
-    if (maxvector <= 500) {
+    if (maxvector <= 1000) {
       numvectorss <- maxvector
     } else {
       numvectorss <- c(250, 500, 1000, min(c(maxvector, 2000)), maxvector)
