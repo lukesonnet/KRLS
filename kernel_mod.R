@@ -1,33 +1,34 @@
 # improve the speed in constructing kernel matrix
 
-createKXY <- function(X, Y){
-  p <- ncol(X)  # bandwidth square
-  
-  n <- nrow(X)
-  m <- nrow(Y)
-  K <- matrix(1, nrow = n, ncol = m)
-  
-  for(i in 1:n){
-    for (j in 1:m) {
-      K[i,j] = exp(-sum((X[i, ]- Y[j, ])**2)/p)
-    }
-  }
-  return(K)
-}
 
-krls2 <- function(y,X,lambda,I=NA) {
+# slow, use rcpp version instead
+# createKXY <- function(X, Y){
+#   p <- ncol(X)  # bandwidth square
+#   
+#   n <- nrow(X)
+#   m <- nrow(Y)
+#   K <- matrix(1, nrow = n, ncol = m)
+#   
+#   for(i in 1:n){
+#     for (j in 1:m) {
+#       K[i,j] = exp(-sum((X[i, ]- Y[j, ])**2)/p)
+#     }
+#   }
+#   return(K)
+# }
+
+my_krls2 <- function(y, X, lambda, b = NULL, I=NA) {
   n <- nrow(X)
-  # if (is.na(I)) {
-  #   I <- sample(n, m) # need to pass either "m" or "I"
-  # }
-  #
+  if (is.null(b)){
+    b = ncol(X)
+  }
   if (any(is.na(I))) {
     # full KRLS
     K <-  kern_gauss(X, b = ncol(X))
     ch <- dh <- solve(K + lambda*diag(n), y )
     yh <- K*ch
   } else {
-    R <- new_gauss_kern(X, X[I, ], b= ncol(X))
+    R <- kern_gauss_d(X, X[I, ], b= ncol(X))
     D <- R[I, ]
     RTR <- crossprod(R)
     Del <-  1e-6*diag(length(I))

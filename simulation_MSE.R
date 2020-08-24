@@ -4,7 +4,7 @@ library(randomForest)
 library(ggplot2)
 library(dplyr)
 require(RSpectra)
-set.seed(123)
+set.seed(1)
 source("select_m.R")
 
 ## set the original generating function
@@ -26,8 +26,8 @@ y_pure <- ftru(X_test)
 y_test <- y_pure + rnorm(n_test, sd = sgm)
 
 ## set up saving vectors
-ns <- round(10^seq(3.1, 5.3, 0.3))
-#ns <- c(200, 500, 1000, 1500, 2000)
+# ns <- round(10^seq(3.1, 5.3, 0.3))
+ns <- c(200, 500, 1000, 1500, 2000)
 t <- 1
 Nrep <- 5 #number of simulated training data set
 lambdas = 10^(seq(-6, 2, length.out = 10))

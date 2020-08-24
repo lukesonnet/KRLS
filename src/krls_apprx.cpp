@@ -1,5 +1,5 @@
 #include <RcppArmadillo.h>
-//[[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::depends(RcppArmadillo)]]
 using namespace Rcpp; 
 using namespace arma;
 
@@ -15,7 +15,7 @@ List train_krr(const arma::vec& y_train,
     double M_cond = cond(M);
     
     if (M_cond > 1e6) {
-        //cout << "Inverting is ill-conditioned! Try smaller m and/or larger b." << endl;
+        cout << "Inverting is ill-conditioned! Added perturbation to the matrix. Try smaller m and/or larger b." << endl;
         arma::mat fixer = 1e-6 * eye( size(D) );
         dhat =  solve( M + fixer,  R_train.t() * y_train );
     }else {

@@ -70,5 +70,31 @@ select_lambda <- function(R, D, y, folds = 5,
   return(lambda_opt)
 }
 
+# select lambda based on ch
+# 1/6: still not very sure about this method
+# essentially, we would get the whole n*n kernel matrix
+select_lambda_2 <- function(R, D, y, X, folds = 5,
+                          lambdas = 10^(seq(-6, 2, length.out = 10))){
+  # assign label to each observation
+  labels <- sample(folds, nrow(R), replace = T)
+  cv_MSE <- sapply(lambdas, function(lambda){
+    MSE_vali <- sapply(1:folds, function(v){
+      cv_idx <- which(labels != v)
+      # validation MSE
+      R_vali <- R[cv_idx, ]
+      dh_vali <- train_krr(y[cv_idx], R[cv_idx, ], D, lambda)$dh
+      ch_vali <- R_vali %*% solve(crossprod(R_vali) + diag(length(I)), D %*% dh_vali)
+      K_vali <- new_gauss_kern(X[-cv_idx, ], X[cv_idx, ], b=d)
+      yh_vali <- K_vali %*% ch_vali
+      return(mean((yh_vali- y[-cv_idx])^2))
+    })
+    # average validation MSE
+    return(mean(MSE_vali))
+  })
+  # select optimal lambda
+  lambda_opt <- lambdas[which.min(cv_MSE)]
+  return(lambda_opt)
+}
+
 
 

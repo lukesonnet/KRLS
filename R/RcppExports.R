@@ -61,6 +61,10 @@ new_gauss_kern <- function(newx, oldx, b) {
     .Call(`_KRLS2_new_gauss_kern`, newx, oldx, b)
 }
 
+kern_gauss_d <- function(newx, oldx, b) {
+    .Call(`_KRLS2_kern_gauss_d`, newx, oldx, b)
+}
+
 pwmfx <- function(k, x, coefhat, vcovc_mat, p, p2, b) {
     .Call(`_KRLS2_pwmfx`, k, x, coefhat, vcovc_mat, p, p2, b)
 }
