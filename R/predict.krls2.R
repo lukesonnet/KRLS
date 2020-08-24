@@ -17,9 +17,9 @@ predict.krls2 <- function(object, newdata, se.fit = FALSE, ...) {
     stop("ncol(newdata) differs from ncol(X) from fitted krls object")
   }
   
-  newdataK <- newKernel(X = object$X, newData = newdata, whichkernel = object$kernel, b = object$b)
 
   if (object$loss == "logistic") {
+    newdataK <- newKernel(X = object$X, newData = newdata, whichkernel = object$kernel, b = object$b)
     fit <- predict_logistic(
       newdataK = newdataK,
       dhat = object$dhat,
@@ -31,13 +31,33 @@ predict.krls2 <- function(object, newdata, se.fit = FALSE, ...) {
       se.fit = se.fit
     )
   } else if (object$loss == "leastsquares") {
-    fit <- predict_leastsquares(
-      newdataK = newdataK,
-      y = object$y,
-      coeffs = object$coeffs,
-      vcov.c = object$vcov.c,
-      se.fit = se.fit
-    )
+    
+    if (is.null(object$aprxmethod)){
+      newdataK <- newKernel(X = object$X, newData = newdata, whichkernel = object$kernel, b = object$b)
+      fit <- predict_leastsquares(
+        newdataK = newdataK,
+        y = object$y,
+        coeffs = object$coeffs,
+        vcov.c = object$vcov.c,
+        se.fit = se.fit
+      )
+    }else {
+      R_test <- switch(object$aprxmethod,
+                       nys = newKernel(X = object$X, newData = newdata, 
+                                       whichkernel = object$kernel, b = object$b, I = object$I),
+                       col1 = newKernel(X = object$X, newData = newdata, 
+                                        whichkernel = object$kernel, b = object$b, I = object$I),
+                       col2 = newKernel(X = object$X, newData = newdata, 
+                                        whichkernel = object$kernel, b = object$b, I = object$I),
+                       ske = newKernel(X = object$X, newData = newdata, whichkernel = object$kernel,
+                                       b = object$b) %*% object$I,
+                       stop("No valid Kernel specified"))
+      yfitted <- R_test %*% object$coeffs
+      # transform back to the original scale
+      yfitted <- (yfitted * apply(object$y, 2, sd)) + mean(object$y)
+      fit <- list(fit = yfitted,
+                  newdataK = R_test)
+    }
   }
   
   return(fit)

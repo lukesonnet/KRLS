@@ -123,6 +123,11 @@ krls <- function(# Data arguments
                     truncate = FALSE,
                     epsilon = NULL,
                     lastkeeper = NULL,
+                    # Approximation arguments
+                    aprxmethod = NULL,
+                    m = NULL,
+                    # randomly select some obseravations to get the averaged R^2
+                    n_av = 1000, 
                     # Optimization arguments
                     con = list(maxit=500),
                     returnopt = FALSE,
@@ -311,104 +316,146 @@ krls <- function(# Data arguments
     chunks <- NULL
   }
 
-  ###----------------------------------------
-  ## searching for hyperparameters
-  ###----------------------------------------
-
-  ## If b ix fixed, compute all of the kernels
-  if (!is.null(b)) {
-
-    ## Compute kernel matrix and truncated objects
-    Kdat <- generateK(X=X,
-                      b=b,
-                      control=control)
-
-    if (is.null(lambda)) {
-      lambda <- lambdasearch(y=y,
-                             X=X,
-                             Kdat=Kdat,
-                             control=control,
-                             b=b)
-    }
-  } else { # if(is.null(b)
-
-    if (is.null(lambda)) {
-
-      hyperOut <- lambdabsearch(y=y,
-                                X=X,
-                                control=control)
-      lambda <- hyperOut$lambda
-      b <- hyperOut$b
-
-    } else { # lambda is set
-
-      b <- bsearch(y=y,
-                   X=X,
-                   control=control,
-                   lambda=lambda)
-    }
-
-    Kdat <- generateK(X=X,
-                      b=b,
-                      control=control)
-
-  }
-
-  message("Lambda selected: ", lambda)
-  message("b selected: ", b)
-
-  ###----------------------------------------
-  ## Estimating choice coefficients (solving)
-  ###----------------------------------------
-
-  out <- getDhat(y = y,
-                 U = Kdat$U,
-                 D = Kdat$D,
-                 w = control$w,
-                 lambda = lambda,
-                 con = con,
-                 ctrl = control,
-                 printopt = control$printlevel > 0)
-
-  UDinv <- mult_diag(Kdat$U, 1/Kdat$D)
-
-  coefhat <- UDinv %*% out$dhat
-
-  opt <- NULL
-  if (loss == "leastsquares") {
-
-    yfitted <- Kdat$K %*% coefhat
-    yfitted <- yfitted * y.init.sd + y.init.mean
+ 
+  ## If no approximation
+  if (is.null(aprxmethod)){
     
-  } else {
-
-    yfitted <- logistic(K=Kdat$K, coeff=coefhat, beta0 = out$beta0hat)
-
-    if (returnopt) {
-      opt <- out$opt
+    ###----------------------------------------
+    ## searching for hyperparameters
+    ###----------------------------------------
+    
+    ## If b ix fixed, compute all of the kernels
+    if (!is.null(b)) {
+  
+      ## Compute kernel matrix and truncated objects
+      Kdat <- generateK(X=X,
+                        b=b,
+                        control=control)
+  
+      if (is.null(lambda)) {
+        lambda <- lambdasearch(y=y,
+                               X=X,
+                               Kdat=Kdat,
+                               control=control,
+                               b=b)
+      }
+    } else { # if(is.null(b)
+  
+      if (is.null(lambda)) {
+  
+        hyperOut <- lambdabsearch(y=y,
+                                  X=X,
+                                  control=control)
+        lambda <- hyperOut$lambda
+        b <- hyperOut$b
+  
+      } else { # lambda is set
+  
+        b <- bsearch(y=y,
+                     X=X,
+                     control=control,
+                     lambda=lambda)
+      }
+  
+      Kdat <- generateK(X=X,
+                        b=b,
+                        control=control)
+  
     }
+    
+    # print the selected lambda and b
+    message("Lambda selected: ", lambda)
+    message("b selected: ", b)
+    
+    ###----------------------------------------
+    ## Estimating choice coefficients (solving)
+    ###----------------------------------------
+    out <- getDhat(y = y,
+                   U = Kdat$U,
+                   D = Kdat$D,
+                   w = control$w,
+                   lambda = lambda,
+                   con = con,
+                   ctrl = control,
+                   printopt = control$printlevel > 0)
+    
+    UDinv <- mult_diag(Kdat$U, 1/Kdat$D)
+    
+    coefhat <- UDinv %*% out$dhat
+    
+    opt <- NULL
+    if (loss == "leastsquares") {
+      
+      yfitted <- Kdat$K %*% coefhat
+      yfitted <- yfitted * y.init.sd + y.init.mean
+      
+    } else {
+      
+      yfitted <- logistic(K=Kdat$K, coeff=coefhat, beta0 = out$beta0hat)
+      
+      if (returnopt) {
+        opt <- out$opt
+      }
+    }
+    
+    z <- list(K = Kdat$K,
+              U = Kdat$U,
+              D = Kdat$D,
+              w = control$w,
+              lastkeeper = Kdat$lastkeeper,
+              truncate = truncate,
+              aprxmethod = aprxmethod,
+              coeffs = coefhat,
+              dhat = out$dhat,
+              beta0hat = out$beta0hat,
+              fitted = yfitted,
+              X = X.init,
+              y = y.init,
+              b = b,
+              lambda = lambda,
+              kernel = whichkernel,
+              loss = loss,
+              opt = opt
+    )
+    
+    class(z) <- "krls2"
+    
+    return(z)
+    
+  }else{ ## if some approximation method is used
+    if (n <= 1000)
+      stop("sample size should be greater than 1000 to use approximation method")
+    
+    ## select bandwidth
+    if (is.null(b)){
+      b <- d # the default choice for b
+    }
+    
+    ## select columns
+    if (is.null(m)){
+      m <- n/100 # temporary setting
+    }
+    
+    aprx_result <- switch(aprxmethod,
+                nys = nys_KRLS(X, y, b = b, m= m, n_av = n_av, control = control),
+                col1 = col1_KRLS(X, y, b = b, m= m, n_av = n_av, control = control),
+                col2 = col2_KRLS(X, y, b = b, m= m, n_av = n_av, control = control),
+                ske = ske_KRLS(X, y, b = b, m= m, n_av = n_av, control = control),
+                stop("No approximation method specified") )
+    yfitted <- aprx_result$fitted * y.init.sd + y.init.mean
+    z <- list(I = aprx_result$I,
+              m = m, 
+              aprxmethod = aprxmethod,
+              coeffs = aprx_result$coeffs,
+              fitted = yfitted,
+              X = X.init,
+              y = y.init,
+              lambda = aprx_result$lambda,
+              Rsq = aprx_result$Rsq,
+              kernel = whichkernel,
+              loss = loss)
+    class(z) <- "krls2"
+    return(z)
   }
-
-  z <- list(K = Kdat$K,
-            U = Kdat$U,
-            D = Kdat$D,
-            w = control$w,
-            lastkeeper = Kdat$lastkeeper,
-            truncate = truncate,
-            coeffs = coefhat,
-            dhat = out$dhat,
-            beta0hat = out$beta0hat,
-            fitted = yfitted,
-            X = X.init,
-            y = y.init,
-            b = b,
-            lambda = lambda,
-            kernel = whichkernel,
-            loss = loss,
-            opt = opt
-  )
-
-  class(z) <- "krls2"
-
-  return(z)
+  
 }

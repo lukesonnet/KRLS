@@ -28,6 +28,7 @@ double kern_gauss_1d(const arma::rowvec& x1, const arma::rowvec& x2, const doubl
 
 // Gaussian kernel matrix for a matrix with itself
 // b is sigma, or 2P by default
+
 // [[Rcpp::export]]
 arma::mat kern_gauss(const arma::mat& x, const double& b)
 {
@@ -49,6 +50,7 @@ arma::mat kern_gauss(const arma::mat& x, const double& b)
 }
 
 // Kernel matrix for distance between two matrices
+
 // [[Rcpp::export]]
 arma::mat new_gauss_kern(const arma::mat& newx, const arma::mat& oldx, const double& b) {
   unsigned n1 = newx.n_rows;
@@ -60,6 +62,24 @@ arma::mat new_gauss_kern(const arma::mat& newx, const arma::mat& oldx, const dou
       out(i, j) = kern_gauss_1d(newx.row(i), oldx.row(j), b);
     }
 
+  }
+  return out;
+}
+
+
+// Kernel matrix for distance between two matrices
+
+// [[Rcpp::export]]
+arma::mat kern_gauss_d(const arma::mat& newx, const arma::mat& oldx, const double& b) {
+  unsigned n1 = newx.n_rows;
+  unsigned n2 = oldx.n_rows;
+  arma::mat out(n1, n2);
+  
+  for (unsigned i = 0; i < n1; ++i) {
+    for (unsigned j = 0; j < n2; ++j) {
+      out(i, j) = kern_gauss_1d(newx.row(i), oldx.row(j), b);
+    }
+    
   }
   return out;
 }

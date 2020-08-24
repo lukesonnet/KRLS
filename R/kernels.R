@@ -128,12 +128,15 @@ Ktrunc <- function(X=NULL,
 ## Values:
 ##   'newK' - The new Kernel to be used for prediction
 #' @export
-newKernel <- function(X, newData, whichkernel = "gaussian", b = NULL) {
+newKernel <- function(X, newData, whichkernel = "gaussian", b = NULL, I = NULL) {
   
   # Get values of oldData to scale newData
   Xmeans <- colMeans(X)
   Xsd <- apply(X, 2, sd)
-  X <- scale(X, center = Xmeans, scale = Xsd)
+  if (is.null(I))
+    X <- scale(X, center = Xmeans, scale = Xsd)
+  else
+    X <- scale(X, center = Xmeans, scale = Xsd)[I, ]
   
   # scale new data by means and sd of old data
   newData <- scale(newData, center = Xmeans, scale = Xsd)      

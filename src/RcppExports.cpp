@@ -6,6 +6,45 @@
 
 using namespace Rcpp;
 
+// train_krr
+List train_krr(const arma::vec& y_train, const arma::mat& R_train, const arma::mat& D, const double& lambda);
+RcppExport SEXP _KRLS2_train_krr(SEXP y_trainSEXP, SEXP R_trainSEXP, SEXP DSEXP, SEXP lambdaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type y_train(y_trainSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type R_train(R_trainSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type D(DSEXP);
+    Rcpp::traits::input_parameter< const double& >::type lambda(lambdaSEXP);
+    rcpp_result_gen = Rcpp::wrap(train_krr(y_train, R_train, D, lambda));
+    return rcpp_result_gen;
+END_RCPP
+}
+// test_krr
+List test_krr(const arma::vec& dhat, const arma::vec& y_test, const arma::mat& R_test);
+RcppExport SEXP _KRLS2_test_krr(SEXP dhatSEXP, SEXP y_testSEXP, SEXP R_testSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type dhat(dhatSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type y_test(y_testSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type R_test(R_testSEXP);
+    rcpp_result_gen = Rcpp::wrap(test_krr(dhat, y_test, R_test));
+    return rcpp_result_gen;
+END_RCPP
+}
+// ave_Rsq
+double ave_Rsq(const arma::mat& X, const arma::mat& y);
+RcppExport SEXP _KRLS2_ave_Rsq(SEXP XSEXP, SEXP ySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type y(ySEXP);
+    rcpp_result_gen = Rcpp::wrap(ave_Rsq(X, y));
+    return rcpp_result_gen;
+END_RCPP
+}
 // krls_gr_trunc
 arma::vec krls_gr_trunc(const arma::mat& U, const arma::vec& D, const arma::vec& y, const arma::vec& w, const arma::vec& fitted, const arma::vec& dhat, const double& lambda);
 RcppExport SEXP _KRLS2_krls_gr_trunc(SEXP USEXP, SEXP DSEXP, SEXP ySEXP, SEXP wSEXP, SEXP fittedSEXP, SEXP dhatSEXP, SEXP lambdaSEXP) {
@@ -171,6 +210,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// kern_gauss_d
+arma::mat kern_gauss_d(const arma::mat& newx, const arma::mat& oldx, const double& b);
+RcppExport SEXP _KRLS2_kern_gauss_d(SEXP newxSEXP, SEXP oldxSEXP, SEXP bSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type newx(newxSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type oldx(oldxSEXP);
+    Rcpp::traits::input_parameter< const double& >::type b(bSEXP);
+    rcpp_result_gen = Rcpp::wrap(kern_gauss_d(newx, oldx, b));
+    return rcpp_result_gen;
+END_RCPP
+}
 // pwmfx
 arma::vec pwmfx(const arma::mat& k, const arma::vec& x, const arma::vec& coefhat, const Rcpp::Nullable<Rcpp::NumericMatrix>& vcovc_mat, const arma::vec& p, const arma::vec& p2, const double& b);
 RcppExport SEXP _KRLS2_pwmfx(SEXP kSEXP, SEXP xSEXP, SEXP coefhatSEXP, SEXP vcovc_matSEXP, SEXP pSEXP, SEXP p2SEXP, SEXP bSEXP) {
@@ -219,6 +271,9 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_KRLS2_train_krr", (DL_FUNC) &_KRLS2_train_krr, 4},
+    {"_KRLS2_test_krr", (DL_FUNC) &_KRLS2_test_krr, 3},
+    {"_KRLS2_ave_Rsq", (DL_FUNC) &_KRLS2_ave_Rsq, 2},
     {"_KRLS2_krls_gr_trunc", (DL_FUNC) &_KRLS2_krls_gr_trunc, 7},
     {"_KRLS2_krls_hess_trunc_inv", (DL_FUNC) &_KRLS2_krls_hess_trunc_inv, 4},
     {"_KRLS2_krlogit_fn_trunc", (DL_FUNC) &_KRLS2_krlogit_fn_trunc, 6},
@@ -231,6 +286,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_KRLS2_kern_gauss_1d", (DL_FUNC) &_KRLS2_kern_gauss_1d, 3},
     {"_KRLS2_kern_gauss", (DL_FUNC) &_KRLS2_kern_gauss, 2},
     {"_KRLS2_new_gauss_kern", (DL_FUNC) &_KRLS2_new_gauss_kern, 3},
+    {"_KRLS2_kern_gauss_d", (DL_FUNC) &_KRLS2_kern_gauss_d, 3},
     {"_KRLS2_pwmfx", (DL_FUNC) &_KRLS2_pwmfx, 7},
     {"_KRLS2_solve_for_d_ls", (DL_FUNC) &_KRLS2_solve_for_d_ls, 4},
     {"_KRLS2_solve_for_d_ls_w", (DL_FUNC) &_KRLS2_solve_for_d_ls_w, 5},
